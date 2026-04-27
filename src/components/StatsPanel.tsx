@@ -12,8 +12,7 @@ import {
 type StatsPanelProps = { state: GameState };
 
 export const StatsPanel = ({ state }: StatsPanelProps) => (
-  <section className="panel stats-panel">
-    <h3>Stats</h3>
+  <section className="stats-panel">
     <ul>
       <li>Current speed: {getIdleMilesPerSecond(state).toFixed(4)} mi/sec</li>
       <li>Click distance: {getClickMiles(state).toFixed(4)} mi</li>

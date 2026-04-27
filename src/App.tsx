@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BottomNav } from './components/BottomNav';
+import { BottomControls } from './components/BottomControls';
+import { GameHUD } from './components/GameHUD';
+import { GameOverlaySheet } from './components/GameOverlaySheet';
 import { GameSceneCanvas } from './components/GameSceneCanvas';
-import { ProgressPanel } from './components/ProgressPanel';
 import { RandomEventOverlay } from './components/RandomEventOverlay';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ShopModal } from './components/ShopModal';
 import { StatsPanel } from './components/StatsPanel';
-import { TopStatsBar } from './components/TopStatsBar';
-import { WalkButton } from './components/WalkButton';
 import { LOGIC_TICK_RATE_MS } from './game/constants';
 import { getClickMiles, calculateOfflineProgress } from './game/formulas';
 import { RANDOM_EVENTS } from './game/randomEvents';
@@ -48,7 +47,6 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    let interval: number;
     const tick = () => {
       const nowPerf = performance.now();
       const deltaSeconds = Math.min(0.5, (nowPerf - lastFrameRef.current) / 1000);
@@ -65,7 +63,7 @@ const App = () => {
       });
     };
 
-    interval = window.setInterval(tick, LOGIC_TICK_RATE_MS);
+    const interval = window.setInterval(tick, LOGIC_TICK_RATE_MS);
     return () => window.clearInterval(interval);
   }, []);
 
@@ -193,43 +191,38 @@ const App = () => {
     }
   };
 
-  return (
-    <div className="app-shell">
-      <TopStatsBar state={state} />
-      <main className="main-stack">
-        <GameSceneCanvas state={state} onEventClaim={onClaimEvent} />
-        <RandomEventOverlay spawnedEvent={state.spawnedEvent} onClaim={onClaimEvent} />
-        <ProgressPanel state={state} />
-        <WalkButton onWalk={onWalk} />
+  const closeOverlay = () => {
+    setState((prev) => ({
+      ...prev,
+      ui: {
+        ...prev.ui,
+        showShop: false,
+        activeTab: 'walk'
+      }
+    }));
+  };
 
-        {state.ui.activeTab === 'stats' && <StatsPanel state={state} />}
-        {state.ui.activeTab === 'settings' && (
-          <SettingsPanel
-            soundEnabled={state.settings.soundEnabled}
-            reducedMotion={state.settings.reducedMotion}
-            onReset={onReset}
-            onExport={onExport}
-            onImport={onImport}
-            onToggleSound={() =>
-              setState((prev) => ({
-                ...prev,
-                settings: { ...prev.settings, soundEnabled: !prev.settings.soundEnabled }
-              }))
-            }
-            onToggleReducedMotion={() =>
-              setState((prev) => ({
-                ...prev,
-                settings: { ...prev.settings, reducedMotion: !prev.settings.reducedMotion }
-              }))
-            }
-          />
-        )}
-      </main>
+  const openTab = (tab: GameState['ui']['activeTab']) => {
+    setState((prev) => ({
+      ...prev,
+      ui: {
+        ...prev.ui,
+        activeTab: tab,
+        showShop: tab === 'shop'
+      }
+    }));
+  };
+
+  return (
+    <div className="game-shell">
+      <GameSceneCanvas state={state} onEventClaim={onClaimEvent} />
+      <GameHUD state={state} />
+      <RandomEventOverlay spawnedEvent={state.spawnedEvent} onClaim={onClaimEvent} />
 
       {state.ui.offlineSummary && (
         <aside className="panel offline-banner">
-          While you were gone, you walked {state.ui.offlineSummary.distance.toFixed(2)} miles and earned{' '}
-          {Math.floor(state.ui.offlineSummary.wb).toLocaleString()} WB.
+          You walked {state.ui.offlineSummary.distance.toFixed(2)} mi and earned{' '}
+          {Math.floor(state.ui.offlineSummary.wb).toLocaleString()} WB while away.
           <button
             type="button"
             className="mini-btn"
@@ -247,40 +240,44 @@ const App = () => {
 
       {state.ui.toast && <aside className="panel toast">{state.ui.toast}</aside>}
 
-      <BottomNav
-        active={state.ui.activeTab}
-        onSelect={(tab) =>
-          setState((prev) => ({
-            ...prev,
-            ui: {
-              ...prev.ui,
-              activeTab: tab,
-              showShop: tab === 'shop' ? true : prev.ui.showShop
-            }
-          }))
-        }
-      />
+      <BottomControls active={state.ui.activeTab} onWalk={onWalk} onSelect={openTab} />
 
-      {(state.ui.showShop || state.ui.activeTab === 'shop') && (
+      <GameOverlaySheet open={state.ui.activeTab === 'shop' || state.ui.showShop} title="Shop" onClose={closeOverlay}>
         <ShopModal
           state={state}
-          onClose={() =>
-            setState((prev) => ({
-              ...prev,
-              ui: {
-                ...prev.ui,
-                showShop: false,
-                activeTab: 'walk'
-              }
-            }))
-          }
           onTab={(tab) => setState((prev) => ({ ...prev, ui: { ...prev.ui, shopTab: tab } }))}
           onBuyUpgrade={onBuyUpgrade}
           onBuyFollower={onBuyFollower}
           isUpgradeUnlocked={canUnlock}
           isFollowerUnlocked={canUnlock}
         />
-      )}
+      </GameOverlaySheet>
+
+      <GameOverlaySheet open={state.ui.activeTab === 'stats'} title="Stats" onClose={closeOverlay}>
+        <StatsPanel state={state} />
+      </GameOverlaySheet>
+
+      <GameOverlaySheet open={state.ui.activeTab === 'settings'} title="Settings" onClose={closeOverlay}>
+        <SettingsPanel
+          soundEnabled={state.settings.soundEnabled}
+          reducedMotion={state.settings.reducedMotion}
+          onReset={onReset}
+          onExport={onExport}
+          onImport={onImport}
+          onToggleSound={() =>
+            setState((prev) => ({
+              ...prev,
+              settings: { ...prev.settings, soundEnabled: !prev.settings.soundEnabled }
+            }))
+          }
+          onToggleReducedMotion={() =>
+            setState((prev) => ({
+              ...prev,
+              settings: { ...prev.settings, reducedMotion: !prev.settings.reducedMotion }
+            }))
+          }
+        />
+      </GameOverlaySheet>
     </div>
   );
 };
