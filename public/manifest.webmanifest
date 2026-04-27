@@ -1,0 +1,10 @@
+{
+  "name": "Walk The World",
+  "short_name": "Walk",
+  "description": "An idle walking game in the Walker World universe.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#facc15",
+  "icons": []
+}
