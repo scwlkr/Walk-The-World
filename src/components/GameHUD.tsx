@@ -21,13 +21,22 @@ export const GameHUD = ({ state }: GameHUDProps) => {
 
   return (
     <header className="game-hud" aria-label="Game HUD">
-      <div className="hud-panel hud-top-row">
-        <strong>WB {Math.floor(state.walkerBucks).toLocaleString()}</strong>
-        <strong>{currentLoopDistance.toFixed(1)} mi</strong>
-        <strong>{speed.toFixed(3)} mi/s</strong>
-      </div>
+      <section className="hud-strip hud-main-strip">
+        <div className="hud-chip">
+          <small>WB</small>
+          <strong>{Math.floor(state.walkerBucks).toLocaleString()}</strong>
+        </div>
+        <div className="hud-chip">
+          <small>Distance</small>
+          <strong>{currentLoopDistance.toFixed(1)} mi</strong>
+        </div>
+        <div className="hud-chip">
+          <small>Speed</small>
+          <strong>{speed.toFixed(3)} mi/s</strong>
+        </div>
+      </section>
 
-      <div className="hud-panel hud-progress-wrap">
+      <section className="hud-strip hud-route-strip">
         <div className="hud-progress-head">
           <span>Earth {earthPercent.toFixed(2)}%</span>
           <span>Loop {state.earthLoopsCompleted}</span>
@@ -39,7 +48,7 @@ export const GameHUD = ({ state }: GameHUDProps) => {
           {current.name} → {next.name}
           {next.name !== current.name ? ` · ${milesToNext.toFixed(1)} mi` : ''}
         </p>
-      </div>
+      </section>
     </header>
   );
 };

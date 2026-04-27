@@ -8,14 +8,23 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { ShopModal } from './components/ShopModal';
 import { StatsPanel } from './components/StatsPanel';
 import { LOGIC_TICK_RATE_MS } from './game/constants';
-import { getClickMiles, calculateOfflineProgress } from './game/formulas';
+import { calculateOfflineProgress, getClickMiles } from './game/formulas';
 import { RANDOM_EVENTS } from './game/randomEvents';
 import { exportSave, importSave, loadGameState, resetGameState, saveGameState } from './game/save';
 import { applyDistanceAndWb, clearToast, resolveRandomEvent, runGameTick, shouldAutoSave } from './game/tick';
 import type { Follower, GameState, Upgrade } from './game/types';
 
+type TapFeedback = {
+  id: number;
+  x: number;
+  y: number;
+  distance: number;
+};
+
 const App = () => {
   const [state, setState] = useState<GameState>(() => loadGameState());
+  const [tapFeedback, setTapFeedback] = useState<TapFeedback[]>([]);
+  const [tapPulse, setTapPulse] = useState(0);
   const lastFrameRef = useRef<number>(performance.now());
 
   useEffect(() => {
@@ -79,6 +88,12 @@ const App = () => {
     return () => window.clearTimeout(timer);
   }, [state.ui.toast]);
 
+  useEffect(() => {
+    if (tapPulse <= 0) return;
+    const timer = window.setTimeout(() => setTapPulse((prev) => Math.max(0, prev - 0.34)), 45);
+    return () => window.clearTimeout(timer);
+  }, [tapPulse]);
+
   const canUnlock = useMemo(
     () =>
       (requirement?: {
@@ -98,7 +113,7 @@ const App = () => {
     [state]
   );
 
-  const onWalk = () => {
+  const onWalk = (tapPosition?: { x: number; y: number }) => {
     const distance = getClickMiles(state);
     setState((prev) => {
       const next = applyDistanceAndWb(
@@ -114,6 +129,16 @@ const App = () => {
       saveGameState(next);
       return next;
     });
+
+    if (tapPosition) {
+      const id = Date.now() + Math.floor(Math.random() * 1000);
+      setTapFeedback((prev) => [...prev, { id, x: tapPosition.x, y: tapPosition.y, distance }]);
+      window.setTimeout(() => {
+        setTapFeedback((prev) => prev.filter((item) => item.id !== id));
+      }, 700);
+    }
+
+    setTapPulse(1);
   };
 
   const onBuyUpgrade = (upgrade: Upgrade) => {
@@ -215,9 +240,17 @@ const App = () => {
 
   return (
     <div className="game-shell">
-      <GameSceneCanvas state={state} onEventClaim={onClaimEvent} />
+      <GameSceneCanvas state={state} onEventClaim={onClaimEvent} tapPulse={tapPulse} onSceneTap={(x, y) => onWalk({ x, y })} />
       <GameHUD state={state} />
       <RandomEventOverlay spawnedEvent={state.spawnedEvent} onClaim={onClaimEvent} />
+
+      <div className="tap-feedback-layer" aria-hidden="true">
+        {tapFeedback.map((item) => (
+          <div key={item.id} className="tap-feedback" style={{ left: item.x, top: item.y }}>
+            +{item.distance.toFixed(3)} mi
+          </div>
+        ))}
+      </div>
 
       {state.ui.offlineSummary && (
         <aside className="panel offline-banner">
@@ -240,7 +273,7 @@ const App = () => {
 
       {state.ui.toast && <aside className="panel toast">{state.ui.toast}</aside>}
 
-      <BottomControls active={state.ui.activeTab} onWalk={onWalk} onSelect={openTab} />
+      <BottomControls active={state.ui.activeTab} onSelect={openTab} />
 
       <GameOverlaySheet open={state.ui.activeTab === 'shop' || state.ui.showShop} title="Shop" onClose={closeOverlay}>
         <ShopModal

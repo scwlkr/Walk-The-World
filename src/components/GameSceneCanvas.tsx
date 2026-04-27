@@ -5,6 +5,8 @@ import { getCurrentLandmark, getEarthProgressPercent, getIdleMilesPerSecond } fr
 type GameSceneCanvasProps = {
   state: GameState;
   onEventClaim: () => void;
+  tapPulse: number;
+  onSceneTap: (x: number, y: number) => void;
 };
 
 const biomePalette: Record<
@@ -75,7 +77,7 @@ const biomePalette: Record<
   }
 };
 
-export const GameSceneCanvas = ({ state, onEventClaim }: GameSceneCanvasProps) => {
+export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: GameSceneCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number>();
 
@@ -166,17 +168,33 @@ export const GameSceneCanvas = ({ state, onEventClaim }: GameSceneCanvasProps) =
         ctx.fillRect(propX - 4, groundY - 24, 16, 8);
       }
 
-      const bob = Math.sin(elapsed * 8.5) * 3;
-      const playerX = width * 0.28;
-      const playerY = pathY - 40 + bob;
+      const cadence = 4 + Math.min(12, speed * 22);
+      const strideSwing = Math.sin(elapsed * cadence) * 5;
+      const bob = Math.sin(elapsed * cadence * 0.9) * (2.5 + Math.min(3, speed * 2)) - tapPulse * 9;
+      const playerX = width * 0.25;
+      const playerY = pathY - 78 + bob;
+
       ctx.fillStyle = '#facc15';
-      ctx.fillRect(playerX, playerY, 16, 18);
+      ctx.fillRect(playerX + 4, playerY, 26, 30);
+      ctx.fillStyle = '#854d0e';
+      ctx.fillRect(playerX + 10, playerY - 10, 14, 10);
       ctx.fillStyle = '#1e293b';
-      ctx.fillRect(playerX + 3, playerY + 4, 3, 3);
-      ctx.fillRect(playerX + 10, playerY + 4, 3, 3);
+      ctx.fillRect(playerX + 10, playerY + 8, 4, 4);
+      ctx.fillRect(playerX + 21, playerY + 8, 4, 4);
+
+      const leftLegOffset = strideSwing > 0 ? 6 : 0;
+      const rightLegOffset = strideSwing < 0 ? 6 : 0;
       ctx.fillStyle = '#b45309';
-      ctx.fillRect(playerX - 1, playerY + 18, 7, 6);
-      ctx.fillRect(playerX + 10, playerY + 18, 7, 6);
+      ctx.fillRect(playerX + 7, playerY + 30 + leftLegOffset, 8, 18 - leftLegOffset);
+      ctx.fillRect(playerX + 19, playerY + 30 + rightLegOffset, 8, 18 - rightLegOffset);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(playerX + 5, playerY + 47 + leftLegOffset, 12, 5);
+      ctx.fillRect(playerX + 17, playerY + 47 + rightLegOffset, 12, 5);
+
+      if (tapPulse > 0.01) {
+        ctx.fillStyle = `rgba(255,255,255,${0.15 + tapPulse * 0.25})`;
+        ctx.fillRect(playerX + 2, pathY + 8, 30, 4);
+      }
 
       if (state.spawnedEvent) {
         const pulse = 1 + Math.sin(elapsed * 8) * 0.15;
@@ -193,7 +211,7 @@ export const GameSceneCanvas = ({ state, onEventClaim }: GameSceneCanvasProps) =
       }
 
       ctx.fillStyle = 'rgba(2,6,23,0.55)';
-      ctx.fillRect(10, height - 40, 200, 24);
+      ctx.fillRect(10, height - 40, 220, 24);
       ctx.fillStyle = '#f8fafc';
       ctx.font = 'bold 11px monospace';
       ctx.fillText(`${landmark.name} · Earth ${progress.toFixed(2)}%`, 16, height - 24);
@@ -207,20 +225,23 @@ export const GameSceneCanvas = ({ state, onEventClaim }: GameSceneCanvasProps) =
       window.removeEventListener('resize', resize);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [state, onEventClaim]);
+  }, [state, onEventClaim, tapPulse]);
 
   return (
     <canvas
       ref={canvasRef}
       className="game-canvas"
-      onClick={(event) => {
-        if (!state.spawnedEvent) return;
-        const rect = (event.target as HTMLCanvasElement).getBoundingClientRect();
+      onPointerDown={(event) => {
+        const rect = (event.currentTarget as HTMLCanvasElement).getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
-        if (x > rect.width * 0.67 && x < rect.width * 0.82 && y > rect.height * 0.6 && y < rect.height * 0.86) {
+
+        if (state.spawnedEvent && x > rect.width * 0.67 && x < rect.width * 0.82 && y > rect.height * 0.6 && y < rect.height * 0.86) {
           onEventClaim();
+          return;
         }
+
+        onSceneTap(x, y);
       }}
     />
   );
