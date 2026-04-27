@@ -25,8 +25,7 @@ export const SettingsPanel = ({
   };
 
   return (
-    <section className="panel settings-panel">
-      <h3>Settings</h3>
+    <section className="settings-panel">
       <div className="settings-actions">
         <button type="button" className="mini-btn" onClick={onToggleSound}>
           Sound: {soundEnabled ? 'On' : 'Off'} (placeholder)
@@ -34,9 +33,15 @@ export const SettingsPanel = ({
         <button type="button" className="mini-btn" onClick={onToggleReducedMotion}>
           Reduced motion: {reducedMotion ? 'On' : 'Off'}
         </button>
-        <button type="button" className="mini-btn" onClick={onExport}>Export Save</button>
-        <button type="button" className="mini-btn" onClick={importPrompt}>Import Save</button>
-        <button type="button" className="mini-btn danger" onClick={onReset}>Reset Save</button>
+        <button type="button" className="mini-btn" onClick={onExport}>
+          Export Save
+        </button>
+        <button type="button" className="mini-btn" onClick={importPrompt}>
+          Import Save
+        </button>
+        <button type="button" className="mini-btn danger" onClick={onReset}>
+          Reset Save
+        </button>
       </div>
       <p className="muted">Version: {GAME_VERSION}</p>
     </section>
