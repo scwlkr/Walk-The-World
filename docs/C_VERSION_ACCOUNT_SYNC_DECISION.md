@@ -95,10 +95,10 @@ Discord should be handled in Phase 7 after account save and WalkerBucks bridge d
 
 Supabase owns cloud persistence for the C-version game save. The browser keeps localStorage as the guest and offline-first cache.
 
-Cloud save shape:
+Cloud save shape in the shared `WalkerWorld` Supabase project:
 
 ```text
-game_saves
+walk_the_world.game_saves
 - user_id uuid primary key references auth.users(id)
 - save_version integer not null
 - save_payload jsonb not null
@@ -167,27 +167,33 @@ Phase 5 must preserve:
 Recommended SQL for the C-version cloud save table:
 
 ```sql
-create table if not exists public.game_saves (
+create schema if not exists walk_the_world;
+
+grant usage on schema walk_the_world to anon, authenticated;
+
+create table if not exists walk_the_world.game_saves (
   user_id uuid primary key references auth.users(id) on delete cascade,
   save_version integer not null,
   save_payload jsonb not null,
   updated_at timestamptz not null default now()
 );
 
-alter table public.game_saves enable row level security;
+alter table walk_the_world.game_saves enable row level security;
+
+grant select, insert, update on walk_the_world.game_saves to authenticated;
 
 create policy "Players can read their own game save"
-on public.game_saves
+on walk_the_world.game_saves
 for select
 using (auth.uid() = user_id);
 
 create policy "Players can insert their own game save"
-on public.game_saves
+on walk_the_world.game_saves
 for insert
 with check (auth.uid() = user_id);
 
 create policy "Players can update their own game save"
-on public.game_saves
+on walk_the_world.game_saves
 for update
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);

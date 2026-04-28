@@ -165,6 +165,30 @@ VITE_WALKERBUCKS_BRIDGE_URL=
 
 See `.env.example`, `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`, and `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` for setup details. Without these variables, the app stays in guest/local mode.
 
+Repo-controlled Supabase setup now lives in:
+
+- `supabase/config.toml`
+- `supabase/migrations/20260428063000_create_game_saves.sql`
+- `supabase/functions/walkerbucks-bridge/index.ts`
+- `docs/WALKERWORLD_SUPABASE_ARCHITECTURE.md`
+
+Live private-beta smoke command:
+
+```bash
+npm run smoke:private-beta-live
+```
+
+Required smoke env vars:
+
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+WTW_BETA_SMOKE_EMAIL=
+WTW_BETA_SMOKE_PASSWORD=
+```
+
+Set `WTW_BETA_SMOKE_REQUIRE_BRIDGE=true` and `WTW_BETA_SMOKE_ALLOW_PURCHASE=true` for the full live WalkerBucks bridge smoke. Use `WTW_BETA_SMOKE_PURCHASE_OFFER_ID=13` when you need the idempotent 20 WB private-beta purchase proof.
+
 ## WalkerBucks API Readiness
 
 Local WB remains the guest-play currency for upgrades and offline play. Shared WalkerBucks now has a trusted bridge contract, optional Supabase Edge Function scaffold, shared-balance read, first server-backed reward path, leaderboard read, and marketplace purchase proof.
@@ -173,7 +197,7 @@ Local WB remains the guest-play currency for upgrades and offline play. Shared W
 - WalkerBucks API URL and service token belong in server-side function secrets.
 - The first server-backed reward source is `achievement:day_one_check_in`.
 - Failed shared-WB grants persist in the local save and can be retried with the same idempotency key.
-- Live shared-economy QA still requires a deployed bridge function and reachable WalkerBucks API.
+- Live shared-economy QA passes through the deployed Supabase bridge and hosted WalkerBucks API.
 
 No real-money value, no crypto, no paid loot boxes.
 
@@ -181,8 +205,8 @@ No real-money value, no crypto, no paid loot boxes.
 
 - This is private beta software, not a public launch build.
 - Guest/local play works without Supabase, WalkerBucks, Discord, or Telegram configuration.
-- Account sync is implemented but live recovery requires Supabase env vars plus the `game_saves` table/RLS setup.
-- Shared WalkerBucks balance, Day One Walker shared reward, leaderboard, and marketplace proof require the deployed bridge function, server-only bridge secrets, Supabase auth, and a reachable WalkerBucks API.
+- Account sync is implemented and live recovery has passed against `walk_the_world.game_saves` in the shared `WalkerWorld` Supabase project.
+- Shared WalkerBucks balance, Day One Walker shared reward, leaderboard, offer loading, and the beta marketplace purchase proof pass through the trusted bridge.
 - Local WB remains the upgrade/play currency; shared WalkerBucks is read and spent only through the trusted bridge.
 - Marketplace purchases remain shared WalkerBucks item instances; shared inventory is not merged into local game inventory yet.
 - Discord reward linking is contract-defined only. Telegram remains deferred until Discord linking and shared WalkerBucks flows are stable.
@@ -237,13 +261,13 @@ public/assets/audio/sfx/random_event.ogg
 | Prestige / world expansion | Shipped | Earth prestige grants permanent bonuses and unlocks Moon progression. |
 | Moon fully playable | Shipped | Moon world, route progress, landmarks, and scene assets are playable after prestige. |
 | Mars/Solar System tiers | Future-planned | Locked data scaffolds exist; full tiers are intentionally deferred beyond C. |
-| Supabase account sync | Gated | Client UI and cloud-save code are implemented; live recovery requires Supabase env vars and `game_saves` table/RLS setup. |
-| Shared WalkerBucks economy API | Gated | Browser calls only the trusted bridge; live QA requires deployed bridge secrets and reachable WalkerBucks API. |
-| Server-authoritative rewards | Gated | Day One Walker has the first idempotent shared-WB reward path; live grant QA waits on bridge deployment/configuration. |
-| Leaderboards | Gated | Shared WalkerBucks balance leaderboard is implemented through the bridge; live QA waits on account/bridge configuration. |
+| Supabase account sync | Shipped | Client UI, cloud-save code, Supabase config, `walk_the_world.game_saves`, RLS, and live upload/load smoke are implemented. |
+| Shared WalkerBucks economy API | Shipped | Hosted WalkerBucks API, server-only bridge secrets, and bridge live smoke are complete. |
+| Server-authoritative rewards | Shipped | Day One Walker has the first idempotent shared-WB reward path and live grant smoke passes. |
+| Leaderboards | Shipped | Shared WalkerBucks balance leaderboard is implemented through the bridge and live smoke passes. |
 | Daily quests | Shipped | Local daily quest generation, progress, rewards, and persistence are in place. |
 | Seasonal events | Shipped | Spring Stride Festival framework, visual treatment, quest variation, and rewards are in place. |
-| Marketplace/inventory integration | Gated | Shared WalkerBucks offer loading and purchase proof are implemented; shared inventory-to-game merge is future work. |
+| Marketplace/inventory integration | Shipped | Shared WalkerBucks offer loading and beta purchase proof pass; full shared inventory-to-game merge is future work. |
 | Discord/Telegram reward bridge | Gated | Discord identity-linking contract is documented server-side; Telegram is deferred until Discord linking is stable. |
 
 Persistent C-version planning lives in:

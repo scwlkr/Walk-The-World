@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "smoke:private-beta-live": "node scripts/live-private-beta-smoke.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.0",

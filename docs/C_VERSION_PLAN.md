@@ -35,9 +35,10 @@ Current C-adjacent assets:
 
 Known repo gaps:
 
-- No tests are configured beyond `npm run build`.
-- No backend/auth package exists in this repo.
+- No automated tests are configured beyond `npm run build` and the optional live private-beta smoke runner.
+- Supabase client/Edge Function artifacts are linked to the shared `WalkerWorld` Supabase project.
 - WalkerBucks API exists in a separate repo, but `/v1/accounts/me` auth is stubbed and privileged endpoints need a trusted caller.
+- No hosted WalkerBucks API URL is configured in this checkout.
 - Local item/cosmetic panels exist; shared WalkerBucks inventory is not merged into local game inventory yet.
 
 ## Phase Checklist
@@ -51,6 +52,7 @@ Known repo gaps:
 - [x] Phase 6: WalkerBucks bridge and server-authoritative rewards.
 - [x] Phase 7: Leaderboards, marketplace proof, Discord bridge, and Telegram decision.
 - [x] Phase 8: Private beta hardening and release gate.
+- [x] Live private-beta configuration pass: live Supabase project link, WalkerBucks API deployment, bridge config, and external smoke tests.
 
 ## Phase 0: Scope And Planning Artifacts
 
@@ -391,7 +393,7 @@ Manual/config checks:
 - [x] Confirmed no local Supabase env vars are configured in the current shell; guest mode remains the default path.
 - [x] Account panel disables sync cleanly when `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are missing.
 - [x] Export/import/reset controls remain in Settings next to the account panel.
-- [ ] Live Supabase sign-in/upload/load smoke test is pending a configured Supabase project, env vars, and `game_saves` table.
+- [x] Live Supabase sign-in/upload/load smoke test passed against `walk_the_world.game_saves`.
 
 Resolved decisions:
 
@@ -469,7 +471,7 @@ Manual/config checks:
 - [x] Confirmed browser config only adds `VITE_WALKERBUCKS_BRIDGE_URL`; WalkerBucks API URL/service token are server-only bridge secrets documented in `docs/C_VERSION_WALKERBUCKS_BRIDGE.md`.
 - [x] Confirmed missing bridge URL leaves the app in guest/local mode.
 - [x] Confirmed save migration advances to version 6 with persisted WalkerBucks bridge reward state.
-- [ ] Live WalkerBucks grant smoke test is pending a deployed Supabase Edge Function, `WALKERBUCKS_API_URL`, optional `WALKERBUCKS_SERVICE_TOKEN`, Supabase auth env vars, and a reachable WalkerBucks API.
+- [x] Live WalkerBucks grant smoke test passed against the deployed Supabase Edge Function and hosted WalkerBucks API.
 
 Implemented:
 
@@ -530,7 +532,7 @@ Manual/config checks:
 - [x] Confirmed missing bridge URL or missing signed-in session leaves leaderboard and marketplace controls disabled while local guest play remains available.
 - [x] Confirmed browser code only calls `VITE_WALKERBUCKS_BRIDGE_URL`; WalkerBucks API URL/service token and future Discord secrets remain server-side.
 - [x] Confirmed marketplace purchase requests send only offer ID and idempotency key; price, item definition, account ID, balance, and inventory are resolved through the trusted bridge.
-- [ ] Live WalkerBucks leaderboard and marketplace purchase smoke test is pending a deployed Supabase Edge Function, `VITE_WALKERBUCKS_BRIDGE_URL`, `WALKERBUCKS_API_URL`, optional `WALKERBUCKS_SERVICE_TOKEN`, Supabase auth env vars, and seeded WalkerBucks shop offers.
+- [x] Live WalkerBucks leaderboard and marketplace purchase smoke test passed through the deployed bridge with seeded WalkerBucks shop offers.
 
 Implemented:
 
@@ -619,6 +621,43 @@ Implemented:
 - Updated README current behavior, save version, private beta limitations, and C-version roadmap statuses.
 - Updated this checklist and handoff with release-gate evidence and live-service blockers.
 
+## Live Private Beta Configuration Pass
+
+Status: complete.
+
+Scope:
+
+- Configure Supabase auth/cloud save and the `game_saves` table/RLS.
+- Deploy `supabase/functions/walkerbucks-bridge` with server-only WalkerBucks configuration.
+- Run live Supabase upload/load recovery plus shared WalkerBucks reward, leaderboard, and marketplace smoke tests.
+- Keep guest/local mode working if Supabase, WalkerBucks, or Discord is unavailable.
+- Never expose privileged WalkerBucks or Discord secrets in `VITE_*` or browser code.
+
+Completed repo-side setup:
+
+- [x] Ran `supabase init` and checked in `supabase/config.toml`.
+- [x] Added `supabase/migrations/20260428063000_create_game_saves.sql` with `game_saves` and owner-only RLS policies.
+- [x] Added `npm run smoke:private-beta-live` for live Supabase cloud-save, bridge reward, leaderboard, marketplace offer, and optional marketplace purchase smoke checks.
+- [x] Kept WalkerBucks and Discord privileged secrets out of `VITE_*`, `.env.example`, and browser code.
+- [x] Linked this repo to the shared `WalkerWorld` Supabase project `qiqssyqofbbjoqnydjrm`.
+- [x] Moved cloud save storage to `walk_the_world.game_saves` for shared-project isolation.
+- [x] Pushed the `walk_the_world.game_saves` migration and RLS policies.
+- [x] Pushed Supabase API/Auth config for `https://walk-the-world.vercel.app/`, local dev redirects, and email/password auth with confirmations off.
+- [x] Deployed `walkerbucks-bridge` as an active Supabase Edge Function.
+- [x] Set browser-safe Supabase env vars in Vercel Production, Preview, and Development.
+- [x] Deployed the production app to `https://walk-the-world.vercel.app/`, including a final redeploy after `VITE_WALKERBUCKS_BRIDGE_URL` was configured.
+- [x] Live Supabase auth plus cloud-save upload/load smoke passed with a disposable beta smoke account.
+- [x] WalkerBucks is hosted at `https://walkerbucks.vercel.app`.
+- [x] Supabase Edge Function secrets are set for `WALKERBUCKS_API_URL` and `WALKERBUCKS_SERVICE_TOKEN`.
+- [x] Vercel Production, Preview, and Development have `VITE_WALKERBUCKS_BRIDGE_URL`.
+- [x] Added a 20 WB `Version C Smoke Ticket` offer in the `walkerbucks` schema so the 20 WB Day One reward can prove a purchase.
+- [x] Live bridge smoke passed for shared balance, Day One reward, leaderboard, marketplace offers, and marketplace purchase.
+- [x] Final post-deploy live smoke passed with `cloudSaveRunId` `fbd8dd0b-fe4a-4908-9b4d-4bf0efcc8417`, 6 leaderboard entries, 13 marketplace offers, and `purchaseStatus` `purchased`.
+
+Blocked live steps:
+
+- None for the Version C live private-beta configuration pass.
+
 ## README Roadmap Mapping
 
 | README item | C target status | Current plan |
@@ -631,13 +670,13 @@ Implemented:
 | Prestige / world expansion | Shipped | Phase 3 prestige and world model. |
 | Moon fully playable | Shipped | Phase 3 playable Moon after distance decision. |
 | Mars/Solar System tiers | Future-planned | Phase 3 locked data scaffolding; full tiers remain out of C scope. |
-| Supabase account sync | Gated | Phase 5 client/auth/cloud-save code shipped; live recovery QA requires Supabase env vars and `game_saves` setup. |
-| Shared WalkerBucks economy API | Gated | Phase 6 bridge contract and browser-safe integration shipped; live QA requires deployed bridge and WalkerBucks API setup. |
-| Server-authoritative rewards | Gated | Phase 6 first idempotent reward path shipped; live grant QA requires deployed bridge/account setup. |
-| Leaderboards | Gated | Phase 7 shared WalkerBucks balance leaderboard shipped through the trusted bridge; live QA requires account/bridge setup. |
+| Supabase account sync | Shipped | Phase 5 client/auth/cloud-save code, shared `walk_the_world.game_saves`, RLS, Vercel env, and live recovery smoke are complete. |
+| Shared WalkerBucks economy API | Shipped | Phase 6 bridge contract, hosted API, server-only secrets, browser-safe bridge URL, and live bridge smoke are complete. |
+| Server-authoritative rewards | Shipped | Phase 6 first idempotent reward path passes live through the trusted bridge. |
+| Leaderboards | Shipped | Phase 7 shared WalkerBucks balance leaderboard passes live through the trusted bridge. |
 | Daily quests | Shipped | Phase 4 local generation, progress, rewards, and persistence. |
 | Seasonal events | Shipped | Phase 4 Spring Stride framework and example event. |
-| Marketplace/inventory integration | Gated | Phase 7 WalkerBucks shop offer and purchase proof shipped; shared inventory is not merged into local inventory yet. |
+| Marketplace/inventory integration | Shipped | Phase 7 WalkerBucks shop offer and purchase proof pass live; shared inventory merge into local inventory remains future work. |
 | Discord/Telegram reward bridge | Gated | Phase 7 defines Discord identity linking, keeps Discord secrets server-side, and defers Telegram until Discord is stable. |
 
 ## Blocked Or Deferred Items
@@ -652,12 +691,12 @@ Implemented:
 
 - Status: resolved for C.
 - Decision: Supabase owns game auth/profile/cloud save for C.
-- Follow-up: configure Supabase env vars and `game_saves` table before live auth/sync QA.
+- Follow-up: keep future Walker World apps in separate schemas inside the shared `WalkerWorld` project.
 
 ### Supabase Live Configuration
 
-- Status: external setup pending.
-- Required setup: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, Google provider credentials if Google OAuth should work, and the `game_saves` table/RLS policies from `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`.
+- Status: complete for email/password private beta.
+- Required setup now present: shared `WalkerWorld` project link, `walk_the_world.game_saves`, owner-only RLS, Vercel browser-safe Supabase env vars, production URL redirect, local dev redirects, and email confirmations off.
 - Current behavior without setup: app remains guest-only and localStorage save/export/import/reset still work.
 
 ### WalkerBucks Auth
@@ -669,8 +708,8 @@ Implemented:
 
 ### WalkerBucks Bridge Live Configuration
 
-- Status: external setup pending.
-- Required setup: deploy `supabase/functions/walkerbucks-bridge`, configure `VITE_WALKERBUCKS_BRIDGE_URL`, `WALKERBUCKS_API_URL`, and optional `WALKERBUCKS_SERVICE_TOKEN`.
+- Status: complete.
+- Completed setup: WalkerBucks hosted at `https://walkerbucks.vercel.app`, server-only function secrets set for `WALKERBUCKS_API_URL` and `WALKERBUCKS_SERVICE_TOKEN`, browser-safe `VITE_WALKERBUCKS_BRIDGE_URL` configured in Vercel, and WalkerBucks beta shop offers seeded.
 - Current behavior without setup: guest/local WB and local rewards continue, while shared-WB balance and grants remain unavailable.
 
 ### Discord/Telegram Bridge
@@ -682,8 +721,8 @@ Implemented:
 
 ### WalkerBucks Leaderboard And Marketplace Live Configuration
 
-- Status: external setup pending.
-- Required setup: deploy the updated `supabase/functions/walkerbucks-bridge`, configure `VITE_WALKERBUCKS_BRIDGE_URL`, `WALKERBUCKS_API_URL`, optional `WALKERBUCKS_SERVICE_TOKEN`, Supabase auth env vars, and seed WalkerBucks shop offers.
+- Status: complete for Version C proof.
+- Completed setup: live leaderboard, marketplace offer loading, and purchase proof pass through the trusted bridge. A 20 WB `Version C Smoke Ticket` offer exists only to prove the private-beta purchase path with the 20 WB Day One reward.
 - Current behavior without setup: guest/local play, local shop, local rewards, and local inventory continue; shared leaderboard and marketplace controls stay unavailable or sign-in-gated.
 
 ## Verification Commands
@@ -692,6 +731,12 @@ Always run:
 
 ```bash
 npm run build
+```
+
+For live private-beta service verification after the Supabase project and bridge are configured:
+
+```bash
+npm run smoke:private-beta-live
 ```
 
 For frontend/game-feel work:
@@ -714,4 +759,4 @@ git -C /Users/shanewalker/Desktop/dev/walker-world-discord status --short
 
 ## Next Implementation Target
 
-Proceed to the live private-beta configuration pass: configure Supabase, deploy the WalkerBucks bridge, and run the live account recovery, shared reward, leaderboard, and marketplace smoke tests that were external blockers during Phase 8.
+Proceed to final Version C private-beta QA: verify the production browser account flow on `https://walk-the-world.vercel.app/`, confirm guest fallback still works without a session, capture any UI/runtime issues, and decide whether to cut a beta tag or hold for fixes.

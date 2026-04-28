@@ -25,10 +25,10 @@ const parseUpdatedAt = (updatedAt: string): number => {
   return Number.isFinite(parsed) ? parsed : Date.now();
 };
 
+const gameSaveTable = () => requireSupabaseClient().schema('walk_the_world').from('game_saves');
+
 export const loadCloudSave = async (userId: string): Promise<CloudSaveSnapshot | null> => {
-  const supabase = requireSupabaseClient();
-  const { data, error } = await supabase
-    .from('game_saves')
+  const { data, error } = await gameSaveTable()
     .select('save_version, save_payload, updated_at')
     .eq('user_id', userId)
     .maybeSingle();
@@ -45,10 +45,8 @@ export const loadCloudSave = async (userId: string): Promise<CloudSaveSnapshot |
 };
 
 export const uploadCloudSave = async (userId: string, state: GameState): Promise<CloudSaveSnapshot> => {
-  const supabase = requireSupabaseClient();
   const updatedAt = state.lastSavedAt || Date.now();
-  const { data, error } = await supabase
-    .from('game_saves')
+  const { data, error } = await gameSaveTable()
     .upsert(
       {
         user_id: userId,

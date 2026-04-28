@@ -4,7 +4,7 @@ Last updated: 2026-04-28
 
 ## Current State
 
-Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 8 are complete. The remaining work should start with live private-beta configuration and external smoke tests.
+Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, and the live private-beta service configuration pass are complete. Live Supabase recovery and WalkerBucks bridge/economy smokes pass against the shared `WalkerWorld` project.
 
 Artifacts created:
 
@@ -31,6 +31,10 @@ Artifacts created:
 - `src/components/LeaderboardPanel.tsx`
 - `src/components/MarketplacePanel.tsx`
 - `src/components/SocialBridgePanel.tsx`
+- `supabase/config.toml`
+- `supabase/migrations/20260428063000_create_game_saves.sql`
+- `scripts/live-private-beta-smoke.mjs`
+- `docs/WALKERWORLD_SUPABASE_ARCHITECTURE.md`
 
 Input artifact:
 
@@ -432,17 +436,43 @@ Verification completed:
 
 Verification not completed:
 
-- Live Supabase account recovery smoke was not run because this shell has no Supabase env vars and no configured `game_saves` table/RLS evidence.
-- Live WalkerBucks reward, leaderboard, and marketplace purchase smoke tests were not run because the bridge is not deployed/configured here and no WalkerBucks API URL/token setup is present.
+- Production browser QA still needs to be run manually or with a browser automation pass against `https://walk-the-world.vercel.app/`.
+- Version C beta tag decision has not been made.
+
+Live private-beta configuration pass repo-side setup:
+
+- Added Supabase CLI config for this app at `supabase/config.toml`.
+- Added `supabase/migrations/20260428063000_create_game_saves.sql` with the `game_saves` table and owner-only RLS policies.
+- Added `npm run smoke:private-beta-live` for live Supabase upload/load, WalkerBucks reward, leaderboard, marketplace offer, and optional marketplace purchase verification.
+- Linked this repo to Supabase project `qiqssyqofbbjoqnydjrm`.
+- Pushed the cloud-save migration to `walk_the_world.game_saves` with owner-only RLS.
+- Pushed Supabase API/Auth config for the shared project: `walk_the_world` exposed through PostgREST, production URL set to `https://walk-the-world.vercel.app/`, local dev redirects allowed, email/password auth enabled, and email confirmations disabled.
+- Deployed `walkerbucks-bridge` as an active Supabase Edge Function.
+- Set Vercel Production, Preview, and Development env vars for `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_WALKERBUCKS_BRIDGE_URL`.
+- Deployed production after the bridge URL was configured and aliased `https://walk-the-world.vercel.app/`.
+- Live Supabase auth plus cloud-save upload/load smoke passed with disposable user `96f6572c-481f-44cb-9735-a048621144f9` and cloud save run `9ce5c381-87e9-4a2f-8a4c-82468c6139af`; bridge smoke was intentionally skipped because no bridge URL is configured.
+- Requested personal beta account could not be created with the requested password because Supabase requires at least 6 characters.
+- Personal beta account `shane.caleb.walker@gmail.com` was later created and verified with a 6-character-valid password.
+- WalkerBucks is hosted at `https://walkerbucks.vercel.app`.
+- Supabase Edge Function secrets for `WALKERBUCKS_API_URL` and `WALKERBUCKS_SERVICE_TOKEN` are present.
+- `VITE_WALKERBUCKS_BRIDGE_URL` is configured in Vercel Production, Preview, and Development.
+- Unauthenticated `https://walkerbucks.vercel.app/v1/shop/offers` returns 401, while `https://walkerbucks.vercel.app/healthz` returns OK.
+- Live bridge smoke for `shane.caleb.walker@gmail.com` passed shared balance, idempotent Day One reward, leaderboard, and marketplace offers with `cloudSaveRunId` `53b9e1ad-2783-4859-aabf-9452bbd2fc1d`, WalkerBucks account `80539c84-4af3-40cf-9110-02f1621a00ee`, reward transaction `ca04741a-9b67-4ee3-a4ad-d9bd6cb1f3f7`, 6 leaderboard entries, and 12 marketplace offers.
+- The first marketplace purchase smoke failed with `insufficient balance` because the cheapest seeded offer was 100 WB and the Day One reward grants 20 WB.
+- Added a 20 WB `Version C Smoke Ticket` offer in the `walkerbucks` schema with offer id `13`.
+- Full purchase smoke then passed with `cloudSaveRunId` `7b09b975-4722-4fee-8459-9fab0fc6f9ac`, 13 marketplace offers, and `purchaseStatus` `purchased`.
+- Final post-deploy live smoke passed with `cloudSaveRunId` `fbd8dd0b-fe4a-4908-9b4d-4bf0efcc8417`, 6 leaderboard entries, 13 marketplace offers, and `purchaseStatus` `purchased`.
+- Final production HTTP check returned HTTP 200 from `https://walk-the-world.vercel.app/`.
+- Final WalkerBucks checks returned HTTP 200 for `/healthz` and HTTP 401 for unauthenticated `/v1/shop/offers`.
 
 ## Next Phase
 
-Proceed with the live private-beta configuration pass: configure Supabase, deploy the WalkerBucks bridge, and run the live account recovery, shared reward, leaderboard, and marketplace smoke tests that were external blockers during Phase 8.
+Proceed to final Version C private-beta QA and beta-tag decision.
 
 ## Next Kickoff Prompt
 
 ```text
-Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, docs/C_VERSION_WALKERBUCKS_BRIDGE.md, and docs/C_VERSION_SOCIAL_BRIDGE.md first. Proceed with the live private-beta configuration pass only: configure Supabase auth/cloud save and the game_saves table/RLS, deploy supabase/functions/walkerbucks-bridge with server-only WalkerBucks configuration, run live Supabase upload/load recovery plus shared WalkerBucks reward, leaderboard, and marketplace smoke tests, keep guest/local mode working if Supabase, WalkerBucks, or Discord is unavailable, never expose privileged WalkerBucks or Discord secrets in VITE_* or browser code, keep README/checklist/handoff updated, run npm run build, and end with the next kickoff prompt.
+Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/WALKERWORLD_SUPABASE_ARCHITECTURE.md, docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, docs/C_VERSION_WALKERBUCKS_BRIDGE.md, and docs/C_VERSION_SOCIAL_BRIDGE.md first. Proceed with final Version C private-beta QA only: verify the production browser account flow on https://walk-the-world.vercel.app/, confirm guest/local fallback still works without a session, confirm the WalkerBucks panel can read shared balance and that marketplace/leaderboard controls remain usable, run npm run smoke:private-beta-live with WTW_BETA_SMOKE_REQUIRE_BRIDGE=true and WTW_BETA_SMOKE_ALLOW_PURCHASE=true using offer id 13 only if another idempotent purchase proof is needed, keep privileged WalkerBucks and Discord secrets out of VITE_* and browser code, update README/checklist/handoff with live browser evidence, run npm run build, and end with a go/no-go recommendation for cutting a Version C private-beta tag.
 ```
 
 ## Required Verification
@@ -461,16 +491,20 @@ npm run dev
 
 Use a live browser preview for visual/game-feel phases before marking them complete.
 
+For live private-beta service verification after project/API configuration:
+
+```bash
+npm run smoke:private-beta-live
+```
+
 ## Closeout Rule
 
 Every chat or phase closeout for this C-version plan must end with a copy-ready prompt that starts the next session or next phase. The prompt should include the repo path, the current phase, the relevant plan/handoff files, and the exact next action.
 
 ## Open Decisions
 
-- Live WalkerBucks bridge deployment/configuration.
-- Live Supabase auth/cloud-save configuration.
-- Live Supabase account recovery smoke result.
-- Live WalkerBucks reward, leaderboard, and marketplace smoke results.
+- Final production browser QA result.
+- Version C private-beta tag decision.
 
 ## Do Not Start Yet
 
