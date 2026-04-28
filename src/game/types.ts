@@ -142,6 +142,79 @@ export type RewardDefinition = {
   cosmetics?: string[];
 };
 
+export type QuestProgressType =
+  | 'distance_walked'
+  | 'clicks'
+  | 'upgrade_purchases'
+  | 'follower_hires'
+  | 'event_claims'
+  | 'achievement_claims'
+  | 'world_progress';
+
+export type QuestDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  category: 'daily' | 'seasonal';
+  progress: {
+    type: QuestProgressType;
+    target: number;
+  };
+  reward: RewardDefinition;
+  localOnly: boolean;
+  seasonalEventId?: string;
+};
+
+export type QuestProgress = {
+  progress: number;
+  completedAt: number | null;
+  claimedAt: number | null;
+};
+
+export type QuestBaseline = {
+  totalDistanceWalked: number;
+  totalClicks: number;
+  upgradesPurchased: number;
+  followersHired: number;
+  randomEventsClaimed: number;
+  achievementsClaimed: number;
+  totalWorldDistance: number;
+};
+
+export type QuestState = {
+  activeDate: string;
+  questIds: string[];
+  progress: Record<string, QuestProgress>;
+  baseline: QuestBaseline;
+  lastGeneratedAt: number;
+  seasonalEventId: string | null;
+};
+
+export type SeasonalEventVisualTreatment = {
+  bannerLabel: string;
+  accentColor: string;
+  overlayColor: string;
+  particleColor: string;
+};
+
+export type SeasonalEventDefinition = {
+  id: string;
+  name: string;
+  shortName: string;
+  description: string;
+  startsOn: {
+    month: number;
+    day: number;
+  };
+  endsOn: {
+    month: number;
+    day: number;
+  };
+  visualTreatment: SeasonalEventVisualTreatment;
+  reward: RewardDefinition;
+  localOnly: boolean;
+};
+
 export type AchievementConditionType =
   | 'distance_walked'
   | 'earth_loops'
@@ -243,6 +316,7 @@ export type GameState = {
   achievements: Record<string, AchievementProgress>;
   inventory: InventoryState;
   cosmetics: CosmeticState;
+  quests: QuestState;
   dailyPlay: DailyPlayState;
   activeBoosts: ActiveBoost[];
   stats: GameStats;
@@ -255,7 +329,7 @@ export type GameState = {
     reducedMotion: boolean;
   };
   ui: {
-    activeTab: 'walk' | 'shop' | 'stats' | 'settings';
+    activeTab: 'walk' | 'shop' | 'quests' | 'stats' | 'settings';
     shopTab: 'upgrades' | 'followers' | 'items' | 'cosmetics';
     showShop: boolean;
     offlineSummary: {

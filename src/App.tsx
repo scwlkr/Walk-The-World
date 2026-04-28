@@ -5,6 +5,7 @@ import { GameHUD } from './components/GameHUD';
 import { GameOverlaySheet } from './components/GameOverlaySheet';
 import { GameSceneCanvas } from './components/GameSceneCanvas';
 import { ProgressPanel } from './components/ProgressPanel';
+import { QuestPanel } from './components/QuestPanel';
 import { RandomEventOverlay } from './components/RandomEventOverlay';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ShopModal } from './components/ShopModal';
@@ -22,10 +23,11 @@ import { equipCosmetic } from './game/cosmetics';
 import { LOGIC_TICK_RATE_MS } from './game/constants';
 import { calculateOfflineProgress, getClickMiles, getFollowerCost, getUpgradeCost } from './game/formulas';
 import { equipEquipmentItem, useInventoryItem } from './game/inventory';
+import { claimQuestReward, syncDailyQuests } from './game/quests';
 import { RANDOM_EVENTS } from './game/randomEvents';
 import { exportSave, importSave, loadGameState, resetGameState, saveGameState } from './game/save';
 import { applyDistanceAndWb, clearToast, resolveRandomEvent, runGameTick, shouldAutoSave } from './game/tick';
-import type { AchievementDefinition, CosmeticDefinition, Follower, GameState, InventoryItemDefinition, Upgrade, WorldId } from './game/types';
+import type { AchievementDefinition, CosmeticDefinition, Follower, GameState, InventoryItemDefinition, QuestDefinition, Upgrade, WorldId } from './game/types';
 import { applyEarthPrestige, canEnterWorld } from './game/world';
 
 type TapFeedback = {
@@ -114,20 +116,23 @@ const App = () => {
 
     if (offline.secondsApplied > 0) {
       const withOffline = evaluateAchievements(
-        applyDistanceAndWb(
-          {
-            ...loaded,
-            walkerBucks: loaded.walkerBucks + offline.wb,
-            totalWalkerBucksEarned: loaded.totalWalkerBucksEarned + offline.wb,
-            ui: {
-              ...loaded.ui,
-              offlineSummary: {
-                distance: offline.distance,
-                wb: offline.wb
+        syncDailyQuests(
+          applyDistanceAndWb(
+            {
+              ...loaded,
+              walkerBucks: loaded.walkerBucks + offline.wb,
+              totalWalkerBucksEarned: loaded.totalWalkerBucksEarned + offline.wb,
+              ui: {
+                ...loaded.ui,
+                offlineSummary: {
+                  distance: offline.distance,
+                  wb: offline.wb
+                }
               }
-            }
-          },
-          offline.distance
+            },
+            offline.distance
+          ),
+          now
         ),
         now
       );
@@ -200,18 +205,21 @@ const App = () => {
     playSoundEffect('walk', state.settings.soundEnabled);
 
     setState((prev) => {
-      const next = evaluateAchievements(applyDistanceAndWb(
-        {
-          ...prev,
-          stats: {
-            ...prev.stats,
-            totalClicks: prev.stats.totalClicks + 1
-          }
-        },
-        distance
-      ));
-      saveGameState(next);
-      return next;
+      const next = evaluateAchievements(
+        applyDistanceAndWb(
+          {
+            ...prev,
+            stats: {
+              ...prev.stats,
+              totalClicks: prev.stats.totalClicks + 1
+            }
+          },
+          distance
+        )
+      );
+      const synced = syncDailyQuests(next);
+      saveGameState(synced);
+      return synced;
     });
 
     if (tapPosition) {
@@ -255,7 +263,7 @@ const App = () => {
           upgradesPurchased: prev.stats.upgradesPurchased + 1
         }
       };
-      const evaluated = evaluateAchievements(next);
+      const evaluated = syncDailyQuests(evaluateAchievements(next));
       saveGameState(evaluated);
       return evaluated;
     });
@@ -290,7 +298,7 @@ const App = () => {
           followersHired: prev.stats.followersHired + 1
         }
       };
-      const evaluated = evaluateAchievements(next);
+      const evaluated = syncDailyQuests(evaluateAchievements(next));
       saveGameState(evaluated);
       return evaluated;
     });
@@ -305,7 +313,7 @@ const App = () => {
       if (!prev.spawnedEvent) return prev;
       const def = RANDOM_EVENTS.find((event) => event.id === prev.spawnedEvent?.eventDefId);
       if (!def) return { ...prev, spawnedEvent: null };
-      const next = resolveRandomEvent(prev, def, Date.now());
+      const next = syncDailyQuests(resolveRandomEvent(prev, def, Date.now()));
       saveGameState(next);
       return next;
     });
@@ -314,7 +322,16 @@ const App = () => {
   const onClaimAchievement = (achievement: AchievementDefinition) => {
     playSoundEffect('event', state.settings.soundEnabled);
     setState((prev) => {
-      const next = claimAchievementReward(prev, achievement.id);
+      const next = syncDailyQuests(claimAchievementReward(prev, achievement.id));
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const onClaimQuest = (quest: QuestDefinition) => {
+    playSoundEffect('event', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = claimQuestReward(prev, quest.id);
       saveGameState(next);
       return next;
     });
@@ -323,7 +340,7 @@ const App = () => {
   const onUseInventoryItem = (item: InventoryItemDefinition) => {
     playSoundEffect('event', state.settings.soundEnabled);
     setState((prev) => {
-      const next = evaluateAchievements(useInventoryItem(prev, item.id));
+      const next = syncDailyQuests(evaluateAchievements(useInventoryItem(prev, item.id)));
       saveGameState(next);
       return next;
     });
@@ -368,7 +385,7 @@ const App = () => {
   const onPrestigeEarth = () => {
     playSoundEffect('event', state.settings.soundEnabled);
     setState((prev) => {
-      const next = evaluateAchievements(applyEarthPrestige(prev, Date.now()));
+      const next = syncDailyQuests(evaluateAchievements(applyEarthPrestige(prev, Date.now())));
       saveGameState(next);
       return next;
     });
@@ -511,6 +528,10 @@ const App = () => {
           isUpgradeUnlocked={canUnlock}
           isFollowerUnlocked={canUnlock}
         />
+      </GameOverlaySheet>
+
+      <GameOverlaySheet open={state.ui.activeTab === 'quests'} title="Quests" onClose={closeOverlay}>
+        <QuestPanel state={state} onClaim={onClaimQuest} />
       </GameOverlaySheet>
 
       <GameOverlaySheet open={state.ui.activeTab === 'stats'} title="Stats" onClose={closeOverlay}>

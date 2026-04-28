@@ -7,7 +7,10 @@ import {
   getIdleMilesPerSecond,
   getNextLandmark
 } from '../game/formulas';
+import { getQuestCompletionSummary } from '../game/quests';
+import { getActiveSeasonalEventForState } from '../game/seasonalEvents';
 import { getCurrentWorldDefinition, getWorldProgress } from '../game/world';
+import type { CSSProperties } from 'react';
 
 type GameHUDProps = {
   state: GameState;
@@ -22,6 +25,8 @@ export const GameHUD = ({ state }: GameHUDProps) => {
   const next = getNextLandmark(state);
   const milesToNext = calculateDistanceToNextLandmark(state);
   const worldProgress = getWorldProgress(state);
+  const questSummary = getQuestCompletionSummary(state);
+  const activeEvent = getActiveSeasonalEventForState(state);
 
   return (
     <header className="game-hud" aria-label="Game HUD">
@@ -55,6 +60,18 @@ export const GameHUD = ({ state }: GameHUDProps) => {
           {next.name !== current.name ? ` · ${milesToNext.toFixed(1)} mi` : ''}
         </p>
       </section>
+
+      {activeEvent && (
+        <section
+          className="hud-strip hud-event-strip"
+          style={{ '--event-accent': activeEvent.visualTreatment.accentColor } as CSSProperties}
+        >
+          <span>{activeEvent.visualTreatment.bannerLabel}</span>
+          <strong>
+            Quests {questSummary.completed}/{questSummary.total}
+          </strong>
+        </section>
+      )}
     </header>
   );
 };

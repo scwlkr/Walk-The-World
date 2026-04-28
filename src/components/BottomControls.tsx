@@ -5,8 +5,9 @@ type BottomControlsProps = {
   onSelect: (tab: GameState['ui']['activeTab']) => void;
 };
 
-const CONTROL_ITEMS: Array<{ tab: Extract<GameState['ui']['activeTab'], 'shop' | 'stats' | 'settings'>; icon: string; label: string }> = [
+const CONTROL_ITEMS: Array<{ tab: Extract<GameState['ui']['activeTab'], 'shop' | 'quests' | 'stats' | 'settings'>; icon: string; label: string }> = [
   { tab: 'shop', icon: '👜', label: 'Shop' },
+  { tab: 'quests', icon: '🎯', label: 'Quests' },
   { tab: 'stats', icon: '📊', label: 'Stats' },
   { tab: 'settings', icon: '⚙️', label: 'Settings' }
 ];

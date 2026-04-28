@@ -1,6 +1,7 @@
 import { EARTH_CIRCUMFERENCE_MILES, SAVE_KEY, SAVE_VERSION } from './constants';
 import { evaluateAchievements, markDailyPlay } from './achievements';
 import { createInitialGameState } from './initialState';
+import { createQuestStateForGameState, mergeQuestState, syncDailyQuests } from './quests';
 import type { GameState, PrestigeState, WorldId, WorldProgressState } from './types';
 import { canEnterWorld, createInitialWorldProgress, normalizeWorldId, WORLD_IDS } from './world';
 
@@ -28,7 +29,8 @@ export const loadGameState = (): GameState => {
   }
 };
 
-const prepareLoadedState = (state: GameState): GameState => evaluateAchievements(markDailyPlay(state));
+const prepareLoadedState = (state: GameState): GameState =>
+  evaluateAchievements(syncDailyQuests(markDailyPlay(state)));
 
 const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
   const base = createInitialGameState();
@@ -45,7 +47,7 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
     ? requestedWorldId
     : 'earth';
 
-  return {
+  const merged = {
     ...base,
     ...rawSave,
     currentWorldId,
@@ -89,6 +91,7 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
         ...rawSave.cosmetics?.equippedBySlot
       }
     },
+    quests: base.quests,
     dailyPlay: {
       ...base.dailyPlay,
       ...rawSave.dailyPlay
@@ -99,6 +102,13 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
     },
     saveVersion: SAVE_VERSION
   } as GameState;
+
+  return {
+    ...merged,
+    quests: rawSave.quests
+      ? mergeQuestState(base.quests, rawSave.quests)
+      : createQuestStateForGameState(merged)
+  };
 };
 
 const mergeWorldProgress = (

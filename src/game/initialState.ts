@@ -7,6 +7,7 @@ import {
 } from './constants';
 import { createInitialAchievementState, getLocalDateKey } from './achievements';
 import { DEFAULT_MUSIC_TRACK_ID as DEFAULT_TRACK_ID } from './audio';
+import { createInitialQuestState } from './quests';
 import type { GameState } from './types';
 import { createInitialPrestigeState, createInitialWorldProgress } from './world';
 
@@ -34,6 +35,7 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
     owned: {},
     equippedBySlot: {}
   },
+  quests: createInitialQuestState(now),
   dailyPlay: {
     lastPlayedDate: getLocalDateKey(now),
     daysPlayed: 1

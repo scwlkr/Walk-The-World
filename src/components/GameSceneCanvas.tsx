@@ -7,6 +7,7 @@ import {
   type WalkerAnimationState,
   type WalkerSpriteSheet
 } from '../game/assets';
+import { getActiveSeasonalEventForState } from '../game/seasonalEvents';
 import { getCurrentWorldDefinition } from '../game/world';
 
 type GameSceneCanvasProps = {
@@ -117,6 +118,7 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
   const [backgroundReady, setBackgroundReady] = useState(false);
   const currentLandmark = getCurrentLandmark(state);
   const backgroundScene = getBackgroundScene(currentLandmark.sceneId);
+  const activeSeasonalEvent = getActiveSeasonalEventForState(state);
 
   useEffect(() => {
     let cancelled = false;
@@ -309,6 +311,19 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
           ctx.fillRect(propX, groundY - 16, 7, 16);
           ctx.fillStyle = '#84cc16';
           ctx.fillRect(propX - 4, groundY - 24, 16, 8);
+        }
+      }
+
+      if (activeSeasonalEvent) {
+        ctx.fillStyle = activeSeasonalEvent.visualTreatment.overlayColor;
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = activeSeasonalEvent.visualTreatment.particleColor;
+        for (let i = 0; i < 18; i += 1) {
+          const drift = state.settings.reducedMotion ? 0 : elapsed * (10 + i);
+          const x = Math.round((i * 67 + drift) % (width + 24)) - 12;
+          const y = Math.round(60 + ((i * 37 + drift * 0.42) % Math.max(80, pathY - 90)));
+          const size = i % 3 === 0 ? 4 : 3;
+          ctx.fillRect(x, y, size, size);
         }
       }
 

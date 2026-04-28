@@ -45,8 +45,8 @@ Known repo gaps:
 - [x] Phase 0: C scope and planning artifacts.
 - [x] Phase 1: Playable feel, art, animation, and audio pass.
 - [x] Phase 2: Achievements, inventory, cosmetics, and reward definitions.
-- [ ] Phase 3: Prestige, world model, playable Moon, and future world scaffolding.
-- [ ] Phase 4: Daily quests and seasonal event framework.
+- [x] Phase 3: Prestige, world model, playable Moon, and future world scaffolding.
+- [x] Phase 4: Daily quests and seasonal event framework.
 - [ ] Phase 5: Account persistence and cloud save decision.
 - [ ] Phase 6: WalkerBucks bridge and server-authoritative rewards.
 - [ ] Phase 7: Leaderboards, marketplace proof, Discord bridge, and Telegram decision.
@@ -278,6 +278,8 @@ Resolved decision:
 
 ## Phase 4: Daily Quests And Seasonal Event Framework
 
+Status: complete.
+
 Goal: create repeatable reasons to return without waiting for backend integration.
 
 Primary files:
@@ -294,20 +296,45 @@ Primary files:
 
 Tasks:
 
-- [ ] Add local daily quest definitions.
-- [ ] Generate the daily quest set from the local date and save progress.
-- [ ] Add quest progress hooks for walking, clicking, purchases, events, achievements, and world progress.
-- [ ] Add a quest panel or HUD affordance.
-- [ ] Add one seasonal event definition with visual treatment, quest variation, and rewards.
-- [ ] Mark all quest rewards as local-only until the WalkerBucks bridge exists.
+- [x] Add local daily quest definitions.
+- [x] Generate the daily quest set from the local date and save progress.
+- [x] Add quest progress hooks for walking, clicking, purchases, events, achievements, and world progress.
+- [x] Add a quest panel or HUD affordance.
+- [x] Add one seasonal event definition with visual treatment, quest variation, and rewards.
+- [x] Mark all quest rewards as local-only until the WalkerBucks bridge exists.
 
 Acceptance criteria:
 
-- [ ] A fresh day generates a playable quest set.
-- [ ] Quest progress persists through reload.
-- [ ] Completing a quest grants a visible local reward.
-- [ ] Seasonal event state can alter visuals and quest/reward definitions.
-- [ ] `npm run build` passes.
+- [x] A fresh day generates a playable quest set.
+- [x] Quest progress persists through reload.
+- [x] Completing a quest grants a visible local reward.
+- [x] Seasonal event state can alter visuals and quest/reward definitions.
+- [x] `npm run build` passes.
+
+Verification:
+
+```bash
+npm run build
+```
+
+Manual checks:
+
+- [x] Live preview opened on `http://127.0.0.1:5174/`.
+- [x] Existing local guest save migrated to save version 4 without reset.
+- [x] Quests overlay showed the active daily set, local-only reward labels, and the Spring Stride seasonal event card.
+- [x] Gameplay tapping advanced the Tap Pace quest from in progress to ready.
+- [x] Claimed daily and seasonal quest rewards and saw local WB increase plus reward toast feedback.
+- [x] Reload confirmed quest completion and claimed reward state persisted.
+- [x] Fresh guest save checked on separate `http://localhost:5174/` origin generated Warm-Up Walk, Tap Pace, and Spring Route Push at 0/3 complete.
+- [x] Browser console warning/error check returned no new warnings or errors.
+
+Implemented:
+
+- `src/game/quests.ts` defines local daily quests, date/save-progress generation, progress syncing, reward claiming, and local-only reward summaries.
+- `src/game/seasonalEvents.ts` defines Spring Stride Festival with visual treatment, seasonal quest variation, and local-only rewards.
+- `src/game/save.ts` migrates guest saves to save version 4 while keeping the existing `walk_the_world_save_v1` localStorage key.
+- `src/components/QuestPanel.tsx` adds the daily quest and seasonal event UI.
+- `src/components/GameHUD.tsx` and `src/components/GameSceneCanvas.tsx` surface active seasonal state in the HUD and canvas visuals.
 
 ## Phase 5: Account Persistence And Cloud Save Decision
 

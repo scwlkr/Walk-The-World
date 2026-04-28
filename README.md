@@ -193,8 +193,8 @@ public/assets/audio/sfx/random_event.ogg
 - [ ] Shared WalkerBucks economy API
 - [ ] Server-authoritative rewards
 - [ ] Leaderboards
-- [ ] Daily quests
-- [ ] Seasonal events
+- [x] Daily quests
+- [x] Seasonal events
 - [ ] Marketplace/inventory integration
 - [ ] Discord/Telegram reward bridge
 

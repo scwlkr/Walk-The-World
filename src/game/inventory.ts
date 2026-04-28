@@ -21,6 +21,13 @@ export const INVENTORY_ITEMS: InventoryItemDefinition[] = [
     rarity: 'common'
   },
   {
+    id: 'spring_stride_ticket',
+    name: 'Spring Stride Ticket',
+    description: 'A local-only seasonal keepsake from the Spring Stride route.',
+    type: 'collectible',
+    rarity: 'common'
+  },
+  {
     id: 'starter_step_counter',
     name: 'Starter Step Counter',
     description: 'Entry-level equipment that squeezes a little more WB out of each mile.',

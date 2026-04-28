@@ -11,6 +11,7 @@ import {
   getWbPerMile
 } from './formulas';
 import { evaluateAchievements, markDailyPlay } from './achievements';
+import { syncDailyQuests } from './quests';
 import { RANDOM_EVENTS, getRandomEventLifetime } from './randomEvents';
 import type { GameState, RandomEventDefinition } from './types';
 import { getWorldDefinition, getWorldProgress } from './world';
@@ -106,6 +107,7 @@ export const runGameTick = (state: GameState, deltaSeconds: number, now: number)
 
   let next = applyDistanceAndWb(state, idleDistance);
   next = markDailyPlay(next, now);
+  next = syncDailyQuests(next, now);
   next = reduceBoostDurations(next, now);
   next = maybeSpawnRandomEvent(next, now);
   next = evaluateAchievements(next, now);
@@ -201,7 +203,7 @@ export const resolveRandomEvent = (state: GameState, eventDef: RandomEventDefini
       randomEventsClaimed: next.stats.randomEventsClaimed + 1
     }
   };
-  return evaluateAchievements(next, now);
+  return evaluateAchievements(syncDailyQuests(next, now), now);
 };
 
 export const clearToast = (state: GameState): GameState => ({

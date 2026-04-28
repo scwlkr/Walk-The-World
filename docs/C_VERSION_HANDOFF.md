@@ -4,7 +4,7 @@ Last updated: 2026-04-28
 
 ## Current State
 
-Phase 1, Phase 2, and Phase 3 are complete. The remaining work should start at Phase 4 from `docs/C_VERSION_PLAN.md`.
+Phase 1, Phase 2, Phase 3, and Phase 4 are complete. The remaining work should start at Phase 5 from `docs/C_VERSION_PLAN.md`.
 
 Artifacts created:
 
@@ -16,6 +16,8 @@ Artifacts created:
 - `src/game/inventory.ts`
 - `src/game/cosmetics.ts`
 - `src/game/world.ts`
+- `src/game/quests.ts`
+- `src/game/seasonalEvents.ts`
 
 Input artifact:
 
@@ -188,14 +190,58 @@ Verification completed:
 - Local bundled verification harness confirmed Earth-loop prestige unlocks Moon, switches into Moon, resets Earth route progress, preserves cumulative Earth loop progress, grants permanent bonuses, and lets Moon progress independently.
 - Local bundled verification harness confirmed legacy `moon_locked` saves normalize to Earth and migrate to save version 3.
 
+Phase 4 from `docs/C_VERSION_PLAN.md` has been implemented.
+
+Implemented:
+
+- Added data-driven local daily quests with stable IDs, local-only rewards, and progress targets for walking, clicking, upgrade purchases, follower hires, random event claims, achievement claims, and world route progress.
+- Added date-based daily quest generation that uses the local date, active seasonal event, current world, and save progress eligibility.
+- Added save version 4 quest state with active date, quest IDs, progress, claimed status, and baseline counters while keeping the existing `walk_the_world_save_v1` localStorage key.
+- Added local quest reward claiming through the existing inventory/reward helper.
+- Added Spring Stride Festival as the first seasonal event with active date window, HUD/canvas visual treatment, seasonal quest variation, Spring Stride Ticket reward, and local-only reward labels.
+- Added a Quests bottom-nav affordance and `QuestPanel` overlay.
+- Updated README C-version roadmap status for Daily quests and Seasonal events.
+
+Touched files:
+
+- `README.md`
+- `src/App.tsx`
+- `src/components/BottomControls.tsx`
+- `src/components/GameHUD.tsx`
+- `src/components/GameSceneCanvas.tsx`
+- `src/components/QuestPanel.tsx`
+- `src/game/constants.ts`
+- `src/game/initialState.ts`
+- `src/game/inventory.ts`
+- `src/game/quests.ts`
+- `src/game/save.ts`
+- `src/game/seasonalEvents.ts`
+- `src/game/tick.ts`
+- `src/game/types.ts`
+- `src/styles/global.css`
+- `docs/C_VERSION_PLAN.md`
+- `docs/C_VERSION_HANDOFF.md`
+
+Verification completed:
+
+- `npm run build` passes.
+- Live preview opened on `http://127.0.0.1:5174/`.
+- Existing local guest save migrated to save version 4 without reset.
+- Quests overlay showed active daily quests, local-only reward labels, and the Spring Stride seasonal event card.
+- Gameplay tapping advanced Tap Pace from in progress to ready.
+- Claimed Warm-Up Walk, Tap Pace, and Spring Route Push rewards; HUD WB and toast feedback updated.
+- Reload confirmed quest progress and claimed reward state persisted.
+- Fresh guest save checked on separate `http://localhost:5174/` origin generated a playable 0/3 quest set without deleting the existing `127.0.0.1` save.
+- Browser console warning/error check returned no new warnings or errors.
+
 ## Next Phase
 
-Proceed with Phase 4 from `docs/C_VERSION_PLAN.md`: daily quests and seasonal event framework.
+Proceed with Phase 5 from `docs/C_VERSION_PLAN.md`: account persistence and cloud save decision.
 
 ## Next Kickoff Prompt
 
 ```text
-Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md and docs/C_VERSION_HANDOFF.md first. Proceed with Phase 4 only: daily quests and seasonal event framework. Keep local guest play working, keep the checklist and handoff updated, run npm run build, use the live preview for UI/gameplay verification, and end with the next kickoff prompt.
+Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md and docs/C_VERSION_HANDOFF.md first. Proceed with Phase 5 only: account persistence and cloud save decision. Start by writing docs/C_VERSION_ACCOUNT_SYNC_DECISION.md before any account-sync code, keep local guest play working, keep the checklist and handoff updated, run npm run build if code changes, and end with the next kickoff prompt.
 ```
 
 ## Required Verification
