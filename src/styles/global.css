@@ -153,7 +153,8 @@ button {
   bottom: calc(env(safe-area-inset-bottom) + 10px);
   z-index: 22;
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
+  gap: 0.75rem;
   align-items: center;
   pointer-events: none;
 }
@@ -172,22 +173,9 @@ button {
   pointer-events: auto;
 }
 
-.icon-control:nth-child(2) {
-  transform: translateY(-6px);
-}
-
 .icon-control.active {
   border-color: #fde047;
   color: #fef9c3;
-}
-
-.walk-control-wrap {
-  position: absolute;
-  left: 50%;
-  bottom: calc(env(safe-area-inset-bottom) + 70px);
-  z-index: 23;
-  transform: translateX(-50%);
-  pointer-events: auto;
 }
 
 .walk-btn {
@@ -290,7 +278,7 @@ button {
 .event-overlay {
   position: absolute;
   right: 10px;
-  top: 42%;
+  top: calc(env(safe-area-inset-top) + 178px);
   z-index: 21;
   border: 1px dashed var(--gold);
   background: rgba(15, 23, 42, 0.8);
