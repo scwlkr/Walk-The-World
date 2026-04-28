@@ -4,7 +4,7 @@ Last updated: 2026-04-28
 
 ## Current State
 
-Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7 are complete. The remaining work should start at Phase 8 from `docs/C_VERSION_PLAN.md`.
+Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 8 are complete. The remaining work should start with live private-beta configuration and external smoke tests.
 
 Artifacts created:
 
@@ -395,14 +395,54 @@ Verification not completed:
 
 - Live WalkerBucks leaderboard and marketplace purchase smoke test was not run because the updated bridge function is not deployed in this local shell and no live `VITE_WALKERBUCKS_BRIDGE_URL` / `WALKERBUCKS_API_URL` / optional `WALKERBUCKS_SERVICE_TOKEN` / Supabase auth configuration is present.
 
+Phase 8 from `docs/C_VERSION_PLAN.md` has been implemented.
+
+Resolved decisions:
+
+- README C-version roadmap items now use explicit `Shipped`, `Gated`, or `Future-planned` statuses instead of ambiguous unchecked items.
+- Supabase account sync remains gated on live Supabase configuration and table/RLS setup.
+- Shared WalkerBucks reward, leaderboard, and marketplace checks remain gated on a deployed trusted bridge plus server-only WalkerBucks configuration.
+- Discord reward linking remains gated on a trusted server-side identity link; Telegram remains future-planned.
+
+Implemented:
+
+- Restored the visible `WALK` button while preserving tappable-scene walking.
+- Lifted the offline summary banner above the restored WALK control.
+- Updated README core loop/current features, save-version note, WalkerBucks readiness note, private beta limitations, and roadmap status table.
+- Updated `docs/C_VERSION_PLAN.md` Phase 8 checklist, verification evidence, roadmap mapping, blockers, and next implementation target.
+
+Touched files:
+
+- `README.md`
+- `src/App.tsx`
+- `src/styles/global.css`
+- `docs/C_VERSION_PRD.md`
+- `docs/C_VERSION_PLAN.md`
+- `docs/C_VERSION_HANDOFF.md`
+
+Verification completed:
+
+- `npm run dev -- --host 127.0.0.1 --port 5180` opened the local app for smoke checks.
+- Fresh-save headless Chrome/CDP smoke passed: `walk_the_world_save_v1` was created at `saveVersion: 7`, the restored `WALK` button advanced Earth distance and click count, and guest/local mode stayed active with account status `disabled` and WalkerBucks bridge status `unavailable`.
+- Existing-save migration smoke passed: a seeded version-1 save with `currentWorldId: "moon_locked"`, 1,234 miles, 456 WB, and reduced motion migrated to `saveVersion: 7`, normalized to `earth`, preserved distance/WB/reduced-motion state, and advanced total clicks through the restored `WALK` control.
+- Runtime errors in both local smoke runs: none.
+- Current shell env gate confirmed `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_WALKERBUCKS_BRIDGE_URL`, `WALKERBUCKS_API_URL`, `WALKERBUCKS_SERVICE_TOKEN`, `DISCORD_BOT_TOKEN`, `DISCORD_CLIENT_SECRET`, and `DISCORD_SIGNING_SECRET` are unset.
+- Secret-boundary audit confirmed browser code reads only `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_WALKERBUCKS_BRIDGE_URL`; WalkerBucks API URL/service-token usage is confined to `supabase/functions/walkerbucks-bridge/index.ts`.
+- `npm run build` passes.
+
+Verification not completed:
+
+- Live Supabase account recovery smoke was not run because this shell has no Supabase env vars and no configured `game_saves` table/RLS evidence.
+- Live WalkerBucks reward, leaderboard, and marketplace purchase smoke tests were not run because the bridge is not deployed/configured here and no WalkerBucks API URL/token setup is present.
+
 ## Next Phase
 
-Proceed with Phase 8 from `docs/C_VERSION_PLAN.md`: private beta hardening and release gate.
+Proceed with the live private-beta configuration pass: configure Supabase, deploy the WalkerBucks bridge, and run the live account recovery, shared reward, leaderboard, and marketplace smoke tests that were external blockers during Phase 8.
 
 ## Next Kickoff Prompt
 
 ```text
-Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, docs/C_VERSION_WALKERBUCKS_BRIDGE.md, and docs/C_VERSION_SOCIAL_BRIDGE.md first. Proceed with Phase 8 only: private beta hardening and release gate. Review every README C-version roadmap item as shipped, gated, or future-planned; run the fresh-save and existing-save checks that can run locally; keep guest/local mode working if Supabase, WalkerBucks, or Discord is unavailable; never expose privileged WalkerBucks or Discord secrets in the browser; keep the checklist and handoff updated; run npm run build; and end with the next kickoff prompt.
+Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, docs/C_VERSION_WALKERBUCKS_BRIDGE.md, and docs/C_VERSION_SOCIAL_BRIDGE.md first. Proceed with the live private-beta configuration pass only: configure Supabase auth/cloud save and the game_saves table/RLS, deploy supabase/functions/walkerbucks-bridge with server-only WalkerBucks configuration, run live Supabase upload/load recovery plus shared WalkerBucks reward, leaderboard, and marketplace smoke tests, keep guest/local mode working if Supabase, WalkerBucks, or Discord is unavailable, never expose privileged WalkerBucks or Discord secrets in VITE_* or browser code, keep README/checklist/handoff updated, run npm run build, and end with the next kickoff prompt.
 ```
 
 ## Required Verification
@@ -429,9 +469,9 @@ Every chat or phase closeout for this C-version plan must end with a copy-ready 
 
 - Live WalkerBucks bridge deployment/configuration.
 - Live Supabase auth/cloud-save configuration.
-- Private beta limitation wording for README.
-- Whether Phase 8 should run live Supabase/WalkerBucks smoke tests or document them as external setup blockers.
+- Live Supabase account recovery smoke result.
+- Live WalkerBucks reward, leaderboard, and marketplace smoke results.
 
 ## Do Not Start Yet
 
-Do not start public/private beta launch promotion before Phase 8 completes the roadmap review, local save QA, build verification, and known-limitation documentation.
+Do not start public launch promotion before the live private-beta configuration pass proves Supabase recovery and shared WalkerBucks bridge behavior in a configured environment.

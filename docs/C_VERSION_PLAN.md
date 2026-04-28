@@ -50,7 +50,7 @@ Known repo gaps:
 - [x] Phase 5: Account persistence and cloud save decision.
 - [x] Phase 6: WalkerBucks bridge and server-authoritative rewards.
 - [x] Phase 7: Leaderboards, marketplace proof, Discord bridge, and Telegram decision.
-- [ ] Phase 8: Private beta hardening and release gate.
+- [x] Phase 8: Private beta hardening and release gate.
 
 ## Phase 0: Scope And Planning Artifacts
 
@@ -552,6 +552,8 @@ Resolved decisions:
 
 ## Phase 8: Private Beta Hardening And Release Gate
 
+Status: complete.
+
 Goal: make C safe enough for friends/private beta.
 
 Primary files:
@@ -564,42 +566,79 @@ Primary files:
 
 Tasks:
 
-- [ ] Run full roadmap checklist review.
-- [ ] Confirm every README roadmap item is shipped, gated, or future-planned.
-- [ ] Run a fresh save smoke test.
-- [ ] Run an existing save migration test.
-- [ ] Run an account save recovery test if account sync shipped.
-- [ ] Run a WalkerBucks reward test if the bridge shipped.
-- [ ] Document known limitations for beta users.
-- [ ] Update README current feature list and limitations.
+- [x] Run full roadmap checklist review.
+- [x] Confirm every README roadmap item is shipped, gated, or future-planned.
+- [x] Run a fresh save smoke test.
+- [x] Run an existing save migration test.
+- [x] Run the local account save recovery gate check.
+  - Live Supabase upload/load remains blocked by missing local Supabase env vars and `game_saves` setup.
+- [x] Run the local WalkerBucks reward gate check.
+  - Live shared-WB grant remains blocked by missing deployed bridge, Supabase auth, WalkerBucks API URL, and optional service token setup.
+- [x] Document known limitations for beta users.
+- [x] Update README current feature list and limitations.
 
 Acceptance criteria:
 
-- [ ] `npm run build` passes.
-- [ ] No roadmap item remains ambiguous.
-- [ ] Private beta limitations are documented in user-facing language.
-- [ ] Handoff file names the next exact implementation target.
+- [x] `npm run build` passes.
+- [x] No roadmap item remains ambiguous.
+- [x] Private beta limitations are documented in user-facing language.
+- [x] Handoff file names the next exact implementation target.
+
+Verification:
+
+```bash
+npm run dev -- --host 127.0.0.1 --port 5180
+node --input-type=commonjs <<'NODE'
+# Headless Chrome/CDP smoke harness.
+NODE
+```
+
+Local smoke result on 2026-04-28:
+
+- Fresh save: pass.
+  - Mounted the `WALK` control.
+  - Wrote `walk_the_world_save_v1`.
+  - Migrated/saved as `saveVersion: 7`.
+  - Advanced Earth distance and total click count.
+  - Preserved guest/local mode with account status `disabled` and WalkerBucks bridge status `unavailable`.
+- Existing legacy save: pass.
+  - Seeded a version-1 local save with `currentWorldId: "moon_locked"`, 1,234 miles, 456 WB, and reduced motion enabled.
+  - Loaded and migrated to `saveVersion: 7`.
+  - Normalized the world to `earth`.
+  - Preserved distance, WB, and reduced-motion setting.
+  - WALK advanced total clicks from 5 to 6.
+  - Preserved guest/local mode with account status `disabled` and WalkerBucks bridge status `unavailable`.
+- Runtime errors: none in either smoke run.
+- Local environment check: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_WALKERBUCKS_BRIDGE_URL`, `WALKERBUCKS_API_URL`, `WALKERBUCKS_SERVICE_TOKEN`, `DISCORD_BOT_TOKEN`, `DISCORD_CLIENT_SECRET`, and `DISCORD_SIGNING_SECRET` are unset in the current shell.
+- Secret-boundary check: browser code reads only `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_WALKERBUCKS_BRIDGE_URL`; WalkerBucks API URL/service-token usage is confined to `supabase/functions/walkerbucks-bridge/index.ts`.
+- `npm run build` passes.
+
+Implemented:
+
+- Restored the visible `WALK` control while preserving scene-tap walking.
+- Updated README current behavior, save version, private beta limitations, and C-version roadmap statuses.
+- Updated this checklist and handoff with release-gate evidence and live-service blockers.
 
 ## README Roadmap Mapping
 
 | README item | C target status | Current plan |
 | --- | --- | --- |
-| Real pixel art asset pack | Ship in C | Phase 1 strict pixel art pass and asset pipeline update. |
-| Sound effects/music | Ship in C | Phase 1 track picker and persisted audio settings. |
-| Achievements | Ship in C | Phase 2 data-driven achievements with rewards. |
-| Inventory items | Ship in C | Phase 2 local inventory model. |
-| Cosmetics | Ship in C | Phase 2 gameplay-affecting cosmetics. |
-| Prestige / world expansion | Ship in C | Phase 3 prestige and world model. |
-| Moon fully playable | Ship in C | Phase 3 playable Moon after distance decision. |
-| Mars/Solar System tiers | Plan for Future | Phase 3 locked data scaffolding. |
-| Supabase account sync | Ship in C with config | Phase 5 Supabase auth/cloud save implementation with guest fallback and explicit local-to-cloud upload. |
-| Shared WalkerBucks economy API | Gate in C | Phase 6 bridge contract and first integration. |
-| Server-authoritative rewards | Gate in C | Phase 6 first idempotent reward path. |
-| Leaderboards | Gate in C with config | Phase 7 shared WalkerBucks balance leaderboard through the trusted bridge. |
-| Daily quests | Ship in C | Phase 4 local generation. |
-| Seasonal events | Ship in C | Phase 4 framework plus one example if assets allow. |
-| Marketplace/inventory integration | Gate in C with config | Phase 7 WalkerBucks shop offer and purchase proof; shared inventory is not merged into local inventory yet. |
-| Discord/Telegram reward bridge | Gate/Future Planned | Phase 7 defines Discord identity linking and defers Telegram until Discord is stable. |
+| Real pixel art asset pack | Shipped | Phase 1 strict pixel art pass and asset pipeline update. |
+| Sound effects/music | Shipped | Phase 1 track picker and persisted audio settings. |
+| Achievements | Shipped | Phase 2 data-driven achievements with rewards. |
+| Inventory items | Shipped | Phase 2 local inventory model. |
+| Cosmetics | Shipped | Phase 2 gameplay-affecting cosmetics. |
+| Prestige / world expansion | Shipped | Phase 3 prestige and world model. |
+| Moon fully playable | Shipped | Phase 3 playable Moon after distance decision. |
+| Mars/Solar System tiers | Future-planned | Phase 3 locked data scaffolding; full tiers remain out of C scope. |
+| Supabase account sync | Gated | Phase 5 client/auth/cloud-save code shipped; live recovery QA requires Supabase env vars and `game_saves` setup. |
+| Shared WalkerBucks economy API | Gated | Phase 6 bridge contract and browser-safe integration shipped; live QA requires deployed bridge and WalkerBucks API setup. |
+| Server-authoritative rewards | Gated | Phase 6 first idempotent reward path shipped; live grant QA requires deployed bridge/account setup. |
+| Leaderboards | Gated | Phase 7 shared WalkerBucks balance leaderboard shipped through the trusted bridge; live QA requires account/bridge setup. |
+| Daily quests | Shipped | Phase 4 local generation, progress, rewards, and persistence. |
+| Seasonal events | Shipped | Phase 4 Spring Stride framework and example event. |
+| Marketplace/inventory integration | Gated | Phase 7 WalkerBucks shop offer and purchase proof shipped; shared inventory is not merged into local inventory yet. |
+| Discord/Telegram reward bridge | Gated | Phase 7 defines Discord identity linking, keeps Discord secrets server-side, and defers Telegram until Discord is stable. |
 
 ## Blocked Or Deferred Items
 
@@ -675,4 +714,4 @@ git -C /Users/shanewalker/Desktop/dev/walker-world-discord status --short
 
 ## Next Implementation Target
 
-Proceed to Phase 8 only: private beta hardening and release gate.
+Proceed to the live private-beta configuration pass: configure Supabase, deploy the WalkerBucks bridge, and run the live account recovery, shared reward, leaderboard, and marketplace smoke tests that were external blockers during Phase 8.

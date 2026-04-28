@@ -31,11 +31,11 @@ npm run build
 ## Core Gameplay Loop
 
 ```text
-walk → gain distance → earn WB → buy upgrades/followers → walk faster
-→ hit landmarks → complete Earth loop → tease Moonwalk Mode
+tap the scene or WALK → gain distance → earn WB → buy upgrades/followers → walk faster
+→ hit landmarks → prestige Earth → unlock Moon progression
 ```
 
-- Manual walking via **WALK** button.
+- Manual walking via the **WALK** button or by tapping the scene.
 - Idle walking via automatic game tick.
 - WB earned from distance.
 - Earth loop bonus grants **10,000 WB**.
@@ -44,6 +44,7 @@ walk → gain distance → earn WB → buy upgrades/followers → walk faster
 ## Current MVP Features
 
 - Idle + click walking loop
+- Visible WALK control plus tappable scene walking
 - Pixel/block-inspired animated canvas scene
 - Landmark route across a full Earth loop
 - Random clickable events (rewarding, no brutal negatives)
@@ -116,19 +117,22 @@ Walk-The-World/
       economy.ts
     components/
       AccountPanel.tsx
+      BottomControls.tsx
       GameSceneCanvas.tsx
       TopStatsBar.tsx
       WalkButton.tsx
       ProgressPanel.tsx
       QuestPanel.tsx
       ShopModal.tsx
+      MarketplacePanel.tsx
       UpgradeList.tsx
       FollowerList.tsx
       RandomEventOverlay.tsx
       StatsPanel.tsx
+      LeaderboardPanel.tsx
       SettingsPanel.tsx
       WalkerBucksPanel.tsx
-      BottomNav.tsx
+      SocialBridgePanel.tsx
     services/
       authClient.ts
       cloudSaveClient.ts
@@ -141,7 +145,7 @@ Walk-The-World/
 ## Save System Notes
 
 - Save key: `walk_the_world_save_v1`
-- Includes `saveVersion: 6` with migration from earlier local saves
+- Includes `saveVersion: 7` with migration from earlier local saves
 - Autosaves every 5s and on important actions (walk, purchases, events)
 - Save before unload
 - Import/export as JSON text in settings
@@ -163,7 +167,7 @@ See `.env.example`, `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`, and `docs/C_VERSI
 
 ## WalkerBucks API Readiness
 
-Local WB remains the guest-play currency for upgrades and offline play. Shared WalkerBucks now has a Phase 6 bridge contract and optional Supabase Edge Function scaffold.
+Local WB remains the guest-play currency for upgrades and offline play. Shared WalkerBucks now has a trusted bridge contract, optional Supabase Edge Function scaffold, shared-balance read, first server-backed reward path, leaderboard read, and marketplace purchase proof.
 
 - Browser code only uses `VITE_WALKERBUCKS_BRIDGE_URL`.
 - WalkerBucks API URL and service token belong in server-side function secrets.
@@ -175,11 +179,15 @@ No real-money value, no crypto, no paid loot boxes.
 
 ## Known Limitations
 
-- Account sync requires Supabase env vars and table/RLS setup
-- WalkerBucks bridge live QA requires deployed Supabase function secrets and a reachable WalkerBucks API
-- No service worker yet (manifest-only PWA readiness)
-- Mars and Solar System are data-only future tiers
-- Most C-version rewards and WB remain local-first; only Day One Walker is wired as the first optional shared-WB grant source
+- This is private beta software, not a public launch build.
+- Guest/local play works without Supabase, WalkerBucks, Discord, or Telegram configuration.
+- Account sync is implemented but live recovery requires Supabase env vars plus the `game_saves` table/RLS setup.
+- Shared WalkerBucks balance, Day One Walker shared reward, leaderboard, and marketplace proof require the deployed bridge function, server-only bridge secrets, Supabase auth, and a reachable WalkerBucks API.
+- Local WB remains the upgrade/play currency; shared WalkerBucks is read and spent only through the trusted bridge.
+- Marketplace purchases remain shared WalkerBucks item instances; shared inventory is not merged into local game inventory yet.
+- Discord reward linking is contract-defined only. Telegram remains deferred until Discord linking and shared WalkerBucks flows are stable.
+- No service worker yet (manifest-only PWA readiness).
+- Mars and Solar System are locked data scaffolds for future tiers.
 
 ## C Version Asset Intake
 
@@ -219,22 +227,24 @@ public/assets/audio/sfx/random_event.ogg
 
 ## Roadmap to C Version
 
-- [x] Real pixel art asset pack
-- [x] Sound effects/music
-- [x] Achievements
-- [x] Inventory items
-- [x] Cosmetics
-- [x] Prestige / world expansion
-- [x] Moon fully playable
-- [x] Mars/Solar System tiers
-- [x] Supabase account sync
-- [ ] Shared WalkerBucks economy API
-- [ ] Server-authoritative rewards
-- [ ] Leaderboards
-- [x] Daily quests
-- [x] Seasonal events
-- [ ] Marketplace/inventory integration
-- [ ] Discord/Telegram reward bridge
+| Roadmap item | C status | Evidence / next action |
+| --- | --- | --- |
+| Real pixel art asset pack | Shipped | Runtime asset manifest, walker sheet fallback, background composites, and asset pipeline docs are in place. |
+| Sound effects/music | Shipped | Generated SFX plus persisted music track picker for shipped tracks. |
+| Achievements | Shipped | Data-driven local achievements with claimable rewards. |
+| Inventory items | Shipped | Consumable, collectible, equipment, and cosmetic item types persist locally. |
+| Cosmetics | Shipped | Cosmetic and equipment effects are visible in gameplay stats/details. |
+| Prestige / world expansion | Shipped | Earth prestige grants permanent bonuses and unlocks Moon progression. |
+| Moon fully playable | Shipped | Moon world, route progress, landmarks, and scene assets are playable after prestige. |
+| Mars/Solar System tiers | Future-planned | Locked data scaffolds exist; full tiers are intentionally deferred beyond C. |
+| Supabase account sync | Gated | Client UI and cloud-save code are implemented; live recovery requires Supabase env vars and `game_saves` table/RLS setup. |
+| Shared WalkerBucks economy API | Gated | Browser calls only the trusted bridge; live QA requires deployed bridge secrets and reachable WalkerBucks API. |
+| Server-authoritative rewards | Gated | Day One Walker has the first idempotent shared-WB reward path; live grant QA waits on bridge deployment/configuration. |
+| Leaderboards | Gated | Shared WalkerBucks balance leaderboard is implemented through the bridge; live QA waits on account/bridge configuration. |
+| Daily quests | Shipped | Local daily quest generation, progress, rewards, and persistence are in place. |
+| Seasonal events | Shipped | Spring Stride Festival framework, visual treatment, quest variation, and rewards are in place. |
+| Marketplace/inventory integration | Gated | Shared WalkerBucks offer loading and purchase proof are implemented; shared inventory-to-game merge is future work. |
+| Discord/Telegram reward bridge | Gated | Discord identity-linking contract is documented server-side; Telegram is deferred until Discord linking is stable. |
 
 Persistent C-version planning lives in:
 

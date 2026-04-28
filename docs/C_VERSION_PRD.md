@@ -214,7 +214,7 @@ Launch gates:
 
 - `npm run build` passes.
 - A fresh local save can start, walk, buy, claim events, and persist.
-- A returning account can recover progress.
+- A returning account can recover progress when Supabase is configured; without live Supabase setup, this remains a documented private-beta gate.
 - C roadmap checklist shows every item as shipped, gated, or future-planned.
 - Any WalkerBucks-backed reward path uses idempotency and a server-side caller.
 - If shared economy is not fully live, the blocker doc names exact missing API/auth pieces.

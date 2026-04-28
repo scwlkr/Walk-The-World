@@ -15,6 +15,7 @@ import { ShopModal } from './components/ShopModal';
 import { SocialBridgePanel } from './components/SocialBridgePanel';
 import { StatsPanel } from './components/StatsPanel';
 import { WalkerBucksPanel } from './components/WalkerBucksPanel';
+import { WalkButton } from './components/WalkButton';
 import {
   MUSIC_TRACKS,
   getMusicTrackById,
@@ -1110,6 +1111,10 @@ const App = () => {
       )}
 
       {state.ui.toast && <aside className="panel toast">{state.ui.toast}</aside>}
+
+      <div className="walk-control-wrap">
+        <WalkButton onWalk={() => onWalk()} />
+      </div>
 
       <BottomControls active={state.ui.activeTab} onSelect={openTab} />
 

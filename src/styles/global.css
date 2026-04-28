@@ -181,6 +181,33 @@ button {
   color: #fef9c3;
 }
 
+.walk-control-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 70px);
+  z-index: 23;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.walk-btn {
+  min-width: 136px;
+  min-height: 52px;
+  border: 2px solid rgba(254, 240, 138, 0.9);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fde047, #f97316);
+  color: #1c1917;
+  box-shadow: 0 5px 0 rgba(124, 45, 18, 0.72);
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.walk-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 rgba(124, 45, 18, 0.72);
+}
+
 .tap-feedback-layer {
   position: absolute;
   inset: 0;
@@ -632,7 +659,7 @@ button {
 }
 
 .offline-banner {
-  bottom: calc(env(safe-area-inset-bottom) + 70px);
+  bottom: calc(env(safe-area-inset-bottom) + 130px);
 }
 
 .toast {
