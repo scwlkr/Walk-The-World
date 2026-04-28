@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "smoke:private-beta-live": "node scripts/live-private-beta-smoke.mjs"
+    "smoke:private-beta-live": "node scripts/live-private-beta-smoke.mjs",
+    "items:prompts": "node scripts/generate-item-art-prompts.mjs",
+    "items:export": "node scripts/export-items-csv-to-json.mjs",
+    "items:validate": "node scripts/validate-items.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.0",

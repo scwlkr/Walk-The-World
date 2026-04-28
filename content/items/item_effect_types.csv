@@ -1,0 +1,15 @@
+effect_type,effect_key,display_name,description,allowed_value_type,uses_duration,uses_cooldown,stacking_rule,implementation_status,notes
+none,none,None,No gameplay effect,none,false,false,none,ready,
+instant_wb,instant_wb,Instant WalkerBucks Grant,Grants WalkerBucks immediately when consumed,integer,false,false,one_time,existing,Matches consumable inventory item effects
+wb_multiplier,wb_multiplier,WalkerBucks Multiplier,Adds a WalkerBucks per-mile multiplier while equipped,decimal,false,false,additive,existing,Used by equipment and cosmetics today
+daily_streak_freeze,daily_streak_freeze,Daily Streak Freeze,Saves a daily streak miss,integer,false,false,stack_charges,planned,
+tap_multiplier_temp,tap_multiplier_temp,Temporary Tap Multiplier,Temporarily increases WalkerBucks earned from tapping,decimal,true,true,multiply,planned,
+step_reward_bonus_temp,step_reward_bonus_temp,Temporary Step Reward Bonus,Temporarily increases walking or step rewards,decimal,true,true,multiply,planned,
+cosmetic_equip,cosmetic_equip,Cosmetic Equip,Equippable cosmetic item,none,false,false,exclusive_slot,planned,
+title_unlock,title_unlock,Title Unlock,Unlocks a profile title,string,false,false,permanent_unlock,planned,
+souvenir_collectible,souvenir_collectible,Souvenir Collectible,Collectible travel souvenir,none,false,false,collection,planned,
+currency_grant,currency_grant,WalkerBucks Grant,Grants WalkerBucks once,integer,false,false,one_time,planned,
+drop_rate_boost_temp,drop_rate_boost_temp,Temporary Drop Rate Boost,Temporarily improves drop chance,decimal,true,true,multiply,planned,
+travel_theme_unlock,travel_theme_unlock,Travel Theme Unlock,Unlocks visual/background theme,string,false,false,permanent_unlock,planned,
+event_reward_multiplier,event_reward_multiplier,Random Event Reward Multiplier,Increases random-event rewards while active,decimal,false,false,additive,existing,Aligns with cosmetic bonus naming
+click_power_multiplier,click_power_multiplier,Tap Distance Multiplier,Increases manual tap distance bonus while active,decimal,false,false,additive,existing,Aligns with cosmetic bonus naming
