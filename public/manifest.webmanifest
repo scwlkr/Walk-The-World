@@ -2,9 +2,31 @@
   "name": "Walk The World",
   "short_name": "Walk",
   "description": "An idle walking game in the Walker World universe.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#facc15",
-  "icons": []
+  "icons": [
+    {
+      "src": "/assets/characters/walker/walker_walk_right_sheet.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/characters/walker/walker_walk_right_sheet.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/characters/walker/walker_walk_right_sheet.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }
