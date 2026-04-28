@@ -148,14 +148,13 @@ button {
 
 .bottom-controls {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: calc(env(safe-area-inset-bottom) + 10px);
+  right: calc(env(safe-area-inset-right) + 12px);
+  bottom: calc(env(safe-area-inset-bottom) + 12px);
   z-index: 22;
   display: flex;
-  justify-content: space-around;
-  gap: 0.75rem;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.55rem;
   pointer-events: none;
 }
 
