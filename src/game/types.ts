@@ -340,11 +340,62 @@ export type WalkerBucksRewardGrant = {
   settledAt: number | null;
 };
 
+export type WalkerBucksLeaderboardEntry = {
+  rank: number;
+  accountId: string;
+  balance: number;
+  isCurrentAccount: boolean;
+};
+
+export type WalkerBucksLeaderboardSnapshot = {
+  category: 'walkerbucks_balance';
+  accountId: string;
+  entries: WalkerBucksLeaderboardEntry[];
+  updatedAt: number;
+};
+
+export type WalkerBucksMarketplaceOffer = {
+  id: number;
+  shopId: number;
+  itemDefinitionId: number;
+  name: string;
+  description: string;
+  priceWb: number;
+};
+
+export type WalkerBucksInventoryItem = {
+  itemInstanceId: string;
+  itemDefinitionId: number;
+  status: string;
+};
+
+export type WalkerBucksMarketplacePurchaseStatus = 'pending' | 'purchased' | 'failed';
+
+export type WalkerBucksMarketplacePurchase = {
+  id: string;
+  shopOfferId: number;
+  itemDefinitionId: number | null;
+  label: string;
+  priceWb: number | null;
+  idempotencyKey: string;
+  status: WalkerBucksMarketplacePurchaseStatus;
+  attempts: number;
+  itemInstanceId: string | null;
+  lastError: string | null;
+  createdAt: number;
+  updatedAt: number;
+  settledAt: number | null;
+};
+
 export type WalkerBucksBridgeState = {
   status: WalkerBucksBridgeStatus;
   accountId: string | null;
   balance: WalkerBucksBalanceSnapshot | null;
   rewardGrants: Record<string, WalkerBucksRewardGrant>;
+  leaderboard: WalkerBucksLeaderboardSnapshot | null;
+  marketplaceOffers: WalkerBucksMarketplaceOffer[];
+  marketplacePurchases: Record<string, WalkerBucksMarketplacePurchase>;
+  inventory: WalkerBucksInventoryItem[];
   lastCheckedAt: number | null;
   lastError: string | null;
 };

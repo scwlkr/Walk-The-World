@@ -57,6 +57,7 @@ walk → gain distance → earn WB → buy upgrades/followers → walk faster
 - Offline progress with cap + summary banner
 - localStorage autosave + import/export/reset
 - Optional Supabase email/password, Google auth, and manual cloud save upload/load
+- Optional WalkerBucks bridge surfaces for shared balance, first server-backed reward, shared leaderboard, and marketplace purchase proof
 - Stats panel + settings panel
 - Mobile-first bottom nav + desktop-friendly layout
 - PWA-ready web manifest
@@ -82,6 +83,7 @@ Core state includes:
 - `quests`
 - `dailyPlay`
 - `account`
+- `walkerBucksBridge`
 - `activeBoosts`
 - `stats`
 - `lastSavedAt`
@@ -240,5 +242,6 @@ Persistent C-version planning lives in:
 - `docs/C_VERSION_PLAN.md`
 - `docs/C_VERSION_HANDOFF.md`
 - `docs/C_VERSION_WALKERBUCKS_BRIDGE.md`
+- `docs/C_VERSION_SOCIAL_BRIDGE.md`
 
 Every roadmap item should either ship in C, be gated by a blocker doc, or be explicitly planned for a future release.

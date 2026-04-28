@@ -107,7 +107,14 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
       rewardGrants: {
         ...base.walkerBucksBridge.rewardGrants,
         ...rawSave.walkerBucksBridge?.rewardGrants
-      }
+      },
+      leaderboard: rawSave.walkerBucksBridge?.leaderboard ?? base.walkerBucksBridge.leaderboard,
+      marketplaceOffers: rawSave.walkerBucksBridge?.marketplaceOffers ?? base.walkerBucksBridge.marketplaceOffers,
+      marketplacePurchases: {
+        ...base.walkerBucksBridge.marketplacePurchases,
+        ...rawSave.walkerBucksBridge?.marketplacePurchases
+      },
+      inventory: rawSave.walkerBucksBridge?.inventory ?? base.walkerBucksBridge.inventory
     },
     ui: {
       ...base.ui,

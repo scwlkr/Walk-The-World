@@ -2,6 +2,9 @@ import type {
   GameState,
   ServerRewardSourceType,
   WalkerBucksBalanceSnapshot,
+  WalkerBucksInventoryItem,
+  WalkerBucksMarketplaceOffer,
+  WalkerBucksMarketplacePurchase,
   WalkerBucksRewardGrant
 } from './types';
 
@@ -148,3 +151,126 @@ export const markWalkerBucksGrantGranted = (
 
 export const getOpenWalkerBucksGrants = (state: GameState): WalkerBucksRewardGrant[] =>
   Object.values(state.walkerBucksBridge.rewardGrants).filter((grant) => grant.status !== 'granted');
+
+export const getMarketplacePurchaseStateId = (shopOfferId: number): string => `marketplace:offer:${shopOfferId}`;
+
+export const deriveMarketplaceIdempotencyKey = (supabaseUserId: string, shopOfferId: number): string =>
+  `wtw:supabase:${supabaseUserId}:marketplace:offer:${shopOfferId}`;
+
+export const createPendingMarketplacePurchase = (
+  supabaseUserId: string,
+  offer: WalkerBucksMarketplaceOffer,
+  now = Date.now()
+): WalkerBucksMarketplacePurchase => ({
+  id: getMarketplacePurchaseStateId(offer.id),
+  shopOfferId: offer.id,
+  itemDefinitionId: offer.itemDefinitionId,
+  label: offer.name,
+  priceWb: offer.priceWb,
+  idempotencyKey: deriveMarketplaceIdempotencyKey(supabaseUserId, offer.id),
+  status: 'pending',
+  attempts: 0,
+  itemInstanceId: null,
+  lastError: null,
+  createdAt: now,
+  updatedAt: now,
+  settledAt: null
+});
+
+export const upsertMarketplacePurchase = (
+  state: GameState,
+  purchase: WalkerBucksMarketplacePurchase
+): GameState => ({
+  ...state,
+  walkerBucksBridge: {
+    ...state.walkerBucksBridge,
+    marketplacePurchases: {
+      ...state.walkerBucksBridge.marketplacePurchases,
+      [purchase.id]: purchase
+    }
+  }
+});
+
+export const markMarketplacePurchaseAttempt = (
+  state: GameState,
+  purchaseId: string,
+  now = Date.now()
+): GameState => {
+  const purchase = state.walkerBucksBridge.marketplacePurchases[purchaseId];
+  if (!purchase) return state;
+
+  return upsertMarketplacePurchase(state, {
+    ...purchase,
+    status: 'pending',
+    attempts: purchase.attempts + 1,
+    lastError: null,
+    updatedAt: now
+  });
+};
+
+export const markMarketplacePurchaseFailed = (
+  state: GameState,
+  purchaseId: string,
+  message: string,
+  now = Date.now()
+): GameState => {
+  const purchase = state.walkerBucksBridge.marketplacePurchases[purchaseId];
+  if (!purchase) return state;
+
+  return upsertMarketplacePurchase(
+    {
+      ...state,
+      walkerBucksBridge: {
+        ...state.walkerBucksBridge,
+        status: 'error',
+        lastError: message
+      }
+    },
+    {
+      ...purchase,
+      status: 'failed',
+      lastError: message,
+      updatedAt: now
+    }
+  );
+};
+
+export const markMarketplacePurchasePurchased = (
+  state: GameState,
+  purchaseId: string,
+  itemInstanceId: string,
+  itemDefinitionId: number,
+  priceWb: number,
+  accountId: string,
+  balance: WalkerBucksBalanceSnapshot,
+  inventory: WalkerBucksInventoryItem[],
+  now = Date.now()
+): GameState => {
+  const purchase = state.walkerBucksBridge.marketplacePurchases[purchaseId];
+  if (!purchase) return state;
+
+  return upsertMarketplacePurchase(
+    {
+      ...state,
+      walkerBucksBridge: {
+        ...state.walkerBucksBridge,
+        status: 'ready',
+        accountId,
+        balance,
+        inventory,
+        lastCheckedAt: now,
+        lastError: null
+      }
+    },
+    {
+      ...purchase,
+      itemInstanceId,
+      itemDefinitionId,
+      priceWb,
+      status: 'purchased',
+      lastError: null,
+      updatedAt: now,
+      settledAt: now
+    }
+  );
+};

@@ -18,9 +18,39 @@ type WalletOut = {
   available_balance: number;
 };
 
+type LeaderboardRowOut = {
+  account_id: string;
+  balance: number;
+};
+
+type ItemDefinitionOut = {
+  id: number;
+  name: string;
+  description: string;
+  consumable: boolean;
+};
+
+type ShopOfferOut = {
+  id: number;
+  shop_id: number;
+  item_definition_id: number;
+  price_wb: number;
+};
+
+type InventoryItemOut = {
+  item_instance_id: string;
+  item_definition_id: number;
+  status: string;
+};
+
 type RewardGrantRequest = {
   sourceType?: string;
   sourceId?: string;
+  idempotencyKey?: string;
+};
+
+type MarketplacePurchaseRequest = {
+  shopOfferId?: number;
   idempotencyKey?: string;
 };
 
@@ -125,6 +155,9 @@ const rewardKey = (sourceType: string, sourceId: string): string => `${sourceTyp
 const deriveIdempotencyKey = (userId: string, reward: RewardDefinition): string =>
   `wtw:supabase:${userId}:${reward.sourceType}:${reward.sourceId}`;
 
+const deriveMarketplaceIdempotencyKey = (userId: string, shopOfferId: number): string =>
+  `wtw:supabase:${userId}:marketplace:offer:${shopOfferId}`;
+
 const resolveAccount = async (user: SupabaseUser): Promise<AccountOut> => {
   const account = await walkerBucksFetch<AccountOut>('/v1/accounts', {
     method: 'POST',
@@ -153,6 +186,14 @@ const resolveAccount = async (user: SupabaseUser): Promise<AccountOut> => {
 const loadWallet = async (accountId: string): Promise<WalletOut> =>
   walkerBucksFetch<WalletOut>(`/v1/wallets/${accountId}`);
 
+const loadShopOffers = async (): Promise<ShopOfferOut[]> => walkerBucksFetch<ShopOfferOut[]>('/v1/shop/offers');
+
+const loadItemDefinitions = async (): Promise<ItemDefinitionOut[]> =>
+  walkerBucksFetch<ItemDefinitionOut[]>('/v1/items/definitions');
+
+const loadInventory = async (accountId: string): Promise<InventoryItemOut[]> =>
+  walkerBucksFetch<InventoryItemOut[]>(`/v1/inventory/${accountId}`);
+
 const toBalanceResponse = (wallet: WalletOut, updatedAt: number) => ({
   assetCode: wallet.asset_code,
   balance: wallet.balance,
@@ -161,6 +202,28 @@ const toBalanceResponse = (wallet: WalletOut, updatedAt: number) => ({
   updatedAt
 });
 
+const toInventoryResponse = (inventory: InventoryItemOut[]) =>
+  inventory.map((item) => ({
+    itemInstanceId: item.item_instance_id,
+    itemDefinitionId: item.item_definition_id,
+    status: item.status
+  }));
+
+const toMarketplaceOfferResponse = (offers: ShopOfferOut[], definitions: ItemDefinitionOut[]) => {
+  const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
+  return offers.map((offer) => {
+    const definition = definitionsById.get(offer.item_definition_id);
+    return {
+      id: offer.id,
+      shopId: offer.shop_id,
+      itemDefinitionId: offer.item_definition_id,
+      name: definition?.name ?? `WalkerBucks Item #${offer.item_definition_id}`,
+      description: definition?.description || 'Shared WalkerBucks marketplace item.',
+      priceWb: offer.price_wb
+    };
+  });
+};
+
 const handleBalance = async (request: Request): Promise<Response> => {
   const user = await getSupabaseUser(request);
   const account = await resolveAccount(user);
@@ -168,6 +231,39 @@ const handleBalance = async (request: Request): Promise<Response> => {
   return jsonResponse({
     accountId: account.id,
     ...toBalanceResponse(wallet, Date.now())
+  });
+};
+
+const handleLeaderboard = async (request: Request): Promise<Response> => {
+  const user = await getSupabaseUser(request);
+  const account = await resolveAccount(user);
+  const rows = await walkerBucksFetch<LeaderboardRowOut[]>('/v1/leaderboards/walkerbucks');
+  const updatedAt = Date.now();
+
+  return jsonResponse({
+    category: 'walkerbucks_balance',
+    accountId: account.id,
+    entries: rows.map((row, index) => ({
+      rank: index + 1,
+      accountId: row.account_id,
+      balance: row.balance,
+      isCurrentAccount: row.account_id === account.id
+    })),
+    updatedAt
+  });
+};
+
+const handleMarketplaceOffers = async (request: Request): Promise<Response> => {
+  const user = await getSupabaseUser(request);
+  const account = await resolveAccount(user);
+  const [wallet, offers, definitions] = await Promise.all([loadWallet(account.id), loadShopOffers(), loadItemDefinitions()]);
+  const updatedAt = Date.now();
+
+  return jsonResponse({
+    accountId: account.id,
+    balance: toBalanceResponse(wallet, updatedAt),
+    offers: toMarketplaceOfferResponse(offers, definitions),
+    updatedAt
   });
 };
 
@@ -213,6 +309,50 @@ const handleGrant = async (request: Request): Promise<Response> => {
   });
 };
 
+const handleMarketplacePurchase = async (request: Request): Promise<Response> => {
+  const user = await getSupabaseUser(request);
+  const payload = (await request.json()) as MarketplacePurchaseRequest;
+  if (!Number.isInteger(payload.shopOfferId) || !payload.idempotencyKey) {
+    throw new BridgeError(400, 'shopOfferId and idempotencyKey are required.');
+  }
+
+  const shopOfferId = Number(payload.shopOfferId);
+  const expectedKey = deriveMarketplaceIdempotencyKey(user.id, shopOfferId);
+  if (payload.idempotencyKey !== expectedKey) {
+    throw new BridgeError(400, 'Idempotency key does not match the authenticated user and marketplace offer.');
+  }
+
+  const account = await resolveAccount(user);
+  const offers = await loadShopOffers();
+  const offer = offers.find((candidate) => candidate.id === shopOfferId);
+  if (!offer) {
+    throw new BridgeError(400, 'Unknown WalkerBucks shop offer.');
+  }
+
+  const purchase = await walkerBucksFetch<{ item_instance_id: string }>('/v1/shop/purchases', {
+    method: 'POST',
+    body: JSON.stringify({
+      account_id: account.id,
+      shop_offer_id: shopOfferId,
+      idempotency_key: expectedKey,
+      reason_code: 'shop.purchase.walk_the_world_marketplace'
+    })
+  });
+  const [wallet, inventory] = await Promise.all([loadWallet(account.id), loadInventory(account.id)]);
+
+  return jsonResponse({
+    status: 'purchased',
+    accountId: account.id,
+    shopOfferId,
+    itemInstanceId: purchase.item_instance_id,
+    itemDefinitionId: offer.item_definition_id,
+    priceWb: offer.price_wb,
+    idempotencyKey: expectedKey,
+    balance: toBalanceResponse(wallet, Date.now()),
+    inventory: toInventoryResponse(inventory)
+  });
+};
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -223,8 +363,20 @@ Deno.serve(async (request) => {
       return await handleBalance(request);
     }
 
+    if (request.method === 'GET' && path.endsWith('/leaderboards/walkerbucks')) {
+      return await handleLeaderboard(request);
+    }
+
+    if (request.method === 'GET' && path.endsWith('/marketplace/offers')) {
+      return await handleMarketplaceOffers(request);
+    }
+
     if (request.method === 'POST' && path.endsWith('/rewards/grants')) {
       return await handleGrant(request);
+    }
+
+    if (request.method === 'POST' && path.endsWith('/marketplace/purchases')) {
+      return await handleMarketplacePurchase(request);
     }
 
     return jsonResponse({ detail: 'Not found.' }, 404);

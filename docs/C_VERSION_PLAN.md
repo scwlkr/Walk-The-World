@@ -38,7 +38,7 @@ Known repo gaps:
 - No tests are configured beyond `npm run build`.
 - No backend/auth package exists in this repo.
 - WalkerBucks API exists in a separate repo, but `/v1/accounts/me` auth is stubbed and privileged endpoints need a trusted caller.
-- Item/cosmetic tabs exist in UI but are placeholders.
+- Local item/cosmetic panels exist; shared WalkerBucks inventory is not merged into local game inventory yet.
 
 ## Phase Checklist
 
@@ -49,7 +49,7 @@ Known repo gaps:
 - [x] Phase 4: Daily quests and seasonal event framework.
 - [x] Phase 5: Account persistence and cloud save decision.
 - [x] Phase 6: WalkerBucks bridge and server-authoritative rewards.
-- [ ] Phase 7: Leaderboards, marketplace proof, Discord bridge, and Telegram decision.
+- [x] Phase 7: Leaderboards, marketplace proof, Discord bridge, and Telegram decision.
 - [ ] Phase 8: Private beta hardening and release gate.
 
 ## Phase 0: Scope And Planning Artifacts
@@ -488,6 +488,8 @@ Blockers:
 
 ## Phase 7: Leaderboards, Marketplace Proof, Discord Bridge, And Telegram Decision
 
+Status: complete.
+
 Goal: prove the cross-platform loop after account and economy ownership are clear.
 
 Primary files:
@@ -500,20 +502,53 @@ Primary files:
 
 Tasks:
 
-- [ ] Ship one account-backed leaderboard first.
-- [ ] Add extra leaderboard categories only after the first category works.
-- [ ] Add marketplace proof using WalkerBucks shop offers or game-local item definitions mapped to WalkerBucks items.
-- [ ] Define Discord identity linking with the local `walker-world-discord` repo.
-- [ ] Document Telegram as future unless Discord bridge is complete.
-- [ ] Decide whether Discord economy catalog seeds game inventory.
+- [x] Ship one account-backed leaderboard first.
+- [x] Add extra leaderboard categories only after the first category works.
+  - Phase 7 intentionally ships only shared WalkerBucks balance.
+- [x] Add marketplace proof using WalkerBucks shop offers or game-local item definitions mapped to WalkerBucks items.
+- [x] Define Discord identity linking with the local `walker-world-discord` repo.
+- [x] Document Telegram as future unless Discord bridge is complete.
+- [x] Decide whether Discord economy catalog seeds game inventory.
 
 Acceptance criteria:
 
-- [ ] Logged-in beta player can see at least one leaderboard.
-- [ ] Marketplace proof cannot spend local-only WB as shared WB.
-- [ ] Discord bridge has an explicit identity-linking contract before any cross-platform rewards ship.
-- [ ] Telegram has a clear future plan or blocker note.
-- [ ] `npm run build` passes.
+- [x] Logged-in beta player can see at least one leaderboard when Supabase auth and the WalkerBucks bridge are configured.
+- [x] Marketplace proof cannot spend local-only WB as shared WB.
+- [x] Discord bridge has an explicit identity-linking contract before any cross-platform rewards ship.
+- [x] Telegram has a clear future plan or blocker note.
+- [x] `npm run build` passes.
+
+Verification:
+
+```bash
+npm run build
+```
+
+Manual/config checks:
+
+- [x] Confirmed WalkerBucks `2090e62a1854f4724e5ea56e08d1e577932464d1` endpoint shapes for leaderboards, shop offers, shop purchases, and inventory.
+- [x] Confirmed missing bridge URL or missing signed-in session leaves leaderboard and marketplace controls disabled while local guest play remains available.
+- [x] Confirmed browser code only calls `VITE_WALKERBUCKS_BRIDGE_URL`; WalkerBucks API URL/service token and future Discord secrets remain server-side.
+- [x] Confirmed marketplace purchase requests send only offer ID and idempotency key; price, item definition, account ID, balance, and inventory are resolved through the trusted bridge.
+- [ ] Live WalkerBucks leaderboard and marketplace purchase smoke test is pending a deployed Supabase Edge Function, `VITE_WALKERBUCKS_BRIDGE_URL`, `WALKERBUCKS_API_URL`, optional `WALKERBUCKS_SERVICE_TOKEN`, Supabase auth env vars, and seeded WalkerBucks shop offers.
+
+Implemented:
+
+- `docs/C_VERSION_SOCIAL_BRIDGE.md` records the Phase 7 bridge contract, first leaderboard category, marketplace proof scope, Discord identity-linking contract, Telegram deferral, and Discord catalog decision.
+- `src/components/LeaderboardPanel.tsx` adds the first account-backed leaderboard UI for shared WalkerBucks balance.
+- `src/components/MarketplacePanel.tsx` adds shared WalkerBucks offer loading and purchase proof UI without spending local WB.
+- `src/components/SocialBridgePanel.tsx` surfaces the Discord-first and Telegram-future bridge status without exposing secrets.
+- `src/services/walkerbucksClient.ts` adds trusted bridge calls for leaderboard, marketplace offers, and marketplace purchases.
+- `supabase/functions/walkerbucks-bridge/index.ts` adds server-side leaderboard, marketplace offer, and marketplace purchase endpoints.
+- `src/game/economy.ts`, `src/game/types.ts`, `src/game/initialState.ts`, and `src/game/save.ts` add save version 7 state for leaderboards, marketplace purchases, shared inventory snapshots, and stable marketplace idempotency keys.
+
+Resolved decisions:
+
+- First leaderboard category is shared WalkerBucks balance.
+- Marketplace proof uses live WalkerBucks shop offers and `POST /v1/shop/purchases`.
+- Discord identity linking is contract-defined, but no cross-platform rewards ship until linking is implemented server-side.
+- Telegram is future-planned after Discord linking stability.
+- Discord economy catalog does not seed game inventory in Phase 7.
 
 ## Phase 8: Private Beta Hardening And Release Gate
 
@@ -560,19 +595,19 @@ Acceptance criteria:
 | Supabase account sync | Ship in C with config | Phase 5 Supabase auth/cloud save implementation with guest fallback and explicit local-to-cloud upload. |
 | Shared WalkerBucks economy API | Gate in C | Phase 6 bridge contract and first integration. |
 | Server-authoritative rewards | Gate in C | Phase 6 first idempotent reward path. |
-| Leaderboards | Ship or Gate in C | Phase 7 after account persistence. |
+| Leaderboards | Gate in C with config | Phase 7 shared WalkerBucks balance leaderboard through the trusted bridge. |
 | Daily quests | Ship in C | Phase 4 local generation. |
 | Seasonal events | Ship in C | Phase 4 framework plus one example if assets allow. |
-| Marketplace/inventory integration | Gate in C | Phase 7 marketplace proof after WalkerBucks bridge. |
-| Discord/Telegram reward bridge | Gate in C | Phase 7 Discord first, Telegram future. |
+| Marketplace/inventory integration | Gate in C with config | Phase 7 WalkerBucks shop offer and purchase proof; shared inventory is not merged into local inventory yet. |
+| Discord/Telegram reward bridge | Gate/Future Planned | Phase 7 defines Discord identity linking and defers Telegram until Discord is stable. |
 
 ## Blocked Or Deferred Items
 
 ### Moon Distance
 
-- Status: blocked on canonical value.
-- Required decision: use average distance, closest approach, or Walker World canon value.
-- Next action: write the chosen value into `src/game/constants.ts` during Phase 3 and explain it in code/docs.
+- Status: resolved in Phase 3.
+- Decision: use NASA's average Earth-Moon distance: `238,855` miles (`384,400` km).
+- Code constant: `CANONICAL_MOON_DISTANCE_MILES`.
 
 ### Account Owner
 
@@ -601,9 +636,16 @@ Acceptance criteria:
 
 ### Discord/Telegram Bridge
 
-- Status: Discord has local repo evidence; Telegram has no implementation evidence yet.
-- Required decision: identity linking contract.
-- Recommended next action: handle Discord first, document Telegram future path.
+- Status: resolved for Phase 7.
+- Discord decision: identity linking must use a trusted server path and verified Discord identity before cross-platform rewards ship.
+- Telegram decision: future-planned after Discord linking and shared WalkerBucks flows are stable.
+- Discord catalog decision: use Discord catalog as design evidence only; do not seed game inventory from it in Phase 7.
+
+### WalkerBucks Leaderboard And Marketplace Live Configuration
+
+- Status: external setup pending.
+- Required setup: deploy the updated `supabase/functions/walkerbucks-bridge`, configure `VITE_WALKERBUCKS_BRIDGE_URL`, `WALKERBUCKS_API_URL`, optional `WALKERBUCKS_SERVICE_TOKEN`, Supabase auth env vars, and seed WalkerBucks shop offers.
+- Current behavior without setup: guest/local play, local shop, local rewards, and local inventory continue; shared leaderboard and marketplace controls stay unavailable or sign-in-gated.
 
 ## Verification Commands
 
@@ -633,4 +675,4 @@ git -C /Users/shanewalker/Desktop/dev/walker-world-discord status --short
 
 ## Next Implementation Target
 
-Proceed to Phase 7 only: leaderboards, marketplace proof, Discord bridge, and Telegram decision. Start by writing `docs/C_VERSION_SOCIAL_BRIDGE.md` before social bridge code.
+Proceed to Phase 8 only: private beta hardening and release gate.

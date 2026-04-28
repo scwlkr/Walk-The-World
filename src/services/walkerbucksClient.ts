@@ -1,4 +1,10 @@
-import type { ServerRewardSourceType, WalkerBucksBalanceSnapshot } from '../game/types';
+import type {
+  ServerRewardSourceType,
+  WalkerBucksBalanceSnapshot,
+  WalkerBucksInventoryItem,
+  WalkerBucksLeaderboardSnapshot,
+  WalkerBucksMarketplaceOffer
+} from '../game/types';
 
 const bridgeUrl = import.meta.env.VITE_WALKERBUCKS_BRIDGE_URL?.trim().replace(/\/+$/, '') ?? '';
 
@@ -25,6 +31,30 @@ export type WalkerBucksRewardGrantResponse = {
   amount: number;
   idempotencyKey: string;
   balance: WalkerBucksBalanceSnapshot;
+};
+
+export type WalkerBucksMarketplaceSnapshot = {
+  accountId: string;
+  balance: WalkerBucksBalanceSnapshot;
+  offers: WalkerBucksMarketplaceOffer[];
+  updatedAt: number;
+};
+
+export type WalkerBucksMarketplacePurchaseRequest = {
+  shopOfferId: number;
+  idempotencyKey: string;
+};
+
+export type WalkerBucksMarketplacePurchaseResponse = {
+  status: 'purchased';
+  accountId: string;
+  shopOfferId: number;
+  itemInstanceId: string;
+  itemDefinitionId: number;
+  priceWb: number;
+  idempotencyKey: string;
+  balance: WalkerBucksBalanceSnapshot;
+  inventory: WalkerBucksInventoryItem[];
 };
 
 const getErrorMessage = async (response: Response): Promise<string> => {
@@ -62,6 +92,16 @@ export const loadWalkerBucksBalance = async (accessToken: string): Promise<Walke
     method: 'GET'
   });
 
+export const loadWalkerBucksLeaderboard = async (accessToken: string): Promise<WalkerBucksLeaderboardSnapshot> =>
+  requestBridge<WalkerBucksLeaderboardSnapshot>('/leaderboards/walkerbucks', accessToken, {
+    method: 'GET'
+  });
+
+export const loadWalkerBucksMarketplace = async (accessToken: string): Promise<WalkerBucksMarketplaceSnapshot> =>
+  requestBridge<WalkerBucksMarketplaceSnapshot>('/marketplace/offers', accessToken, {
+    method: 'GET'
+  });
+
 export const grantWalkerBucksReward = async (
   accessToken: string,
   grant: WalkerBucksRewardGrantRequest
@@ -69,4 +109,13 @@ export const grantWalkerBucksReward = async (
   requestBridge<WalkerBucksRewardGrantResponse>('/rewards/grants', accessToken, {
     method: 'POST',
     body: JSON.stringify(grant)
+  });
+
+export const purchaseWalkerBucksMarketplaceOffer = async (
+  accessToken: string,
+  purchase: WalkerBucksMarketplacePurchaseRequest
+): Promise<WalkerBucksMarketplacePurchaseResponse> =>
+  requestBridge<WalkerBucksMarketplacePurchaseResponse>('/marketplace/purchases', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(purchase)
   });

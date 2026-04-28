@@ -4,7 +4,7 @@ Last updated: 2026-04-28
 
 ## Current State
 
-Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and Phase 6 are complete. The remaining work should start at Phase 7 from `docs/C_VERSION_PLAN.md`.
+Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7 are complete. The remaining work should start at Phase 8 from `docs/C_VERSION_PLAN.md`.
 
 Artifacts created:
 
@@ -27,6 +27,10 @@ Artifacts created:
 - `src/services/walkerbucksClient.ts`
 - `src/game/economy.ts`
 - `supabase/functions/walkerbucks-bridge/index.ts`
+- `docs/C_VERSION_SOCIAL_BRIDGE.md`
+- `src/components/LeaderboardPanel.tsx`
+- `src/components/MarketplacePanel.tsx`
+- `src/components/SocialBridgePanel.tsx`
 
 Input artifact:
 
@@ -341,14 +345,64 @@ Verification not completed:
 
 - Live WalkerBucks balance/grant smoke test was not run because the bridge function is not deployed in this local shell and no `VITE_WALKERBUCKS_BRIDGE_URL` / `WALKERBUCKS_API_URL` / optional `WALKERBUCKS_SERVICE_TOKEN` configuration is present.
 
+Phase 7 from `docs/C_VERSION_PLAN.md` has been implemented.
+
+Resolved decisions:
+
+- First leaderboard category is shared WalkerBucks balance.
+- Marketplace proof uses live WalkerBucks shop offers and `POST /v1/shop/purchases` through the trusted bridge.
+- Discord identity linking is documented as the first social bridge target, but cross-platform rewards stay blocked until a trusted server-side link flow exists.
+- Telegram is future-planned after Discord linking and shared WalkerBucks flows are stable.
+- Discord economy catalog does not seed game inventory in Phase 7.
+
+Implemented:
+
+- Added `docs/C_VERSION_SOCIAL_BRIDGE.md` before social bridge code.
+- Extended `supabase/functions/walkerbucks-bridge/index.ts` with trusted leaderboard, marketplace offer, and marketplace purchase endpoints.
+- Extended `src/services/walkerbucksClient.ts` with leaderboard, marketplace offer, and purchase calls.
+- Added save version 7 state for leaderboard snapshots, marketplace offers, marketplace purchases, shared inventory snapshots, and stable purchase idempotency keys.
+- Added `src/components/LeaderboardPanel.tsx` under Stats for the shared WalkerBucks balance leaderboard.
+- Added `src/components/MarketplacePanel.tsx` under Shop for shared offers and purchase proof.
+- Added `src/components/SocialBridgePanel.tsx` under Settings for Discord-first and Telegram-future bridge status.
+- Kept local guest mode and local shop/inventory behavior available when Supabase, WalkerBucks, or Discord social bridge configuration is missing.
+
+Touched files:
+
+- `README.md`
+- `src/App.tsx`
+- `src/components/LeaderboardPanel.tsx`
+- `src/components/MarketplacePanel.tsx`
+- `src/components/SocialBridgePanel.tsx`
+- `src/game/constants.ts`
+- `src/game/economy.ts`
+- `src/game/initialState.ts`
+- `src/game/save.ts`
+- `src/game/types.ts`
+- `src/services/walkerbucksClient.ts`
+- `src/styles/global.css`
+- `supabase/functions/walkerbucks-bridge/index.ts`
+- `docs/C_VERSION_SOCIAL_BRIDGE.md`
+- `docs/C_VERSION_PLAN.md`
+- `docs/C_VERSION_HANDOFF.md`
+
+Verification completed:
+
+- Temporary WalkerBucks clone at commit `2090e62a1854f4724e5ea56e08d1e577932464d1` confirmed endpoint shapes for leaderboards, shop offers, shop purchases, inventory, and item definitions.
+- Local `walker-world-discord` repo docs confirmed Discord has D1-backed wallet, leaderboard, shop, buy, inventory, achievements, titles, daily, and generated catalog surfaces, but no direct web-game account link.
+- `npm run build` passes.
+
+Verification not completed:
+
+- Live WalkerBucks leaderboard and marketplace purchase smoke test was not run because the updated bridge function is not deployed in this local shell and no live `VITE_WALKERBUCKS_BRIDGE_URL` / `WALKERBUCKS_API_URL` / optional `WALKERBUCKS_SERVICE_TOKEN` / Supabase auth configuration is present.
+
 ## Next Phase
 
-Proceed with Phase 7 from `docs/C_VERSION_PLAN.md`: leaderboards, marketplace proof, Discord bridge, and Telegram decision.
+Proceed with Phase 8 from `docs/C_VERSION_PLAN.md`: private beta hardening and release gate.
 
 ## Next Kickoff Prompt
 
 ```text
-Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, and docs/C_VERSION_WALKERBUCKS_BRIDGE.md first. Proceed with Phase 7 only: leaderboards, marketplace proof, Discord bridge, and Telegram decision. Start by writing docs/C_VERSION_SOCIAL_BRIDGE.md before any social bridge code, keep guest/local mode working if WalkerBucks or Discord is unavailable, never expose privileged WalkerBucks or Discord secrets in the browser, keep the checklist and handoff updated, run npm run build if code changes, and end with the next kickoff prompt.
+Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, docs/C_VERSION_WALKERBUCKS_BRIDGE.md, and docs/C_VERSION_SOCIAL_BRIDGE.md first. Proceed with Phase 8 only: private beta hardening and release gate. Review every README C-version roadmap item as shipped, gated, or future-planned; run the fresh-save and existing-save checks that can run locally; keep guest/local mode working if Supabase, WalkerBucks, or Discord is unavailable; never expose privileged WalkerBucks or Discord secrets in the browser; keep the checklist and handoff updated; run npm run build; and end with the next kickoff prompt.
 ```
 
 ## Required Verification
@@ -373,16 +427,11 @@ Every chat or phase closeout for this C-version plan must end with a copy-ready 
 
 ## Open Decisions
 
-- First leaderboard category.
-- First marketplace proof scope.
-- Discord identity-linking contract.
-- Telegram future-path decision.
 - Live WalkerBucks bridge deployment/configuration.
+- Live Supabase auth/cloud-save configuration.
+- Private beta limitation wording for README.
+- Whether Phase 8 should run live Supabase/WalkerBucks smoke tests or document them as external setup blockers.
 
 ## Do Not Start Yet
 
-Do not start Phase 7 social bridge code before writing:
-
-- `docs/C_VERSION_SOCIAL_BRIDGE.md`
-
-This is required because leaderboard, marketplace, Discord identity, and Telegram scope need a durable contract before implementation.
+Do not start public/private beta launch promotion before Phase 8 completes the roadmap review, local save QA, build verification, and known-limitation documentation.

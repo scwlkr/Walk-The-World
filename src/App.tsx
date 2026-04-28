@@ -5,11 +5,14 @@ import { BottomControls } from './components/BottomControls';
 import { GameHUD } from './components/GameHUD';
 import { GameOverlaySheet } from './components/GameOverlaySheet';
 import { GameSceneCanvas } from './components/GameSceneCanvas';
+import { LeaderboardPanel } from './components/LeaderboardPanel';
+import { MarketplacePanel } from './components/MarketplacePanel';
 import { ProgressPanel } from './components/ProgressPanel';
 import { QuestPanel } from './components/QuestPanel';
 import { RandomEventOverlay } from './components/RandomEventOverlay';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ShopModal } from './components/ShopModal';
+import { SocialBridgePanel } from './components/SocialBridgePanel';
 import { StatsPanel } from './components/StatsPanel';
 import { WalkerBucksPanel } from './components/WalkerBucksPanel';
 import {
@@ -25,10 +28,15 @@ import { equipCosmetic } from './game/cosmetics';
 import { LOGIC_TICK_RATE_MS } from './game/constants';
 import {
   createPendingWalkerBucksGrant,
+  createPendingMarketplacePurchase,
   getServerBackedAchievementReward,
+  markMarketplacePurchaseAttempt,
+  markMarketplacePurchaseFailed,
+  markMarketplacePurchasePurchased,
   markWalkerBucksGrantAttempt,
   markWalkerBucksGrantFailed,
   markWalkerBucksGrantGranted,
+  upsertMarketplacePurchase,
   upsertWalkerBucksGrant
 } from './game/economy';
 import { calculateOfflineProgress, getClickMiles, getFollowerCost, getUpgradeCost } from './game/formulas';
@@ -45,6 +53,8 @@ import type {
   InventoryItemDefinition,
   QuestDefinition,
   Upgrade,
+  WalkerBucksMarketplaceOffer,
+  WalkerBucksMarketplacePurchase,
   WalkerBucksRewardGrant,
   WorldId
 } from './game/types';
@@ -63,7 +73,10 @@ import { loadCloudSave, uploadCloudSave, type CloudSaveSnapshot } from './servic
 import {
   grantWalkerBucksReward,
   isWalkerBucksBridgeConfigured,
-  loadWalkerBucksBalance
+  loadWalkerBucksBalance,
+  loadWalkerBucksLeaderboard,
+  loadWalkerBucksMarketplace,
+  purchaseWalkerBucksMarketplaceOffer
 } from './services/walkerbucksClient';
 
 type TapFeedback = {
@@ -184,6 +197,73 @@ const App = () => {
     }
   };
 
+  const refreshWalkerBucksLeaderboard = async () => {
+    if (!isWalkerBucksBridgeConfigured) {
+      updateWalkerBucksBridgeState({ status: 'unavailable', lastError: null });
+      return;
+    }
+
+    const accessToken = authSession?.access_token;
+    if (!authSession?.user || !accessToken) {
+      updateWalkerBucksBridgeState({ status: 'guest', lastError: null });
+      return;
+    }
+
+    setWalkerBucksBusy(true);
+    updateWalkerBucksBridgeState({ status: 'checking', lastError: null });
+    try {
+      const leaderboard = await loadWalkerBucksLeaderboard(accessToken);
+      updateWalkerBucksBridgeState({
+        status: 'ready',
+        accountId: leaderboard.accountId,
+        leaderboard,
+        lastCheckedAt: Date.now(),
+        lastError: null
+      });
+    } catch (error) {
+      updateWalkerBucksBridgeState({
+        status: 'error',
+        lastError: toErrorMessage(error)
+      });
+    } finally {
+      setWalkerBucksBusy(false);
+    }
+  };
+
+  const refreshWalkerBucksMarketplace = async () => {
+    if (!isWalkerBucksBridgeConfigured) {
+      updateWalkerBucksBridgeState({ status: 'unavailable', lastError: null });
+      return;
+    }
+
+    const accessToken = authSession?.access_token;
+    if (!authSession?.user || !accessToken) {
+      updateWalkerBucksBridgeState({ status: 'guest', lastError: null });
+      return;
+    }
+
+    setWalkerBucksBusy(true);
+    updateWalkerBucksBridgeState({ status: 'checking', lastError: null });
+    try {
+      const marketplace = await loadWalkerBucksMarketplace(accessToken);
+      updateWalkerBucksBridgeState({
+        status: 'ready',
+        accountId: marketplace.accountId,
+        balance: marketplace.balance,
+        marketplaceOffers: marketplace.offers,
+        lastCheckedAt: marketplace.updatedAt,
+        lastError: null
+      });
+    } catch (error) {
+      updateWalkerBucksBridgeState({
+        status: 'error',
+        lastError: toErrorMessage(error)
+      });
+    } finally {
+      setWalkerBucksBusy(false);
+    }
+  };
+
   const submitWalkerBucksGrant = async (grant: WalkerBucksRewardGrant) => {
     const accessToken = authSession?.access_token;
     if (!isWalkerBucksBridgeConfigured || !accessToken) return;
@@ -229,6 +309,63 @@ const App = () => {
           ui: {
             ...next.ui,
             toast: `${grant.label} WalkerBucks grant failed.`
+          }
+        };
+        saveGameState(withToast);
+        return withToast;
+      });
+    } finally {
+      setWalkerBucksBusy(false);
+    }
+  };
+
+  const submitMarketplacePurchase = async (purchase: WalkerBucksMarketplacePurchase) => {
+    const accessToken = authSession?.access_token;
+    if (!isWalkerBucksBridgeConfigured || !accessToken) return;
+
+    setWalkerBucksBusy(true);
+    setState((prev) => {
+      const existing = prev.walkerBucksBridge.marketplacePurchases[purchase.id] ?? purchase;
+      const next = markMarketplacePurchaseAttempt(upsertMarketplacePurchase(prev, existing), purchase.id);
+      saveGameState(next);
+      return next;
+    });
+
+    try {
+      const result = await purchaseWalkerBucksMarketplaceOffer(accessToken, {
+        shopOfferId: purchase.shopOfferId,
+        idempotencyKey: purchase.idempotencyKey
+      });
+      setState((prev) => {
+        const next = markMarketplacePurchasePurchased(
+          prev,
+          purchase.id,
+          result.itemInstanceId,
+          result.itemDefinitionId,
+          result.priceWb,
+          result.accountId,
+          result.balance,
+          result.inventory
+        );
+        const withToast: GameState = {
+          ...next,
+          ui: {
+            ...next.ui,
+            toast: `${purchase.label} purchased with shared WB.`
+          }
+        };
+        saveGameState(withToast);
+        return withToast;
+      });
+    } catch (error) {
+      const message = toErrorMessage(error);
+      setState((prev) => {
+        const next = markMarketplacePurchaseFailed(prev, purchase.id, message);
+        const withToast: GameState = {
+          ...next,
+          ui: {
+            ...next.ui,
+            toast: `${purchase.label} purchase failed.`
           }
         };
         saveGameState(withToast);
@@ -620,6 +757,23 @@ const App = () => {
     }
   };
 
+  const onPurchaseMarketplaceOffer = (offer: WalkerBucksMarketplaceOffer) => {
+    if (!authSession?.user || !isWalkerBucksBridgeConfigured) return;
+    const pendingPurchase = createPendingMarketplacePurchase(authSession.user.id, offer);
+
+    playSoundEffect('purchase', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = upsertMarketplacePurchase(
+        prev,
+        prev.walkerBucksBridge.marketplacePurchases[pendingPurchase.id] ?? pendingPurchase
+      );
+      saveGameState(next);
+      return next;
+    });
+
+    void submitMarketplacePurchase(pendingPurchase);
+  };
+
   const onClaimQuest = (quest: QuestDefinition) => {
     playSoundEffect('event', state.settings.soundEnabled);
     setState((prev) => {
@@ -971,6 +1125,14 @@ const App = () => {
           isUpgradeUnlocked={canUnlock}
           isFollowerUnlocked={canUnlock}
         />
+        <MarketplacePanel
+          state={state}
+          isBridgeConfigured={isWalkerBucksBridgeConfigured}
+          isSignedIn={Boolean(authSession?.user)}
+          isBusy={walkerBucksBusy}
+          onRefreshMarketplace={refreshWalkerBucksMarketplace}
+          onPurchaseOffer={onPurchaseMarketplaceOffer}
+        />
       </GameOverlaySheet>
 
       <GameOverlaySheet open={state.ui.activeTab === 'quests'} title="Quests" onClose={closeOverlay}>
@@ -980,6 +1142,13 @@ const App = () => {
       <GameOverlaySheet open={state.ui.activeTab === 'stats'} title="Stats" onClose={closeOverlay}>
         <ProgressPanel state={state} onPrestigeEarth={onPrestigeEarth} onSelectWorld={onSelectWorld} />
         <StatsPanel state={state} />
+        <LeaderboardPanel
+          state={state}
+          isBridgeConfigured={isWalkerBucksBridgeConfigured}
+          isSignedIn={Boolean(authSession?.user)}
+          isBusy={walkerBucksBusy}
+          onRefreshLeaderboard={refreshWalkerBucksLeaderboard}
+        />
         <AchievementsPanel state={state} onClaim={onClaimAchievement} />
       </GameOverlaySheet>
 
@@ -1008,6 +1177,10 @@ const App = () => {
           isBusy={walkerBucksBusy}
           onRefreshBalance={refreshWalkerBucksBalance}
           onRetryGrant={(grant) => void submitWalkerBucksGrant(grant)}
+        />
+        <SocialBridgePanel
+          isSignedIn={Boolean(authSession?.user)}
+          isWalkerBucksBridgeConfigured={isWalkerBucksBridgeConfigured}
         />
         <SettingsPanel
           soundEnabled={state.settings.soundEnabled}

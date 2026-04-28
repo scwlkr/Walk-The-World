@@ -340,6 +340,32 @@ button {
   margin: 0.2rem 0;
 }
 
+.leaderboard-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.leaderboard-row.is-current {
+  border-color: rgba(250, 204, 21, 0.58);
+}
+
+.leaderboard-row span {
+  min-width: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-row b {
+  white-space: nowrap;
+}
+
 .collection-panel {
   display: grid;
   gap: 0.6rem;

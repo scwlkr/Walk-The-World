@@ -54,6 +54,10 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
     accountId: null,
     balance: null,
     rewardGrants: {},
+    leaderboard: null,
+    marketplaceOffers: [],
+    marketplacePurchases: {},
+    inventory: [],
     lastCheckedAt: null,
     lastError: null
   },
