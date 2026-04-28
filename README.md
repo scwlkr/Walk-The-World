@@ -137,6 +137,23 @@ No real-money value, no crypto, no paid loot boxes.
 - Placeholder pixel/block art built with canvas primitives
 - No sound implementation yet (settings toggle placeholder)
 
+## C Version Asset Intake
+
+The first C-version work is asset intake, not final art polish. Drop original/editable files under `assets/source/` and game-ready files under `public/assets/`, because Vite serves `public/` from the web root.
+
+Full instructions and naming rules live in `docs/ASSET_PIPELINE.md`.
+
+Initial game-ready targets:
+
+```text
+public/assets/characters/walker/walker_walk_right_sheet.png
+public/assets/backgrounds/walkertown/composite.png
+public/assets/audio/music/main_theme.ogg
+public/assets/audio/sfx/button_tap.ogg
+public/assets/audio/sfx/purchase.ogg
+public/assets/audio/sfx/random_event.ogg
+```
+
 ## MVP B Checklist
 
 - [x] Vite React TypeScript app created
