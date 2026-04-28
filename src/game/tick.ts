@@ -10,6 +10,7 @@ import {
   getIdleMilesPerSecond,
   getWbPerMile
 } from './formulas';
+import { evaluateAchievements, markDailyPlay } from './achievements';
 import { RANDOM_EVENTS, getRandomEventLifetime } from './randomEvents';
 import type { GameState, RandomEventDefinition } from './types';
 
@@ -90,8 +91,10 @@ export const runGameTick = (state: GameState, deltaSeconds: number, now: number)
   const idleDistance = getIdleMilesPerSecond(state) * deltaSeconds;
 
   let next = applyDistanceAndWb(state, idleDistance);
+  next = markDailyPlay(next, now);
   next = reduceBoostDurations(next, now);
   next = maybeSpawnRandomEvent(next, now);
+  next = evaluateAchievements(next, now);
 
   return next;
 };
@@ -176,9 +179,15 @@ export const resolveRandomEvent = (state: GameState, eventDef: RandomEventDefini
     }
   }
 
-  next.spawnedEvent = null;
-  next.stats.randomEventsClaimed += 1;
-  return next;
+  next = {
+    ...next,
+    spawnedEvent: null,
+    stats: {
+      ...next.stats,
+      randomEventsClaimed: next.stats.randomEventsClaimed + 1
+    }
+  };
+  return evaluateAchievements(next, now);
 };
 
 export const clearToast = (state: GameState): GameState => ({

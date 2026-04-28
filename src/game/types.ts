@@ -1,3 +1,5 @@
+import type { MusicTrackId } from './audio';
+
 export type UpgradeCategory = 'speed' | 'click' | 'earnings' | 'offline' | 'event';
 
 export type UpgradeEffectType =
@@ -90,9 +92,107 @@ export type GameStats = {
   totalClicks: number;
   randomEventsClaimed: number;
   totalDistanceWalked: number;
+  upgradesPurchased: number;
+  followersHired: number;
+  itemsUsed: number;
+  achievementsClaimed: number;
+  cosmeticsEquipped: number;
 };
 
 export type WorldId = 'earth' | 'moon_locked';
+
+export type RewardDefinition = {
+  walkerBucks?: number;
+  items?: Array<{
+    itemId: string;
+    quantity: number;
+  }>;
+  cosmetics?: string[];
+};
+
+export type AchievementConditionType =
+  | 'distance_walked'
+  | 'earth_loops'
+  | 'upgrade_purchases'
+  | 'follower_hires'
+  | 'event_claims'
+  | 'daily_play'
+  | 'clicks'
+  | 'total_wb_earned';
+
+export type AchievementCondition = {
+  type: AchievementConditionType;
+  target: number;
+};
+
+export type AchievementDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  condition: AchievementCondition;
+  reward: RewardDefinition;
+  hidden?: boolean;
+};
+
+export type AchievementProgress = {
+  progress: number;
+  unlockedAt: number | null;
+  claimedAt: number | null;
+};
+
+export type InventoryItemType = 'consumable' | 'collectible' | 'equipment' | 'cosmetic';
+
+export type InventoryEffectType = 'instant_wb' | 'wb_multiplier';
+
+export type InventoryItemDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  type: InventoryItemType;
+  rarity: 'common' | 'uncommon' | 'rare';
+  effect?: {
+    type: InventoryEffectType;
+    value: number;
+  };
+  cosmeticId?: string;
+};
+
+export type InventoryState = {
+  items: Record<string, number>;
+  equippedEquipmentItemId: string | null;
+  usedConsumables: Record<string, number>;
+};
+
+export type CosmeticSlot = 'head' | 'face' | 'shoes';
+
+export type CosmeticEffectType =
+  | 'idle_speed_multiplier'
+  | 'click_power_multiplier'
+  | 'wb_multiplier'
+  | 'event_reward_multiplier';
+
+export type CosmeticDefinition = {
+  id: string;
+  itemId: string;
+  name: string;
+  description: string;
+  slot: CosmeticSlot;
+  rarity: 'common' | 'uncommon' | 'rare';
+  effect: {
+    type: CosmeticEffectType;
+    value: number;
+  };
+};
+
+export type CosmeticState = {
+  owned: Record<string, boolean>;
+  equippedBySlot: Partial<Record<CosmeticSlot, string>>;
+};
+
+export type DailyPlayState = {
+  lastPlayedDate: string;
+  daysPlayed: number;
+};
 
 export type GameState = {
   saveVersion: number;
@@ -106,6 +206,10 @@ export type GameState = {
   lastSavedAt: number;
   upgrades: Record<string, number>;
   followers: Record<string, number>;
+  achievements: Record<string, AchievementProgress>;
+  inventory: InventoryState;
+  cosmetics: CosmeticState;
+  dailyPlay: DailyPlayState;
   activeBoosts: ActiveBoost[];
   stats: GameStats;
   wbBankedRemainder: number;
@@ -113,6 +217,7 @@ export type GameState = {
   spawnedEvent: SpawnedRandomEvent | null;
   settings: {
     soundEnabled: boolean;
+    selectedMusicTrackId: MusicTrackId;
     reducedMotion: boolean;
   };
   ui: {

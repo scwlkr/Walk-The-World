@@ -249,7 +249,8 @@ button {
   color: var(--text);
   border-radius: 12px;
   padding: 0.5rem 0.65rem;
-  max-width: min(54vw, 280px);
+  width: min(280px, calc(100vw - 20px));
+  overflow-wrap: anywhere;
   display: grid;
   text-align: left;
 }
@@ -318,6 +319,57 @@ button {
   margin: 0.2rem 0;
 }
 
+.collection-panel {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.section-head,
+.card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.section-head h4,
+.card-row h4 {
+  margin: 0;
+}
+
+.section-head span,
+.pill {
+  color: #bfdbfe;
+  font-size: 0.72rem;
+}
+
+.pill {
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  border-radius: 999px;
+  padding: 0.18rem 0.42rem;
+  text-transform: capitalize;
+}
+
+.achievement-card.is-unlocked {
+  border-color: rgba(250, 204, 21, 0.56);
+}
+
+.mini-progress {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(2, 6, 23, 0.78);
+  margin: 0.45rem 0 0.2rem;
+}
+
+.mini-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #facc15);
+}
+
 .coming-soon,
 .muted {
   color: var(--muted);
@@ -333,6 +385,29 @@ button {
 .settings-actions {
   display: grid;
   gap: 0.5rem;
+}
+
+.settings-field {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.7rem;
+}
+
+.settings-field span {
+  color: #bfdbfe;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.select-control {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.96);
+  color: var(--text);
+  padding: 0.55rem 0.65rem;
+  font: inherit;
 }
 
 .offline-banner,

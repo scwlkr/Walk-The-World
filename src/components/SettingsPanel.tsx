@@ -1,11 +1,18 @@
 import { GAME_VERSION } from '../game/constants';
+import type { MusicTrackId } from '../game/audio';
 
 type SettingsPanelProps = {
   soundEnabled: boolean;
   reducedMotion: boolean;
+  selectedMusicTrackId: MusicTrackId;
+  musicTracks: ReadonlyArray<{
+    id: MusicTrackId;
+    title: string;
+  }>;
   onReset: () => void;
   onExport: () => void;
   onImport: (raw: string) => void;
+  onSelectMusicTrack: (trackId: MusicTrackId) => void;
   onToggleSound: () => void;
   onToggleReducedMotion: () => void;
 };
@@ -13,9 +20,12 @@ type SettingsPanelProps = {
 export const SettingsPanel = ({
   soundEnabled,
   reducedMotion,
+  selectedMusicTrackId,
+  musicTracks,
   onReset,
   onExport,
   onImport,
+  onSelectMusicTrack,
   onToggleSound,
   onToggleReducedMotion
 }: SettingsPanelProps) => {
@@ -24,8 +34,27 @@ export const SettingsPanel = ({
     if (raw) onImport(raw);
   };
 
+  const selectTrack = (trackId: string) => {
+    const track = musicTracks.find((candidate) => candidate.id === trackId);
+    if (track) onSelectMusicTrack(track.id);
+  };
+
   return (
     <section className="settings-panel">
+      <label className="settings-field">
+        <span>Music track</span>
+        <select
+          className="select-control"
+          value={selectedMusicTrackId}
+          onChange={(event) => selectTrack(event.currentTarget.value)}
+        >
+          {musicTracks.map((track) => (
+            <option key={track.id} value={track.id}>
+              {track.title}
+            </option>
+          ))}
+        </select>
+      </label>
       <div className="settings-actions">
         <button type="button" className="mini-btn" onClick={onToggleSound}>
           Sound: {soundEnabled ? 'On' : 'Off'}

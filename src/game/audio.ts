@@ -11,6 +11,18 @@ export const MUSIC_TRACKS = [
   { id: 'wtw_107', title: 'Walk The World 107', src: '/assets/audio/music/wtw_107.mp3' }
 ] as const;
 
+export type MusicTrackId = (typeof MUSIC_TRACKS)[number]['id'];
+
+export const DEFAULT_MUSIC_TRACK_ID: MusicTrackId = 'main_theme';
+
+export const getMusicTrackById = (trackId: string | undefined): (typeof MUSIC_TRACKS)[number] =>
+  MUSIC_TRACKS.find((track) => track.id === trackId) ?? MUSIC_TRACKS[0];
+
+export const getMusicTrackIndex = (trackId: string | undefined): number => {
+  const index = MUSIC_TRACKS.findIndex((track) => track.id === trackId);
+  return index >= 0 ? index : 0;
+};
+
 let audioContext: AudioContext | null = null;
 
 export const resumeGameAudio = (): void => {

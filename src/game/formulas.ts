@@ -5,7 +5,9 @@ import {
   STARTING_CLICK_MILES,
   STARTING_IDLE_MILES_PER_SECOND
 } from './constants';
+import { getCosmeticEffectBonus } from './cosmetics';
 import { FOLLOWERS } from './followers';
+import { getEquipmentEffectBonus } from './inventory';
 import { EARTH_LANDMARKS } from './landmarks';
 import { UPGRADES } from './upgrades';
 import type { Follower, GameState, Landmark, Upgrade } from './types';
@@ -41,6 +43,8 @@ export const getIdleMilesPerSecond = (state: GameState): number => {
   const speedBoost = state.activeBoosts
     .filter((boost) => boost.effectType === 'speed_multiplier')
     .reduce((acc, boost) => acc * boost.multiplier, 1);
+
+  multiplier += getCosmeticEffectBonus(state, 'idle_speed_multiplier');
 
   return (idle * multiplier + followerBoost) * speedBoost;
 };
@@ -79,6 +83,8 @@ export const getClickMiles = (state: GameState): number => {
     .filter((boost) => boost.effectType === 'click_multiplier')
     .reduce((acc, boost) => acc * boost.multiplier, 1);
 
+  multiplier += getCosmeticEffectBonus(state, 'click_power_multiplier');
+
   return clickMiles * multiplier * clickBoost;
 };
 
@@ -92,6 +98,9 @@ export const getWbPerMile = (state: GameState): number => {
     }
   }
 
+  multiplier += getCosmeticEffectBonus(state, 'wb_multiplier');
+  multiplier += getEquipmentEffectBonus(state, 'wb_multiplier');
+
   return BASE_WB_PER_MILE * multiplier;
 };
 
@@ -104,6 +113,8 @@ export const getEventRewardMultiplier = (state: GameState): number => {
       multiplier += upgrade.effectValue * level;
     }
   }
+
+  multiplier += getCosmeticEffectBonus(state, 'event_reward_multiplier');
 
   return multiplier;
 };

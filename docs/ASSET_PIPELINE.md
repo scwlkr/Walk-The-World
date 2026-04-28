@@ -39,6 +39,36 @@ same ground line in every frame
 
 Do not make a separate left-walk sheet yet. The game can mirror the right-facing sheet later.
 
+C Version runtime animation states are declared in `src/game/assets.ts`.
+
+Required first state:
+
+```text
+public/assets/characters/walker/walker_walk_right_sheet.png
+```
+
+Optional C-version states:
+
+```text
+public/assets/characters/walker/walker_idle_sheet.png
+public/assets/characters/walker/walker_click_sheet.png
+public/assets/characters/walker/walker_reward_sheet.png
+public/assets/characters/walker/walker_celebration_sheet.png
+```
+
+Optional state sheets should follow the same initial standard:
+
+```text
+9 frames, horizontal
+192x192 pixels per frame
+1728x192 pixels total
+transparent PNG
+facing right
+same ground line in every frame
+```
+
+If an optional state is missing, the runtime falls back to the walk sheet instead of crashing.
+
 ### Background Images
 
 Save original full images here:
@@ -132,6 +162,8 @@ public/assets/audio/music/wtw_105.mp3
 public/assets/audio/music/wtw_106.mp3
 public/assets/audio/music/wtw_107.mp3
 ```
+
+The C-version settings panel exposes the runtime playlist from `src/game/audio.ts`. Add a track to `MUSIC_TRACKS` when a new file becomes game-ready under `public/assets/audio/music/`.
 
 ### Sound Effects
 

@@ -5,6 +5,8 @@ import {
   STARTING_IDLE_MILES_PER_SECOND,
   STARTING_WALKERBUCKS
 } from './constants';
+import { createInitialAchievementState, getLocalDateKey } from './achievements';
+import { DEFAULT_MUSIC_TRACK_ID as DEFAULT_TRACK_ID } from './audio';
 import type { GameState } from './types';
 
 export const createInitialGameState = (now = Date.now()): GameState => ({
@@ -19,17 +21,37 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
   lastSavedAt: now,
   upgrades: {},
   followers: {},
+  achievements: createInitialAchievementState(),
+  inventory: {
+    items: {},
+    equippedEquipmentItemId: null,
+    usedConsumables: {}
+  },
+  cosmetics: {
+    owned: {},
+    equippedBySlot: {}
+  },
+  dailyPlay: {
+    lastPlayedDate: getLocalDateKey(now),
+    daysPlayed: 1
+  },
   activeBoosts: [],
   stats: {
     totalClicks: 0,
     randomEventsClaimed: 0,
-    totalDistanceWalked: 0
+    totalDistanceWalked: 0,
+    upgradesPurchased: 0,
+    followersHired: 0,
+    itemsUsed: 0,
+    achievementsClaimed: 0,
+    cosmeticsEquipped: 0
   },
   wbBankedRemainder: 0,
   nextRandomEventAt: now + AUTO_SAVE_INTERVAL_MS,
   spawnedEvent: null,
   settings: {
     soundEnabled: false,
+    selectedMusicTrackId: DEFAULT_TRACK_ID,
     reducedMotion: false
   },
   ui: {

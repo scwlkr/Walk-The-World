@@ -1,12 +1,17 @@
 import { FollowerList } from './FollowerList';
+import { CosmeticsList } from './CosmeticsList';
+import { InventoryList } from './InventoryList';
 import { UpgradeList } from './UpgradeList';
-import type { Follower, GameState, Upgrade } from '../game/types';
+import type { CosmeticDefinition, Follower, GameState, InventoryItemDefinition, Upgrade } from '../game/types';
 
 type ShopModalProps = {
   state: GameState;
   onTab: (tab: GameState['ui']['shopTab']) => void;
   onBuyUpgrade: (upgrade: Upgrade) => void;
   onBuyFollower: (follower: Follower) => void;
+  onUseInventoryItem: (item: InventoryItemDefinition) => void;
+  onEquipEquipment: (item: InventoryItemDefinition) => void;
+  onEquipCosmetic: (cosmetic: CosmeticDefinition) => void;
   isUpgradeUnlocked: (requirement: Upgrade['unlockRequirement']) => boolean;
   isFollowerUnlocked: (requirement: Follower['unlockRequirement']) => boolean;
 };
@@ -16,6 +21,9 @@ export const ShopModal = ({
   onTab,
   onBuyUpgrade,
   onBuyFollower,
+  onUseInventoryItem,
+  onEquipEquipment,
+  onEquipCosmetic,
   isUpgradeUnlocked,
   isFollowerUnlocked
 }: ShopModalProps) => (
@@ -39,8 +47,11 @@ export const ShopModal = ({
     {state.ui.shopTab === 'followers' && (
       <FollowerList state={state} onBuyFollower={onBuyFollower} isUnlocked={isFollowerUnlocked} />
     )}
-    {(state.ui.shopTab === 'items' || state.ui.shopTab === 'cosmetics') && (
-      <p className="coming-soon">Coming soon in Walker World C-version.</p>
+    {state.ui.shopTab === 'items' && (
+      <InventoryList state={state} onUseItem={onUseInventoryItem} onEquipEquipment={onEquipEquipment} />
+    )}
+    {state.ui.shopTab === 'cosmetics' && (
+      <CosmeticsList state={state} onEquipCosmetic={onEquipCosmetic} />
     )}
   </>
 );

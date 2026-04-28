@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../game/types';
 import { getCurrentLandmark, getEarthProgressPercent, getIdleMilesPerSecond } from '../game/formulas';
 import { getBackgroundScene } from '../game/backgroundScenes';
+import {
+  WALKER_ANIMATION_ASSETS,
+  type WalkerAnimationState,
+  type WalkerSpriteSheet
+} from '../game/assets';
 
 type GameSceneCanvasProps = {
   state: GameState;
@@ -10,10 +15,12 @@ type GameSceneCanvasProps = {
   onSceneTap: (x: number, y: number) => void;
 };
 
-const WALKER_SPRITE_SRC = '/assets/characters/walker/walker_walk_right_sheet.png';
-const WALKER_FRAME_SIZE = 192;
-const WALKER_FRAME_COUNT = 9;
-const WALKER_RENDER_SIZE = 192;
+type LoadedWalkerSprite = {
+  asset: WalkerSpriteSheet;
+  image: HTMLImageElement;
+};
+
+const WALKER_ANIMATION_STATES: WalkerAnimationState[] = ['walk', 'idle', 'click', 'reward', 'celebration'];
 
 const biomePalette: Record<
   string,
@@ -86,24 +93,45 @@ const biomePalette: Record<
 export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: GameSceneCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number>();
-  const walkerSpriteRef = useRef<HTMLImageElement | null>(null);
   const backgroundImageRef = useRef<HTMLImageElement | null>(null);
-  const [walkerSpriteReady, setWalkerSpriteReady] = useState(false);
+  const [walkerSprites, setWalkerSprites] = useState<Partial<Record<WalkerAnimationState, LoadedWalkerSprite>>>({});
   const [backgroundReady, setBackgroundReady] = useState(false);
   const currentLandmark = getCurrentLandmark(state);
   const backgroundScene = getBackgroundScene(currentLandmark.sceneId);
 
   useEffect(() => {
-    const sprite = new Image();
-    sprite.onload = () => {
-      walkerSpriteRef.current = sprite;
-      setWalkerSpriteReady(true);
+    let cancelled = false;
+
+    for (const animationState of WALKER_ANIMATION_STATES) {
+      const asset = WALKER_ANIMATION_ASSETS[animationState];
+      const sprite = new Image();
+
+      sprite.onload = () => {
+        if (cancelled) return;
+        setWalkerSprites((prev) => ({
+          ...prev,
+          [animationState]: {
+            asset,
+            image: sprite
+          }
+        }));
+      };
+
+      sprite.onerror = () => {
+        if (cancelled || animationState === 'walk') return;
+        setWalkerSprites((prev) => {
+          const next = { ...prev };
+          delete next[animationState];
+          return next;
+        });
+      };
+
+      sprite.src = asset.src;
+    }
+
+    return () => {
+      cancelled = true;
     };
-    sprite.onerror = () => {
-      walkerSpriteRef.current = null;
-      setWalkerSpriteReady(false);
-    };
-    sprite.src = WALKER_SPRITE_SRC;
   }, []);
 
   useEffect(() => {
@@ -157,18 +185,53 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
       }
     };
 
-    const drawScrollingBackground = (image: HTMLImageElement, width: number, height: number, elapsed: number, speed: number) => {
+    const drawFramedBackground = (image: HTMLImageElement, width: number, height: number, elapsed: number, speed: number) => {
       const scale = Math.max(height / image.height, width / image.width);
       const drawWidth = Math.ceil(image.width * scale);
       const drawHeight = Math.ceil(image.height * scale);
-      const y = Math.floor((height - drawHeight) / 2);
-      const travel = Math.max(drawWidth, width);
-      let x = -((elapsed * speed) % travel);
+      const panRangeX = Math.max(0, drawWidth - width);
+      const panRangeY = Math.max(0, drawHeight - height);
+      const motion = state.settings.reducedMotion ? 0.18 : 1;
+      const drift = Math.sin(elapsed * (0.035 + Math.min(speed * 2, 0.22)) * motion);
+      const x = -Math.round(((drift + 1) / 2) * panRangeX);
+      const y = -Math.round(panRangeY * 0.52);
 
-      while (x > 0) x -= drawWidth;
+      ctx.drawImage(image, x, y, drawWidth, drawHeight);
+    };
 
-      for (; x < width; x += drawWidth) {
-        ctx.drawImage(image, x, y, drawWidth, drawHeight);
+    const getLoadedWalkerSprite = (animationState: WalkerAnimationState): LoadedWalkerSprite | undefined => {
+      const direct = walkerSprites[animationState];
+      if (direct) return direct;
+
+      const fallbackState = WALKER_ANIMATION_ASSETS[animationState].fallbackState;
+      if (fallbackState && walkerSprites[fallbackState]) return walkerSprites[fallbackState];
+
+      return walkerSprites.walk;
+    };
+
+    const getActiveAnimationState = (speed: number): WalkerAnimationState => {
+      if (state.ui.toast) return 'celebration';
+      if (tapPulse > 0.16) return 'click';
+      if (state.spawnedEvent) return 'reward';
+      if (speed < 0.0012) return 'idle';
+      return 'walk';
+    };
+
+    const drawTapBurst = (centerX: number, groundY: number, pulse: number) => {
+      const alpha = Math.min(1, Math.max(0, pulse));
+      const spread = 10 + (1 - alpha) * 34;
+
+      ctx.fillStyle = `rgba(254,240,138,${0.34 * alpha})`;
+      ctx.fillRect(centerX - 22 - spread * 0.2, groundY + 8, 44 + spread * 0.4, 5);
+
+      for (let i = 0; i < 10; i += 1) {
+        const side = i % 2 === 0 ? -1 : 1;
+        const step = Math.floor(i / 2);
+        const x = Math.round(centerX + side * (10 + step * 8 + spread * 0.34));
+        const y = Math.round(groundY + 17 - step * 2 - (1 - alpha) * 10);
+        const size = step % 2 === 0 ? 5 : 4;
+        ctx.fillStyle = `rgba(250,204,21,${0.72 * alpha})`;
+        ctx.fillRect(x, y, size, size);
       }
     };
 
@@ -186,7 +249,7 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
       if (backgroundReady && backgroundImage) {
         ctx.fillStyle = '#020617';
         ctx.fillRect(0, 0, width, height);
-        drawScrollingBackground(backgroundImage, width, height, elapsed, 18 + speed * 120);
+        drawFramedBackground(backgroundImage, width, height, elapsed, speed);
         pathY = Math.floor(height * backgroundScene.pathYRatio);
       } else {
         const sky = ctx.createLinearGradient(0, 0, 0, height);
@@ -240,19 +303,24 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
 
       const cadence = 4 + Math.min(12, speed * 22);
       const strideSwing = Math.sin(elapsed * cadence) * 5;
-      const bob = Math.sin(elapsed * cadence * 0.9) * (2.5 + Math.min(3, speed * 2)) - tapPulse * 9;
+      const bob = state.settings.reducedMotion ? -tapPulse * 5 : Math.sin(elapsed * cadence * 0.9) * (2.5 + Math.min(3, speed * 2)) - tapPulse * 9;
       const playerCenterX = width * 0.25;
-      const walkerSprite = walkerSpriteRef.current;
+      const activeAnimation = getActiveAnimationState(speed);
+      const walkerSprite = getLoadedWalkerSprite(activeAnimation);
 
-      if (walkerSpriteReady && walkerSprite) {
-        const frameIndex = Math.floor(elapsed * 8) % WALKER_FRAME_COUNT;
-        const spriteSize = WALKER_RENDER_SIZE;
+      ctx.fillStyle = 'rgba(2,6,23,0.24)';
+      ctx.fillRect(playerCenterX - 46, pathY + 25, 88, 7);
+
+      if (walkerSprite) {
+        const asset = walkerSprite.asset;
+        const frameIndex = state.settings.reducedMotion ? 0 : Math.floor(elapsed * asset.fps) % asset.frameCount;
+        const spriteSize = Math.min(asset.renderSize, Math.max(142, Math.round(height * 0.34)));
         ctx.drawImage(
-          walkerSprite,
-          frameIndex * WALKER_FRAME_SIZE,
+          walkerSprite.image,
+          frameIndex * asset.frameWidth,
           0,
-          WALKER_FRAME_SIZE,
-          WALKER_FRAME_SIZE,
+          asset.frameWidth,
+          asset.frameHeight,
           playerCenterX - spriteSize / 2,
           pathY - spriteSize + bob + 6,
           spriteSize,
@@ -281,8 +349,7 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
       }
 
       if (tapPulse > 0.01) {
-        ctx.fillStyle = `rgba(255,255,255,${0.15 + tapPulse * 0.25})`;
-        ctx.fillRect(playerCenterX - 16, pathY + 8, 32, 4);
+        drawTapBurst(playerCenterX, pathY, tapPulse);
       }
 
       if (state.spawnedEvent) {
@@ -314,7 +381,7 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
       window.removeEventListener('resize', resize);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [state, onEventClaim, tapPulse, walkerSpriteReady, backgroundReady, backgroundScene, currentLandmark]);
+  }, [state, onEventClaim, tapPulse, walkerSprites, backgroundReady, backgroundScene, currentLandmark]);
 
   return (
     <canvas

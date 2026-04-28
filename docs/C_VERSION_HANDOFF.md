@@ -1,0 +1,182 @@
+# Walk The World C Version Handoff
+
+Last updated: 2026-04-28
+
+## Current State
+
+Phase 1 and Phase 2 are complete. The remaining work should start at Phase 3 from `docs/C_VERSION_PLAN.md`.
+
+Artifacts created:
+
+- `docs/C_VERSION_PRD.md`
+- `docs/C_VERSION_PLAN.md`
+- `docs/C_VERSION_HANDOFF.md`
+- `src/game/assets.ts`
+- `src/game/achievements.ts`
+- `src/game/inventory.ts`
+- `src/game/cosmetics.ts`
+
+Input artifact:
+
+- `docs/questions_from_codex.md`
+
+README pointer:
+
+- `README.md`
+
+## Active Scope
+
+C Version means:
+
+- private-beta online Walker World game
+- account persistence
+- improved minute-to-minute idle/clicker play
+- path to the shared WalkerBucks economy
+- every README roadmap item shipped, gated with blocker doc, or future-planned
+
+## Constraints To Preserve
+
+- Playable improvements come before backend/economy work.
+- Keep local guest/offline play working through every phase.
+- Do not call privileged WalkerBucks reward/admin endpoints directly from the browser.
+- Do not silently overwrite local saves during account linking.
+- Strict pixel art is the target style.
+- WalkerBucks must route through the separate WalkerBucks API/repo.
+- Discord is the first social bridge target; Telegram waits unless Discord/economy linking is already stable.
+
+## External Evidence
+
+WalkerBucks:
+
+- Repo reachable through `git@github-scwlkr:scwlkr/WalkerBucks.git`.
+- Inspected commit: `2090e62`.
+- FastAPI/PostgreSQL service.
+- Double-entry ledger.
+- Integer WB amounts only.
+- `/v1/accounts/me` is currently a stub.
+- Privileged rewards/admin routes need auth before production/shared-economy use.
+
+Discord:
+
+- Local repo: `/Users/shanewalker/Desktop/dev/walker-world-discord`.
+- Has existing WalkerBucks-themed Discord economy, inventory, achievements, titles, daily, leaderboard, and generated catalog docs.
+- Not yet a direct shared-account bridge for this web game.
+
+## Completed Phase Results
+
+Phase 1 from `docs/C_VERSION_PLAN.md` has been implemented.
+
+Implemented:
+
+- Walker animation manifest with optional idle, click, reward, and celebration states.
+- Walk sheet fallback when optional state sheets are absent.
+- Canvas background framing drift instead of hard tiling.
+- Tap burst feedback on the path/player area.
+- Persisted music track picker in Settings.
+- Asset pipeline documentation for optional C-version animation sheets.
+
+Touched files:
+
+- `src/components/GameSceneCanvas.tsx`
+- `src/components/SettingsPanel.tsx`
+- `src/game/assets.ts`
+- `src/game/audio.ts`
+- `src/game/types.ts`
+- `src/game/initialState.ts`
+- `src/game/save.ts`
+- `src/styles/global.css`
+- `docs/ASSET_PIPELINE.md`
+
+Verification completed:
+
+- The first screen reads as strict pixel art, not generic placeholder blocks.
+- A player sees feedback when tapping the scene or WALK control.
+- The music picker can play all shipped tracks after user interaction.
+- Missing optional animation assets do not crash the game.
+- Separate 390 x 844 mobile viewport QA passed through a same-origin live-preview harness.
+- `npm run build` passes.
+
+Phase 2 from `docs/C_VERSION_PLAN.md` has been implemented.
+
+Implemented:
+
+- Stable achievement definitions with visible and hidden milestones.
+- Achievement progress, unlock, and claimed-reward state in `GameState`.
+- Save migration from version 1 to version 2 while keeping the existing `walk_the_world_save_v1` localStorage key.
+- Initial local inventory definitions for consumable, collectible, equipment, and cosmetic item types.
+- Gameplay-affecting cosmetics wired through `formulas.ts`.
+- Working achievements, inventory, and cosmetics panels.
+- Local guest-save reward claiming for WB, items, equipment, and cosmetics.
+
+Touched files:
+
+- `src/App.tsx`
+- `src/components/AchievementsPanel.tsx`
+- `src/components/CosmeticsList.tsx`
+- `src/components/InventoryList.tsx`
+- `src/components/ShopModal.tsx`
+- `src/components/StatsPanel.tsx`
+- `src/game/achievements.ts`
+- `src/game/cosmetics.ts`
+- `src/game/inventory.ts`
+- `src/game/constants.ts`
+- `src/game/formulas.ts`
+- `src/game/initialState.ts`
+- `src/game/save.ts`
+- `src/game/tick.ts`
+- `src/game/types.ts`
+- `src/styles/global.css`
+- `README.md`
+- `docs/C_VERSION_PLAN.md`
+- `docs/C_VERSION_HANDOFF.md`
+
+Verification completed:
+
+- Fresh save opened on a separate local preview origin and claimed the Day One Walker achievement reward.
+- Existing version-1 local save migrated without reset on the original local preview origin.
+- Claimed WB, item, equipment, and cosmetic rewards.
+- Used a consumable inventory item.
+- Equipped Starter Step Counter and Lucky Laces.
+- Reload confirmed inventory/cosmetic/equipment persistence and visible stat modifiers.
+- `npm run build` passes.
+
+## Next Phase
+
+Proceed with Phase 3 from `docs/C_VERSION_PLAN.md`: prestige, world model, playable Moon, and future world scaffolding.
+
+## Required Verification
+
+Before closing a code phase:
+
+```bash
+npm run build
+```
+
+For visual/game-feel phases:
+
+```bash
+npm run dev
+```
+
+Use a live browser preview for Phase 1 visual verification.
+
+## Closeout Rule
+
+Every chat or phase closeout for this C-version plan must end with a copy-ready prompt that starts the next session or next phase. The prompt should include the repo path, the current phase, the relevant plan/handoff files, and the exact next action.
+
+## Open Decisions
+
+- Canonical Moon distance.
+- Account owner for C: Supabase app account/save, WalkerBucks auth first, or another backend.
+- Whether Discord OAuth is in C or post-C.
+- First leaderboard category.
+- Which rewards become WalkerBucks-backed first.
+
+## Do Not Start Yet
+
+Do not start Phase 5 or Phase 6 code before writing and approving:
+
+- `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`
+- `docs/C_VERSION_WALKERBUCKS_BRIDGE.md`
+
+These are required because WalkerBucks auth and account ownership are currently unresolved.

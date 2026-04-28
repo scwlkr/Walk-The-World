@@ -47,6 +47,9 @@ walk → gain distance → earn WB → buy upgrades/followers → walk faster
 - Random clickable events (rewarding, no brutal negatives)
 - Upgrade shop (data-driven)
 - Follower shop (data-driven)
+- Local achievements with claimable WB/item/cosmetic rewards
+- Local inventory with consumable, collectible, equipment, and cosmetic item types
+- Gameplay-affecting cosmetics and equipment
 - Offline progress with cap + summary banner
 - localStorage autosave + import/export/reset
 - Stats panel + settings panel
@@ -66,6 +69,10 @@ Core state includes:
 - `earthLoopsCompleted`
 - `upgrades`
 - `followers`
+- `achievements`
+- `inventory`
+- `cosmetics`
+- `dailyPlay`
 - `activeBoosts`
 - `stats`
 - `lastSavedAt`
@@ -112,7 +119,7 @@ Walk-The-World/
 ## Save System Notes
 
 - Save key: `walk_the_world_save_v1`
-- Includes `saveVersion: 1` for migration readiness
+- Includes `saveVersion: 2` with migration from version 1
 - Autosaves every 5s and on important actions (walk, purchases, events)
 - Save before unload
 - Import/export as JSON text in settings
@@ -129,13 +136,12 @@ Current WB is local-only game currency.
 
 No real-money value, no crypto, no paid loot boxes.
 
-## Known Limitations (Intentional for MVP B)
+## Known Limitations
 
 - No backend/auth/cloud sync yet
 - No service worker yet (manifest-only PWA readiness)
 - Moon world is teased/locked, not fully playable
-- Placeholder pixel/block art built with canvas primitives
-- No sound implementation yet (settings toggle placeholder)
+- C-version art/audio/collection systems are local-first and not WalkerBucks-backed yet
 
 ## C Version Asset Intake
 
@@ -175,11 +181,11 @@ public/assets/audio/sfx/random_event.ogg
 
 ## Roadmap to C Version
 
-- [ ] Real pixel art asset pack
-- [ ] Sound effects/music
-- [ ] Achievements
-- [ ] Inventory items
-- [ ] Cosmetics
+- [x] Real pixel art asset pack
+- [x] Sound effects/music
+- [x] Achievements
+- [x] Inventory items
+- [x] Cosmetics
 - [ ] Prestige / world expansion
 - [ ] Moon fully playable
 - [ ] Mars/Solar System tiers
@@ -191,3 +197,11 @@ public/assets/audio/sfx/random_event.ogg
 - [ ] Seasonal events
 - [ ] Marketplace/inventory integration
 - [ ] Discord/Telegram reward bridge
+
+Persistent C-version planning lives in:
+
+- `docs/C_VERSION_PRD.md`
+- `docs/C_VERSION_PLAN.md`
+- `docs/C_VERSION_HANDOFF.md`
+
+Every roadmap item should either ship in C, be gated by a blocker doc, or be explicitly planned for a future release.

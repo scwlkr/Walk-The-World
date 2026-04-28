@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AchievementsPanel } from './components/AchievementsPanel';
 import { BottomControls } from './components/BottomControls';
 import { GameHUD } from './components/GameHUD';
 import { GameOverlaySheet } from './components/GameOverlaySheet';
@@ -7,13 +8,23 @@ import { RandomEventOverlay } from './components/RandomEventOverlay';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ShopModal } from './components/ShopModal';
 import { StatsPanel } from './components/StatsPanel';
-import { MUSIC_TRACKS, playSoundEffect, resumeGameAudio } from './game/audio';
+import {
+  MUSIC_TRACKS,
+  getMusicTrackById,
+  getMusicTrackIndex,
+  playSoundEffect,
+  resumeGameAudio,
+  type MusicTrackId
+} from './game/audio';
+import { claimAchievementReward, evaluateAchievements } from './game/achievements';
+import { equipCosmetic } from './game/cosmetics';
 import { LOGIC_TICK_RATE_MS } from './game/constants';
 import { calculateOfflineProgress, getClickMiles, getFollowerCost, getUpgradeCost } from './game/formulas';
+import { equipEquipmentItem, useInventoryItem } from './game/inventory';
 import { RANDOM_EVENTS } from './game/randomEvents';
 import { exportSave, importSave, loadGameState, resetGameState, saveGameState } from './game/save';
 import { applyDistanceAndWb, clearToast, resolveRandomEvent, runGameTick, shouldAutoSave } from './game/tick';
-import type { Follower, GameState, Upgrade } from './game/types';
+import type { AchievementDefinition, CosmeticDefinition, Follower, GameState, InventoryItemDefinition, Upgrade } from './game/types';
 
 type TapFeedback = {
   id: number;
@@ -28,7 +39,7 @@ const App = () => {
   const [tapPulse, setTapPulse] = useState(0);
   const lastFrameRef = useRef<number>(performance.now());
   const musicAudioRef = useRef<HTMLAudioElement | null>(null);
-  const musicTrackIndexRef = useRef(0);
+  const musicTrackIndexRef = useRef(getMusicTrackIndex(state.settings.selectedMusicTrackId));
   const soundEnabledRef = useRef(state.settings.soundEnabled);
   const tapFeedbackIdRef = useRef(0);
 
@@ -37,7 +48,7 @@ const App = () => {
   }, [state.settings.soundEnabled]);
 
   useEffect(() => {
-    const audio = new Audio(MUSIC_TRACKS[0].src);
+    const audio = new Audio(getMusicTrackById(state.settings.selectedMusicTrackId).src);
     audio.volume = 0.32;
     audio.preload = 'auto';
 
@@ -47,7 +58,19 @@ const App = () => {
 
     const onEnded = () => {
       musicTrackIndexRef.current = (musicTrackIndexRef.current + 1) % MUSIC_TRACKS.length;
-      audio.src = MUSIC_TRACKS[musicTrackIndexRef.current].src;
+      const nextTrack = MUSIC_TRACKS[musicTrackIndexRef.current];
+      audio.src = nextTrack.src;
+      setState((prev) => {
+        const next = {
+          ...prev,
+          settings: {
+            ...prev.settings,
+            selectedMusicTrackId: nextTrack.id
+          }
+        };
+        saveGameState(next);
+        return next;
+      });
       if (soundEnabledRef.current) playCurrentTrack();
     };
 
@@ -65,12 +88,21 @@ const App = () => {
     const audio = musicAudioRef.current;
     if (!audio) return;
 
+    const selectedTrack = getMusicTrackById(state.settings.selectedMusicTrackId);
+    const selectedIndex = getMusicTrackIndex(selectedTrack.id);
+    musicTrackIndexRef.current = selectedIndex;
+
+    if (!audio.src.endsWith(selectedTrack.src)) {
+      audio.src = selectedTrack.src;
+      audio.load();
+    }
+
     if (state.settings.soundEnabled) {
       audio.play().catch(() => undefined);
     } else {
       audio.pause();
     }
-  }, [state.settings.soundEnabled]);
+  }, [state.settings.soundEnabled, state.settings.selectedMusicTrackId]);
 
   useEffect(() => {
     const loaded = loadGameState();
@@ -79,20 +111,23 @@ const App = () => {
     const offline = calculateOfflineProgress(loaded, elapsedSeconds);
 
     if (offline.secondsApplied > 0) {
-      const withOffline = applyDistanceAndWb(
-        {
-          ...loaded,
-          walkerBucks: loaded.walkerBucks + offline.wb,
-          totalWalkerBucksEarned: loaded.totalWalkerBucksEarned + offline.wb,
-          ui: {
-            ...loaded.ui,
-            offlineSummary: {
-              distance: offline.distance,
-              wb: offline.wb
+      const withOffline = evaluateAchievements(
+        applyDistanceAndWb(
+          {
+            ...loaded,
+            walkerBucks: loaded.walkerBucks + offline.wb,
+            totalWalkerBucksEarned: loaded.totalWalkerBucksEarned + offline.wb,
+            ui: {
+              ...loaded.ui,
+              offlineSummary: {
+                distance: offline.distance,
+                wb: offline.wb
+              }
             }
-          }
-        },
-        offline.distance
+          },
+          offline.distance
+        ),
+        now
       );
       setState(withOffline);
     } else {
@@ -163,7 +198,7 @@ const App = () => {
     playSoundEffect('walk', state.settings.soundEnabled);
 
     setState((prev) => {
-      const next = applyDistanceAndWb(
+      const next = evaluateAchievements(applyDistanceAndWb(
         {
           ...prev,
           stats: {
@@ -172,7 +207,7 @@ const App = () => {
           }
         },
         distance
-      );
+      ));
       saveGameState(next);
       return next;
     });
@@ -212,10 +247,15 @@ const App = () => {
         upgrades: {
           ...prev.upgrades,
           [upgrade.id]: level + 1
+        },
+        stats: {
+          ...prev.stats,
+          upgradesPurchased: prev.stats.upgradesPurchased + 1
         }
       };
-      saveGameState(next);
-      return next;
+      const evaluated = evaluateAchievements(next);
+      saveGameState(evaluated);
+      return evaluated;
     });
   };
 
@@ -242,10 +282,15 @@ const App = () => {
         followers: {
           ...prev.followers,
           [follower.id]: count + 1
+        },
+        stats: {
+          ...prev.stats,
+          followersHired: prev.stats.followersHired + 1
         }
       };
-      saveGameState(next);
-      return next;
+      const evaluated = evaluateAchievements(next);
+      saveGameState(evaluated);
+      return evaluated;
     });
   };
 
@@ -259,6 +304,42 @@ const App = () => {
       const def = RANDOM_EVENTS.find((event) => event.id === prev.spawnedEvent?.eventDefId);
       if (!def) return { ...prev, spawnedEvent: null };
       const next = resolveRandomEvent(prev, def, Date.now());
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const onClaimAchievement = (achievement: AchievementDefinition) => {
+    playSoundEffect('event', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = claimAchievementReward(prev, achievement.id);
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const onUseInventoryItem = (item: InventoryItemDefinition) => {
+    playSoundEffect('event', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = evaluateAchievements(useInventoryItem(prev, item.id));
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const onEquipEquipment = (item: InventoryItemDefinition) => {
+    playSoundEffect('ui', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = equipEquipmentItem(prev, item.id);
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const onEquipCosmetic = (cosmetic: CosmeticDefinition) => {
+    playSoundEffect('ui', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = equipCosmetic(prev, cosmetic.id);
       saveGameState(next);
       return next;
     });
@@ -327,6 +408,20 @@ const App = () => {
     });
   };
 
+  const setMusicTrack = (trackId: MusicTrackId) => {
+    resumeGameAudio();
+    playSoundEffect('ui', state.settings.soundEnabled);
+
+    setState((prev) => {
+      const next = {
+        ...prev,
+        settings: { ...prev.settings, selectedMusicTrackId: trackId }
+      };
+      saveGameState(next);
+      return next;
+    });
+  };
+
   const toggleReducedMotion = () => {
     setState((prev) => {
       const next = {
@@ -381,6 +476,9 @@ const App = () => {
           onTab={(tab) => setState((prev) => ({ ...prev, ui: { ...prev.ui, shopTab: tab } }))}
           onBuyUpgrade={onBuyUpgrade}
           onBuyFollower={onBuyFollower}
+          onUseInventoryItem={onUseInventoryItem}
+          onEquipEquipment={onEquipEquipment}
+          onEquipCosmetic={onEquipCosmetic}
           isUpgradeUnlocked={canUnlock}
           isFollowerUnlocked={canUnlock}
         />
@@ -388,15 +486,19 @@ const App = () => {
 
       <GameOverlaySheet open={state.ui.activeTab === 'stats'} title="Stats" onClose={closeOverlay}>
         <StatsPanel state={state} />
+        <AchievementsPanel state={state} onClaim={onClaimAchievement} />
       </GameOverlaySheet>
 
       <GameOverlaySheet open={state.ui.activeTab === 'settings'} title="Settings" onClose={closeOverlay}>
         <SettingsPanel
           soundEnabled={state.settings.soundEnabled}
           reducedMotion={state.settings.reducedMotion}
+          selectedMusicTrackId={state.settings.selectedMusicTrackId}
+          musicTracks={MUSIC_TRACKS}
           onReset={onReset}
           onExport={onExport}
           onImport={onImport}
+          onSelectMusicTrack={setMusicTrack}
           onToggleSound={() =>
             setSoundEnabled(!state.settings.soundEnabled)
           }
