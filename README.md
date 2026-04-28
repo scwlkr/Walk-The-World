@@ -11,7 +11,8 @@ You begin in **Walkertown**, crawl forward one tiny step at a time, and eventual
 - React 18
 - TypeScript (strict)
 - Canvas API for game scene rendering
-- localStorage save system
+- localStorage guest save system
+- Optional Supabase account/cloud save
 - Basic PWA manifest
 
 ## Run Locally
@@ -38,6 +39,7 @@ walk → gain distance → earn WB → buy upgrades/followers → walk faster
 - Idle walking via automatic game tick.
 - WB earned from distance.
 - Earth loop bonus grants **10,000 WB**.
+- Earth prestige unlocks playable Moon progression.
 
 ## Current MVP Features
 
@@ -50,8 +52,11 @@ walk → gain distance → earn WB → buy upgrades/followers → walk faster
 - Local achievements with claimable WB/item/cosmetic rewards
 - Local inventory with consumable, collectible, equipment, and cosmetic item types
 - Gameplay-affecting cosmetics and equipment
+- Prestige, world expansion, and playable Moon progression
+- Local daily quests and seasonal event framework
 - Offline progress with cap + summary banner
 - localStorage autosave + import/export/reset
+- Optional Supabase email/password, Google auth, and manual cloud save upload/load
 - Stats panel + settings panel
 - Mobile-first bottom nav + desktop-friendly layout
 - PWA-ready web manifest
@@ -66,13 +71,17 @@ Core state includes:
 - `baseIdleMilesPerSecond`
 - `baseClickMiles`
 - `currentWorldId`
+- `worlds`
+- `prestige`
 - `earthLoopsCompleted`
 - `upgrades`
 - `followers`
 - `achievements`
 - `inventory`
 - `cosmetics`
+- `quests`
 - `dailyPlay`
+- `account`
 - `activeBoosts`
 - `stats`
 - `lastSavedAt`
@@ -103,10 +112,12 @@ Walk-The-World/
       tick.ts
       world.ts
     components/
+      AccountPanel.tsx
       GameSceneCanvas.tsx
       TopStatsBar.tsx
       WalkButton.tsx
       ProgressPanel.tsx
+      QuestPanel.tsx
       ShopModal.tsx
       UpgradeList.tsx
       FollowerList.tsx
@@ -114,15 +125,31 @@ Walk-The-World/
       StatsPanel.tsx
       SettingsPanel.tsx
       BottomNav.tsx
+    services/
+      authClient.ts
+      cloudSaveClient.ts
 ```
 
 ## Save System Notes
 
 - Save key: `walk_the_world_save_v1`
-- Includes `saveVersion: 2` with migration from version 1
+- Includes `saveVersion: 5` with migration from earlier local saves
 - Autosaves every 5s and on important actions (walk, purchases, events)
 - Save before unload
 - Import/export as JSON text in settings
+- Guest play works without Supabase configuration
+- Signed-in players can manually upload local saves or load cloud saves
+
+## Account Sync Environment
+
+Optional account sync uses Supabase Auth and a `game_saves` table.
+
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
+
+See `.env.example` for the local env names and `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md` for the table/RLS setup SQL. Without these variables, the app stays in guest-only mode.
 
 ## WalkerBucks API Readiness
 
@@ -138,10 +165,10 @@ No real-money value, no crypto, no paid loot boxes.
 
 ## Known Limitations
 
-- No backend/auth/cloud sync yet
+- Account sync requires Supabase env vars and table/RLS setup
 - No service worker yet (manifest-only PWA readiness)
-- Moon world is teased/locked, not fully playable
-- C-version art/audio/collection systems are local-first and not WalkerBucks-backed yet
+- Mars and Solar System are data-only future tiers
+- C-version rewards and WB remain local-first and not WalkerBucks-backed yet
 
 ## C Version Asset Intake
 
@@ -186,10 +213,10 @@ public/assets/audio/sfx/random_event.ogg
 - [x] Achievements
 - [x] Inventory items
 - [x] Cosmetics
-- [ ] Prestige / world expansion
-- [ ] Moon fully playable
-- [ ] Mars/Solar System tiers
-- [ ] Supabase account sync
+- [x] Prestige / world expansion
+- [x] Moon fully playable
+- [x] Mars/Solar System tiers
+- [x] Supabase account sync
 - [ ] Shared WalkerBucks economy API
 - [ ] Server-authoritative rewards
 - [ ] Leaderboards

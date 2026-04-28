@@ -512,6 +512,53 @@ button {
   gap: 0.5rem;
 }
 
+.account-panel {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.account-card {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.account-card code {
+  display: block;
+  color: #fde68a;
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+}
+
+.account-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 0.45rem;
+}
+
+.account-status-grid {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.36rem 0.75rem;
+  align-items: baseline;
+}
+
+.account-status-grid span {
+  color: #bfdbfe;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.account-status-grid strong {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.account-message {
+  margin: 0;
+}
+
 .settings-field {
   display: grid;
   gap: 0.35rem;
@@ -525,6 +572,17 @@ button {
 }
 
 .select-control {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.96);
+  color: var(--text);
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+}
+
+.text-control {
   width: 100%;
   min-height: 44px;
   border: 1px solid rgba(250, 204, 21, 0.34);

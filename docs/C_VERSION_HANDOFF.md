@@ -4,7 +4,7 @@ Last updated: 2026-04-28
 
 ## Current State
 
-Phase 1, Phase 2, Phase 3, and Phase 4 are complete. The remaining work should start at Phase 5 from `docs/C_VERSION_PLAN.md`.
+Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 are complete. The remaining work should start at Phase 6 from `docs/C_VERSION_PLAN.md`.
 
 Artifacts created:
 
@@ -18,6 +18,10 @@ Artifacts created:
 - `src/game/world.ts`
 - `src/game/quests.ts`
 - `src/game/seasonalEvents.ts`
+- `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`
+- `src/components/AccountPanel.tsx`
+- `src/services/authClient.ts`
+- `src/services/cloudSaveClient.ts`
 
 Input artifact:
 
@@ -234,14 +238,63 @@ Verification completed:
 - Fresh guest save checked on separate `http://localhost:5174/` origin generated a playable 0/3 quest set without deleting the existing `127.0.0.1` save.
 - Browser console warning/error check returned no new warnings or errors.
 
+Phase 5 from `docs/C_VERSION_PLAN.md` has been implemented.
+
+Resolved decisions:
+
+- Supabase owns C-version game auth/profile/cloud save.
+- WalkerBucks remains the economy ledger and waits for the Phase 6 trusted bridge.
+- Discord OAuth is deferred until Phase 7.
+- Existing local saves upload to cloud only after explicit player action.
+
+Implemented:
+
+- Added `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md` before account-sync code.
+- Added optional Supabase Auth wiring for email/password, Google OAuth, session restore, and sign-out.
+- Added optional Supabase cloud save load/upload through a `game_saves` table.
+- Added an Account panel inside Settings with refresh, upload local, load cloud, and sign-out controls.
+- Added save version 5 account metadata while keeping `walk_the_world_save_v1`.
+- Added `.env.example` and README account-sync environment documentation.
+- Preserved Settings export/import/reset controls.
+
+Touched files:
+
+- `.env.example`
+- `.gitignore`
+- `README.md`
+- `package.json`
+- `package-lock.json`
+- `src/App.tsx`
+- `src/components/AccountPanel.tsx`
+- `src/game/constants.ts`
+- `src/game/initialState.ts`
+- `src/game/save.ts`
+- `src/game/types.ts`
+- `src/services/authClient.ts`
+- `src/services/cloudSaveClient.ts`
+- `src/styles/global.css`
+- `src/vite-env.d.ts`
+- `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`
+- `docs/C_VERSION_PLAN.md`
+- `docs/C_VERSION_HANDOFF.md`
+
+Verification completed:
+
+- `npm run build` passes.
+- Current shell has no `VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY`; guest mode remains the required fallback path.
+
+Verification not completed:
+
+- Live Supabase sign-in/upload/load smoke test was not run because the local shell does not have Supabase env vars and a configured `game_saves` table.
+
 ## Next Phase
 
-Proceed with Phase 5 from `docs/C_VERSION_PLAN.md`: account persistence and cloud save decision.
+Proceed with Phase 6 from `docs/C_VERSION_PLAN.md`: WalkerBucks bridge and server-authoritative rewards.
 
 ## Next Kickoff Prompt
 
 ```text
-Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md and docs/C_VERSION_HANDOFF.md first. Proceed with Phase 5 only: account persistence and cloud save decision. Start by writing docs/C_VERSION_ACCOUNT_SYNC_DECISION.md before any account-sync code, keep local guest play working, keep the checklist and handoff updated, run npm run build if code changes, and end with the next kickoff prompt.
+Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, and docs/C_VERSION_ACCOUNT_SYNC_DECISION.md first. Proceed with Phase 6 only: WalkerBucks bridge and server-authoritative rewards. Start by writing docs/C_VERSION_WALKERBUCKS_BRIDGE.md before any WalkerBucks bridge code, keep guest/local mode working if WalkerBucks is unavailable, never expose privileged WalkerBucks secrets in the browser, keep the checklist and handoff updated, run npm run build if code changes, and end with the next kickoff prompt.
 ```
 
 ## Required Verification
@@ -266,16 +319,15 @@ Every chat or phase closeout for this C-version plan must end with a copy-ready 
 
 ## Open Decisions
 
-- Account owner for C: Supabase app account/save, WalkerBucks auth first, or another backend.
-- Whether Discord OAuth is in C or post-C.
 - First leaderboard category.
 - Which rewards become WalkerBucks-backed first.
+- First server-authoritative reward source for Phase 6.
+- Trusted game backend/server-function shape for WalkerBucks reward grants.
 
 ## Do Not Start Yet
 
-Do not start Phase 5 or Phase 6 code before writing and approving:
+Do not start Phase 6 code before writing and approving:
 
-- `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`
 - `docs/C_VERSION_WALKERBUCKS_BRIDGE.md`
 
-These are required because WalkerBucks auth and account ownership are currently unresolved.
+This is required because WalkerBucks auth and privileged reward flow are still unresolved.

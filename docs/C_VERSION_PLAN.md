@@ -47,7 +47,7 @@ Known repo gaps:
 - [x] Phase 2: Achievements, inventory, cosmetics, and reward definitions.
 - [x] Phase 3: Prestige, world model, playable Moon, and future world scaffolding.
 - [x] Phase 4: Daily quests and seasonal event framework.
-- [ ] Phase 5: Account persistence and cloud save decision.
+- [x] Phase 5: Account persistence and cloud save decision.
 - [ ] Phase 6: WalkerBucks bridge and server-authoritative rewards.
 - [ ] Phase 7: Leaderboards, marketplace proof, Discord bridge, and Telegram decision.
 - [ ] Phase 8: Private beta hardening and release gate.
@@ -338,6 +338,8 @@ Implemented:
 
 ## Phase 5: Account Persistence And Cloud Save Decision
 
+Status: complete.
+
 Goal: let beta players persist progress beyond localStorage.
 
 Primary files:
@@ -352,9 +354,9 @@ Primary files:
 
 Decision gate:
 
-- [ ] Decide whether Supabase owns game auth/profile/save for C.
-- [ ] Decide whether Discord OAuth ships in C or follows after Google/email auth.
-- [ ] Decide account-linking behavior for existing local saves.
+- [x] Decide whether Supabase owns game auth/profile/save for C.
+- [x] Decide whether Discord OAuth ships in C or follows after Google/email auth.
+- [x] Decide account-linking behavior for existing local saves.
 
 Recommended direction:
 
@@ -364,19 +366,47 @@ Recommended direction:
 
 Tasks after decision:
 
-- [ ] Write `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`.
-- [ ] Add environment variable documentation.
-- [ ] Add auth UI for Google and email/password.
-- [ ] Add cloud save read/write with conflict handling.
-- [ ] Add local-to-cloud migration path.
-- [ ] Keep export/import/reset available.
+- [x] Write `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`.
+- [x] Add environment variable documentation.
+- [x] Add auth UI for Google and email/password.
+- [x] Add cloud save read/write with conflict handling.
+- [x] Add local-to-cloud migration path.
+- [x] Keep export/import/reset available.
 
 Acceptance criteria:
 
-- [ ] Guest save still works without login.
-- [ ] Logged-in user can recover progress after reload.
-- [ ] Account linking does not silently overwrite newer local progress.
-- [ ] `npm run build` passes.
+- [x] Guest save still works without login.
+- [x] Logged-in user can recover progress after reload through the cloud load path when Supabase is configured.
+- [x] Account linking does not silently overwrite newer local progress.
+- [x] `npm run build` passes.
+
+Verification:
+
+```bash
+npm run build
+```
+
+Manual/config checks:
+
+- [x] Confirmed no local Supabase env vars are configured in the current shell; guest mode remains the default path.
+- [x] Account panel disables sync cleanly when `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are missing.
+- [x] Export/import/reset controls remain in Settings next to the account panel.
+- [ ] Live Supabase sign-in/upload/load smoke test is pending a configured Supabase project, env vars, and `game_saves` table.
+
+Resolved decisions:
+
+- Supabase owns game auth/profile/cloud save for C.
+- Discord OAuth is deferred until Phase 7, after account save and WalkerBucks bridge work are stable.
+- Existing local saves upload to cloud only after explicit player action.
+
+Implemented:
+
+- `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md` records the ADR, conflict rules, environment variables, and Supabase table/RLS SQL.
+- `src/services/authClient.ts` wraps optional Supabase Auth setup for email/password, Google OAuth, session restore, and sign-out.
+- `src/services/cloudSaveClient.ts` wraps `game_saves` read/write with whole-save payload migration through the existing save importer.
+- `src/components/AccountPanel.tsx` adds sign-in, sign-up, Google OAuth, refresh, upload local, load cloud, and sign-out controls.
+- `src/game/save.ts` migrates guest saves to save version 5 while keeping the existing `walk_the_world_save_v1` localStorage key.
+- `.env.example`, `.gitignore`, and `README.md` document Supabase env configuration without requiring it for local guest play.
 
 ## Phase 6: WalkerBucks Bridge And Server-Authoritative Rewards
 
@@ -501,7 +531,7 @@ Acceptance criteria:
 | Prestige / world expansion | Ship in C | Phase 3 prestige and world model. |
 | Moon fully playable | Ship in C | Phase 3 playable Moon after distance decision. |
 | Mars/Solar System tiers | Plan for Future | Phase 3 locked data scaffolding. |
-| Supabase account sync | Gate in C | Phase 5 decision and implementation if approved. |
+| Supabase account sync | Ship in C with config | Phase 5 Supabase auth/cloud save implementation with guest fallback and explicit local-to-cloud upload. |
 | Shared WalkerBucks economy API | Gate in C | Phase 6 bridge contract and first integration. |
 | Server-authoritative rewards | Gate in C | Phase 6 first idempotent reward path. |
 | Leaderboards | Ship or Gate in C | Phase 7 after account persistence. |
@@ -520,9 +550,15 @@ Acceptance criteria:
 
 ### Account Owner
 
-- Status: blocked on architecture decision.
-- Required decision: Supabase owns game account/save for C, WalkerBucks grows auth first, or another backend owns it.
-- Recommended next action: write `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md` before Phase 5 code.
+- Status: resolved for C.
+- Decision: Supabase owns game auth/profile/cloud save for C.
+- Follow-up: configure Supabase env vars and `game_saves` table before live auth/sync QA.
+
+### Supabase Live Configuration
+
+- Status: external setup pending.
+- Required setup: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, Google provider credentials if Google OAuth should work, and the `game_saves` table/RLS policies from `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`.
+- Current behavior without setup: app remains guest-only and localStorage save/export/import/reset still work.
 
 ### WalkerBucks Auth
 
@@ -565,4 +601,4 @@ git -C /Users/shanewalker/Desktop/dev/walker-world-discord status --short
 
 ## Next Implementation Target
 
-Proceed to Phase 3 only: prestige, world model, playable Moon, and future world scaffolding.
+Proceed to Phase 6 only: WalkerBucks bridge and server-authoritative rewards. Start by writing `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` before any WalkerBucks bridge code.

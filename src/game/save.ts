@@ -96,6 +96,10 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
       ...base.dailyPlay,
       ...rawSave.dailyPlay
     },
+    account: {
+      ...base.account,
+      ...rawSave.account
+    },
     ui: {
       ...base.ui,
       ...rawSave.ui

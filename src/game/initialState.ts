@@ -40,6 +40,15 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
     lastPlayedDate: getLocalDateKey(now),
     daysPlayed: 1
   },
+  account: {
+    provider: 'guest',
+    userId: null,
+    email: null,
+    cloudSaveUpdatedAt: null,
+    lastSyncedAt: null,
+    status: 'guest',
+    lastSyncError: null
+  },
   activeBoosts: [],
   stats: {
     totalClicks: 0,

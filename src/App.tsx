@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AccountPanel, type AccountBusyState } from './components/AccountPanel';
 import { AchievementsPanel } from './components/AchievementsPanel';
 import { BottomControls } from './components/BottomControls';
 import { GameHUD } from './components/GameHUD';
@@ -29,6 +30,17 @@ import { exportSave, importSave, loadGameState, resetGameState, saveGameState } 
 import { applyDistanceAndWb, clearToast, resolveRandomEvent, runGameTick, shouldAutoSave } from './game/tick';
 import type { AchievementDefinition, CosmeticDefinition, Follower, GameState, InventoryItemDefinition, QuestDefinition, Upgrade, WorldId } from './game/types';
 import { applyEarthPrestige, canEnterWorld } from './game/world';
+import {
+  getAuthSession,
+  isAuthConfigured,
+  onAuthSessionChange,
+  signInWithEmail,
+  signInWithGoogle,
+  signOut,
+  signUpWithEmail,
+  type AuthSession
+} from './services/authClient';
+import { loadCloudSave, uploadCloudSave, type CloudSaveSnapshot } from './services/cloudSaveClient';
 
 type TapFeedback = {
   id: number;
@@ -39,6 +51,11 @@ type TapFeedback = {
 
 const App = () => {
   const [state, setState] = useState<GameState>(() => loadGameState());
+  const [authSession, setAuthSession] = useState<AuthSession | null>(null);
+  const [authReady, setAuthReady] = useState(!isAuthConfigured);
+  const [cloudSave, setCloudSave] = useState<CloudSaveSnapshot | null>(null);
+  const [accountBusy, setAccountBusy] = useState<AccountBusyState>('idle');
+  const [accountMessage, setAccountMessage] = useState<string | null>(null);
   const [tapFeedback, setTapFeedback] = useState<TapFeedback[]>([]);
   const [tapPulse, setTapPulse] = useState(0);
   const lastFrameRef = useRef<number>(performance.now());
@@ -46,6 +63,113 @@ const App = () => {
   const musicTrackIndexRef = useRef(getMusicTrackIndex(state.settings.selectedMusicTrackId));
   const soundEnabledRef = useRef(state.settings.soundEnabled);
   const tapFeedbackIdRef = useRef(0);
+
+  const toErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) return error.message;
+    return 'Account action failed.';
+  };
+
+  const updateAccountState = (patch: Partial<GameState['account']>) => {
+    setState((prev) => {
+      const next = {
+        ...prev,
+        account: {
+          ...prev.account,
+          ...patch
+        }
+      };
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const getCloudStatus = (snapshot: CloudSaveSnapshot | null): GameState['account']['status'] => {
+    if (!snapshot) return 'signed_in';
+    const hasTimestampConflict = Math.abs(snapshot.updatedAt - state.lastSavedAt) > 1000;
+    const hasVersionConflict = snapshot.saveVersion !== state.saveVersion;
+    return hasTimestampConflict || hasVersionConflict ? 'conflict' : 'synced';
+  };
+
+  const refreshCloudForUser = async (userId: string, showMessage = true) => {
+    setAccountBusy('checking');
+    try {
+      const snapshot = await loadCloudSave(userId);
+      setCloudSave(snapshot);
+      updateAccountState({
+        cloudSaveUpdatedAt: snapshot?.updatedAt ?? null,
+        status: getCloudStatus(snapshot),
+        lastSyncError: null
+      });
+      if (showMessage) {
+        setAccountMessage(snapshot ? 'Cloud save found.' : 'No cloud save yet.');
+      }
+    } catch (error) {
+      const message = toErrorMessage(error);
+      updateAccountState({ status: 'error', lastSyncError: message });
+      setAccountMessage(message);
+    } finally {
+      setAccountBusy('idle');
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthConfigured) {
+      updateAccountState({
+        provider: 'guest',
+        userId: null,
+        email: null,
+        status: 'disabled',
+        lastSyncError: null
+      });
+      return;
+    }
+
+    let mounted = true;
+    void getAuthSession()
+      .then((session) => {
+        if (!mounted) return;
+        setAuthSession(session);
+        setAuthReady(true);
+      })
+      .catch((error) => {
+        if (!mounted) return;
+        setAccountMessage(toErrorMessage(error));
+        setAuthReady(true);
+      });
+
+    const unsubscribe = onAuthSessionChange((session) => {
+      setAuthSession(session);
+      setAuthReady(true);
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const user = authSession?.user;
+    if (!user) {
+      setCloudSave(null);
+      updateAccountState({
+        provider: 'guest',
+        userId: null,
+        email: null,
+        status: isAuthConfigured ? 'guest' : 'disabled'
+      });
+      return;
+    }
+
+    updateAccountState({
+      provider: 'supabase',
+      userId: user.id,
+      email: user.email ?? null,
+      status: 'signed_in',
+      lastSyncError: null
+    });
+    void refreshCloudForUser(user.id, false);
+  }, [authSession?.user.id, authSession?.user.email]);
 
   useEffect(() => {
     soundEnabledRef.current = state.settings.soundEnabled;
@@ -479,6 +603,157 @@ const App = () => {
     });
   };
 
+  const handleEmailSignIn = async (email: string, password: string) => {
+    setAccountBusy('authenticating');
+    setAccountMessage(null);
+    try {
+      await signInWithEmail(email, password);
+      setAccountMessage('Signed in.');
+    } catch (error) {
+      const message = toErrorMessage(error);
+      updateAccountState({ status: 'error', lastSyncError: message });
+      setAccountMessage(message);
+    } finally {
+      setAccountBusy('idle');
+    }
+  };
+
+  const handleEmailSignUp = async (email: string, password: string) => {
+    setAccountBusy('authenticating');
+    setAccountMessage(null);
+    try {
+      await signUpWithEmail(email, password);
+      setAccountMessage('Account created. Confirm email if Supabase requires it.');
+    } catch (error) {
+      const message = toErrorMessage(error);
+      updateAccountState({ status: 'error', lastSyncError: message });
+      setAccountMessage(message);
+    } finally {
+      setAccountBusy('idle');
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setAccountBusy('authenticating');
+    setAccountMessage(null);
+    try {
+      await signInWithGoogle();
+      setAccountMessage('Opening Google sign in.');
+    } catch (error) {
+      const message = toErrorMessage(error);
+      updateAccountState({ status: 'error', lastSyncError: message });
+      setAccountMessage(message);
+    } finally {
+      setAccountBusy('idle');
+    }
+  };
+
+  const handleSignOut = async () => {
+    setAccountBusy('signing-out');
+    try {
+      await signOut();
+      setCloudSave(null);
+      updateAccountState({
+        provider: 'guest',
+        userId: null,
+        email: null,
+        status: 'guest'
+      });
+      setAccountMessage('Signed out. Local guest play is still active.');
+    } catch (error) {
+      const message = toErrorMessage(error);
+      updateAccountState({ status: 'error', lastSyncError: message });
+      setAccountMessage(message);
+    } finally {
+      setAccountBusy('idle');
+    }
+  };
+
+  const handleRefreshCloud = async () => {
+    const user = authSession?.user;
+    if (!user) return;
+    await refreshCloudForUser(user.id);
+  };
+
+  const handleUploadLocal = async () => {
+    const user = authSession?.user;
+    if (!user) return;
+    if (cloudSave && !window.confirm('Upload this local save to cloud and replace the current cloud save?')) return;
+
+    setAccountBusy('uploading');
+    setAccountMessage(null);
+    try {
+      const now = Date.now();
+      const uploadState: GameState = {
+        ...state,
+        lastSavedAt: now,
+        account: {
+          ...state.account,
+          provider: 'supabase',
+          userId: user.id,
+          email: user.email ?? null,
+          cloudSaveUpdatedAt: now,
+          lastSyncedAt: now,
+          status: 'synced',
+          lastSyncError: null
+        }
+      };
+      const snapshot = await uploadCloudSave(user.id, uploadState);
+      const syncedState: GameState = {
+        ...uploadState,
+        account: {
+          ...uploadState.account,
+          cloudSaveUpdatedAt: snapshot.updatedAt,
+          lastSyncedAt: snapshot.updatedAt,
+          status: 'synced'
+        }
+      };
+      setCloudSave({ ...snapshot, state: syncedState });
+      setState(syncedState);
+      saveGameState(syncedState);
+      setAccountMessage('Local save uploaded to cloud.');
+    } catch (error) {
+      const message = toErrorMessage(error);
+      updateAccountState({ status: 'error', lastSyncError: message });
+      setAccountMessage(message);
+    } finally {
+      setAccountBusy('idle');
+    }
+  };
+
+  const handleLoadCloud = async () => {
+    const user = authSession?.user;
+    if (!user || !cloudSave) return;
+    if (!window.confirm('Load the cloud save and replace this local save?')) return;
+
+    setAccountBusy('loading');
+    setAccountMessage(null);
+    try {
+      const loadedState: GameState = {
+        ...cloudSave.state,
+        account: {
+          ...cloudSave.state.account,
+          provider: 'supabase',
+          userId: user.id,
+          email: user.email ?? null,
+          cloudSaveUpdatedAt: cloudSave.updatedAt,
+          lastSyncedAt: Date.now(),
+          status: 'synced',
+          lastSyncError: null
+        }
+      };
+      setState(loadedState);
+      saveGameState(loadedState);
+      setAccountMessage('Cloud save loaded locally.');
+    } catch (error) {
+      const message = toErrorMessage(error);
+      updateAccountState({ status: 'error', lastSyncError: message });
+      setAccountMessage(message);
+    } finally {
+      setAccountBusy('idle');
+    }
+  };
+
   return (
     <div className="game-shell">
       <GameSceneCanvas state={state} onEventClaim={onClaimEvent} tapPulse={tapPulse} onSceneTap={(x, y) => onWalk({ x, y })} />
@@ -541,6 +816,23 @@ const App = () => {
       </GameOverlaySheet>
 
       <GameOverlaySheet open={state.ui.activeTab === 'settings'} title="Settings" onClose={closeOverlay}>
+        <AccountPanel
+          isConfigured={isAuthConfigured}
+          isReady={authReady}
+          session={authSession}
+          cloudSave={cloudSave}
+          busy={accountBusy}
+          message={accountMessage}
+          localLastSavedAt={state.lastSavedAt}
+          localSaveVersion={state.saveVersion}
+          onEmailSignIn={handleEmailSignIn}
+          onEmailSignUp={handleEmailSignUp}
+          onGoogleSignIn={handleGoogleSignIn}
+          onSignOut={handleSignOut}
+          onRefreshCloud={handleRefreshCloud}
+          onUploadLocal={handleUploadLocal}
+          onLoadCloud={handleLoadCloud}
+        />
         <SettingsPanel
           soundEnabled={state.settings.soundEnabled}
           reducedMotion={state.settings.reducedMotion}

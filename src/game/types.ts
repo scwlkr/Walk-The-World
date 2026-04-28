@@ -299,6 +299,16 @@ export type DailyPlayState = {
   daysPlayed: number;
 };
 
+export type AccountSyncState = {
+  provider: 'guest' | 'supabase';
+  userId: string | null;
+  email: string | null;
+  cloudSaveUpdatedAt: number | null;
+  lastSyncedAt: number | null;
+  status: 'guest' | 'signed_in' | 'synced' | 'conflict' | 'error' | 'disabled';
+  lastSyncError: string | null;
+};
+
 export type GameState = {
   saveVersion: number;
   distanceMiles: number;
@@ -318,6 +328,7 @@ export type GameState = {
   cosmetics: CosmeticState;
   quests: QuestState;
   dailyPlay: DailyPlayState;
+  account: AccountSyncState;
   activeBoosts: ActiveBoost[];
   stats: GameStats;
   wbBankedRemainder: number;
