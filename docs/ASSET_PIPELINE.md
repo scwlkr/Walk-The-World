@@ -29,9 +29,9 @@ public/assets/characters/walker/walker_walk_right_sheet.png
 Preferred first sprite-sheet standard:
 
 ```text
-8 frames, horizontal
+9 frames, horizontal
 64x64 pixels per frame
-512x64 pixels total
+576x64 pixels total
 transparent PNG
 facing right
 same ground line in every frame

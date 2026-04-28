@@ -12,7 +12,7 @@ type GameSceneCanvasProps = {
 
 const WALKER_SPRITE_SRC = '/assets/characters/walker/walker_walk_right_sheet.png';
 const WALKER_FRAME_SIZE = 64;
-const WALKER_FRAME_COUNT = 8;
+const WALKER_FRAME_COUNT = 9;
 
 const biomePalette: Record<
   string,
