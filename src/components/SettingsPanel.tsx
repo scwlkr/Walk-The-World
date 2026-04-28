@@ -28,7 +28,7 @@ export const SettingsPanel = ({
     <section className="settings-panel">
       <div className="settings-actions">
         <button type="button" className="mini-btn" onClick={onToggleSound}>
-          Sound: {soundEnabled ? 'On' : 'Off'} (placeholder)
+          Sound: {soundEnabled ? 'On' : 'Off'}
         </button>
         <button type="button" className="mini-btn" onClick={onToggleReducedMotion}>
           Reduced motion: {reducedMotion ? 'On' : 'Off'}

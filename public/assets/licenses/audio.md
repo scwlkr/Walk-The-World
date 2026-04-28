@@ -4,7 +4,9 @@ Record the source and license for every third-party audio file used by the game.
 
 ## Current Assets
 
-No third-party audio assets have been added yet.
+- `public/assets/audio/music/main_theme.mp3`: user-supplied source from `assets/source/audio/music/wtw_100.mp3`.
+- `public/assets/audio/music/wtw_101.mp3` through `wtw_107.mp3`: user-supplied music files.
+- Runtime SFX are generated with the browser Web Audio API; no third-party SFX files have been added yet.
 
 ## Candidate Sources
 

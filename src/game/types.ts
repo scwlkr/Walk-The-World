@@ -83,6 +83,7 @@ export type Landmark = {
   name: string;
   distanceMiles: number;
   biome: 'plains' | 'desert' | 'city' | 'ocean' | 'mountain' | 'snow';
+  sceneId: string;
 };
 
 export type GameStats = {

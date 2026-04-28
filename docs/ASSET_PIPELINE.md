@@ -72,6 +72,30 @@ grand_canyon
 moon
 ```
 
+The current C-version background composites are generated at 1600px wide under:
+
+```text
+public/assets/backgrounds/<scene_name>/composite.png
+```
+
+Current normalized scene folders:
+
+```text
+dallas
+desert
+grand_canyon
+great_wall_china
+london
+moon_surface
+niagara_falls
+paris
+rome
+skyline
+suburb
+tokyo
+walkertown
+```
+
 Layer rules:
 
 - `sky.png` can be opaque.
@@ -95,6 +119,19 @@ public/assets/audio/music/main_theme.mp3
 ```
 
 Use `ogg` when available and keep an `mp3` fallback if the source already exists. Keep MVP tracks short and loopable.
+
+Current runtime music files:
+
+```text
+public/assets/audio/music/main_theme.mp3
+public/assets/audio/music/wtw_101.mp3
+public/assets/audio/music/wtw_102.mp3
+public/assets/audio/music/wtw_103.mp3
+public/assets/audio/music/wtw_104.mp3
+public/assets/audio/music/wtw_105.mp3
+public/assets/audio/music/wtw_106.mp3
+public/assets/audio/music/wtw_107.mp3
+```
 
 ### Sound Effects
 
@@ -135,6 +172,8 @@ Reference links:
 - https://kenney.nl/assets/rpg-audio
 
 For this game, use ZzFX for button taps, reward pings, shop purchases, and random-event sounds. Use file-based audio only where the sound needs a specific texture, such as footsteps or a music loop.
+
+Current implementation note: MVP C uses the browser Web Audio API for generated tap, purchase, event, and UI sounds, so no third-party SFX files are required yet.
 
 ## First C-Version Asset Targets
 

@@ -7,8 +7,9 @@ import { RandomEventOverlay } from './components/RandomEventOverlay';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ShopModal } from './components/ShopModal';
 import { StatsPanel } from './components/StatsPanel';
+import { MUSIC_TRACKS, playSoundEffect, resumeGameAudio } from './game/audio';
 import { LOGIC_TICK_RATE_MS } from './game/constants';
-import { calculateOfflineProgress, getClickMiles } from './game/formulas';
+import { calculateOfflineProgress, getClickMiles, getFollowerCost, getUpgradeCost } from './game/formulas';
 import { RANDOM_EVENTS } from './game/randomEvents';
 import { exportSave, importSave, loadGameState, resetGameState, saveGameState } from './game/save';
 import { applyDistanceAndWb, clearToast, resolveRandomEvent, runGameTick, shouldAutoSave } from './game/tick';
@@ -26,6 +27,50 @@ const App = () => {
   const [tapFeedback, setTapFeedback] = useState<TapFeedback[]>([]);
   const [tapPulse, setTapPulse] = useState(0);
   const lastFrameRef = useRef<number>(performance.now());
+  const musicAudioRef = useRef<HTMLAudioElement | null>(null);
+  const musicTrackIndexRef = useRef(0);
+  const soundEnabledRef = useRef(state.settings.soundEnabled);
+  const tapFeedbackIdRef = useRef(0);
+
+  useEffect(() => {
+    soundEnabledRef.current = state.settings.soundEnabled;
+  }, [state.settings.soundEnabled]);
+
+  useEffect(() => {
+    const audio = new Audio(MUSIC_TRACKS[0].src);
+    audio.volume = 0.32;
+    audio.preload = 'auto';
+
+    const playCurrentTrack = () => {
+      audio.play().catch(() => undefined);
+    };
+
+    const onEnded = () => {
+      musicTrackIndexRef.current = (musicTrackIndexRef.current + 1) % MUSIC_TRACKS.length;
+      audio.src = MUSIC_TRACKS[musicTrackIndexRef.current].src;
+      if (soundEnabledRef.current) playCurrentTrack();
+    };
+
+    audio.addEventListener('ended', onEnded);
+    musicAudioRef.current = audio;
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener('ended', onEnded);
+      musicAudioRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const audio = musicAudioRef.current;
+    if (!audio) return;
+
+    if (state.settings.soundEnabled) {
+      audio.play().catch(() => undefined);
+    } else {
+      audio.pause();
+    }
+  }, [state.settings.soundEnabled]);
 
   useEffect(() => {
     const loaded = loadGameState();
@@ -115,6 +160,8 @@ const App = () => {
 
   const onWalk = (tapPosition?: { x: number; y: number }) => {
     const distance = getClickMiles(state);
+    playSoundEffect('walk', state.settings.soundEnabled);
+
     setState((prev) => {
       const next = applyDistanceAndWb(
         {
@@ -131,7 +178,8 @@ const App = () => {
     });
 
     if (tapPosition) {
-      const id = Date.now() + Math.floor(Math.random() * 1000);
+      tapFeedbackIdRef.current += 1;
+      const id = tapFeedbackIdRef.current;
       setTapFeedback((prev) => [...prev, { id, x: tapPosition.x, y: tapPosition.y, distance }]);
       window.setTimeout(() => {
         setTapFeedback((prev) => prev.filter((item) => item.id !== id));
@@ -142,6 +190,15 @@ const App = () => {
   };
 
   const onBuyUpgrade = (upgrade: Upgrade) => {
+    const level = state.upgrades[upgrade.id] ?? 0;
+    const cost = getUpgradeCost(upgrade, level);
+    const maxed = level >= upgrade.maxLevel;
+    const unlocked = canUnlock(upgrade.unlockRequirement);
+
+    if (unlocked && !maxed && state.walkerBucks >= cost) {
+      playSoundEffect('purchase', state.settings.soundEnabled);
+    }
+
     setState((prev) => {
       if (!canUnlock(upgrade.unlockRequirement)) return prev;
       const level = prev.upgrades[upgrade.id] ?? 0;
@@ -163,6 +220,15 @@ const App = () => {
   };
 
   const onBuyFollower = (follower: Follower) => {
+    const count = state.followers[follower.id] ?? 0;
+    const cost = getFollowerCost(follower, count);
+    const maxed = count >= follower.maxCount;
+    const unlocked = canUnlock(follower.unlockRequirement);
+
+    if (unlocked && !maxed && state.walkerBucks >= cost) {
+      playSoundEffect('purchase', state.settings.soundEnabled);
+    }
+
     setState((prev) => {
       if (!canUnlock(follower.unlockRequirement)) return prev;
       const count = prev.followers[follower.id] ?? 0;
@@ -184,6 +250,10 @@ const App = () => {
   };
 
   const onClaimEvent = () => {
+    if (state.spawnedEvent) {
+      playSoundEffect('event', state.settings.soundEnabled);
+    }
+
     setState((prev) => {
       if (!prev.spawnedEvent) return prev;
       const def = RANDOM_EVENTS.find((event) => event.id === prev.spawnedEvent?.eventDefId);
@@ -236,6 +306,36 @@ const App = () => {
         showShop: tab === 'shop'
       }
     }));
+  };
+
+  const setSoundEnabled = (enabled: boolean) => {
+    if (enabled) {
+      resumeGameAudio();
+      playSoundEffect('ui', true);
+      musicAudioRef.current?.play().catch(() => undefined);
+    } else {
+      musicAudioRef.current?.pause();
+    }
+
+    setState((prev) => {
+      const next = {
+        ...prev,
+        settings: { ...prev.settings, soundEnabled: enabled }
+      };
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const toggleReducedMotion = () => {
+    setState((prev) => {
+      const next = {
+        ...prev,
+        settings: { ...prev.settings, reducedMotion: !prev.settings.reducedMotion }
+      };
+      saveGameState(next);
+      return next;
+    });
   };
 
   return (
@@ -298,17 +398,9 @@ const App = () => {
           onExport={onExport}
           onImport={onImport}
           onToggleSound={() =>
-            setState((prev) => ({
-              ...prev,
-              settings: { ...prev.settings, soundEnabled: !prev.settings.soundEnabled }
-            }))
+            setSoundEnabled(!state.settings.soundEnabled)
           }
-          onToggleReducedMotion={() =>
-            setState((prev) => ({
-              ...prev,
-              settings: { ...prev.settings, reducedMotion: !prev.settings.reducedMotion }
-            }))
-          }
+          onToggleReducedMotion={toggleReducedMotion}
         />
       </GameOverlaySheet>
     </div>
