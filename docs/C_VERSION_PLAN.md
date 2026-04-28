@@ -208,6 +208,13 @@ Implemented:
 
 Goal: make world expansion real while keeping Mars/Solar System as future-ready data.
 
+Canonical Moon distance decision:
+
+- Use NASA's average Earth-Moon distance: `238,855` miles (`384,400` km).
+- Rationale: the Moon's orbit varies, so the average distance is the stable gameplay canon for Earth-to-Moon progression.
+- Code constant: `CANONICAL_MOON_DISTANCE_MILES`.
+- Source: NASA Moon Facts / NASA Space Place average distance.
+
 Primary files:
 
 - `src/game/world.ts`
@@ -224,32 +231,50 @@ Primary files:
 
 Tasks:
 
-- [ ] Replace `moon_locked` with a real world model that supports locked and unlocked worlds.
-- [ ] Add world definitions for Earth and Moon with independent loop/progression distances.
-- [ ] Add a documented constant for the chosen canonical miles-to-Moon value.
-- [ ] Add a prestige model:
+- [x] Replace `moon_locked` with a real world model that supports locked and unlocked worlds.
+- [x] Add world definitions for Earth and Moon with independent loop/progression distances.
+- [x] Add a documented constant for the chosen canonical miles-to-Moon value.
+- [x] Add a prestige model:
   - reset selected Earth progress
   - preserve selected collection/account progress
   - grant permanent bonus
   - unlock or accelerate Moon progression
-- [ ] Add Moon landmarks/scenes using existing `moon_surface` assets first.
-- [ ] Add future world placeholders for Mars/Solar System as data-only definitions with locked status.
-- [ ] Update progress UI to show current world, next landmark, prestige status, and locked-world requirements.
+- [x] Add Moon landmarks/scenes using existing `moon_surface` assets first.
+- [x] Add future world placeholders for Mars/Solar System as data-only definitions with locked status.
+- [x] Update progress UI to show current world, next landmark, prestige status, and locked-world requirements.
 
 Acceptance criteria:
 
-- [ ] Earth prestige can be triggered only when requirements are met.
-- [ ] Prestige grants a visible permanent bonus.
-- [ ] Moon can be entered and progressed.
-- [ ] Mars/Solar System are visible as future locked tiers or documented future definitions.
-- [ ] `npm run build` passes.
+- [x] Earth prestige can be triggered only when requirements are met.
+- [x] Prestige grants a visible permanent bonus.
+- [x] Moon can be entered and progressed.
+- [x] Mars/Solar System are visible as future locked tiers or documented future definitions.
+- [x] `npm run build` passes.
 
-Blocked decision:
+Verification:
 
-- Choose canonical Moon distance. Options to document before implementation:
-  - average distance
-  - closest approach
-  - Walker World canon value
+```bash
+npm run build
+```
+
+Manual checks:
+
+- [x] Live preview opened on `http://127.0.0.1:5175/`.
+- [x] Existing local guest save loaded after migration without reset.
+- [x] Default/early guest state shows Earth active, Moon locked, Mars/Solar System future-locked, and Prestige Earth disabled.
+- [x] Local bundled verification harness confirmed Earth-loop prestige unlocks Moon, resets Earth route progress, preserves cumulative Earth loop progress, grants permanent bonuses, and lets Moon progress independently.
+- [x] Local bundled verification harness confirmed legacy `moon_locked` saves normalize to Earth and migrate to save version 3.
+
+Implemented:
+
+- `src/game/world.ts` defines Earth, playable Moon, future Mars, and future Solar System route data.
+- `src/game/landmarks.ts` defines Moon route landmarks using `moon_surface`.
+- `src/game/save.ts` migrates old guest saves into the version 3 world/prestige model while keeping the existing localStorage key.
+- `src/components/ProgressPanel.tsx`, `src/components/GameHUD.tsx`, `src/components/StatsPanel.tsx`, and `src/components/GameSceneCanvas.tsx` read from the active world model.
+
+Resolved decision:
+
+- Canonical Moon distance is the average Earth-Moon distance: `238,855` miles.
 
 ## Phase 4: Daily Quests And Seasonal Event Framework
 

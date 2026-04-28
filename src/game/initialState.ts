@@ -8,6 +8,7 @@ import {
 import { createInitialAchievementState, getLocalDateKey } from './achievements';
 import { DEFAULT_MUSIC_TRACK_ID as DEFAULT_TRACK_ID } from './audio';
 import type { GameState } from './types';
+import { createInitialPrestigeState, createInitialWorldProgress } from './world';
 
 export const createInitialGameState = (now = Date.now()): GameState => ({
   saveVersion: SAVE_VERSION,
@@ -17,6 +18,8 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
   baseIdleMilesPerSecond: STARTING_IDLE_MILES_PER_SECOND,
   baseClickMiles: STARTING_CLICK_MILES,
   currentWorldId: 'earth',
+  worlds: createInitialWorldProgress(now),
+  prestige: createInitialPrestigeState(),
   earthLoopsCompleted: 0,
   lastSavedAt: now,
   upgrades: {},

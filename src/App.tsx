@@ -4,6 +4,7 @@ import { BottomControls } from './components/BottomControls';
 import { GameHUD } from './components/GameHUD';
 import { GameOverlaySheet } from './components/GameOverlaySheet';
 import { GameSceneCanvas } from './components/GameSceneCanvas';
+import { ProgressPanel } from './components/ProgressPanel';
 import { RandomEventOverlay } from './components/RandomEventOverlay';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ShopModal } from './components/ShopModal';
@@ -24,7 +25,8 @@ import { equipEquipmentItem, useInventoryItem } from './game/inventory';
 import { RANDOM_EVENTS } from './game/randomEvents';
 import { exportSave, importSave, loadGameState, resetGameState, saveGameState } from './game/save';
 import { applyDistanceAndWb, clearToast, resolveRandomEvent, runGameTick, shouldAutoSave } from './game/tick';
-import type { AchievementDefinition, CosmeticDefinition, Follower, GameState, InventoryItemDefinition, Upgrade } from './game/types';
+import type { AchievementDefinition, CosmeticDefinition, Follower, GameState, InventoryItemDefinition, Upgrade, WorldId } from './game/types';
+import { applyEarthPrestige, canEnterWorld } from './game/world';
 
 type TapFeedback = {
   id: number;
@@ -183,7 +185,7 @@ const App = () => {
         upgradeLevel?: number;
       }) => {
         if (!requirement) return true;
-        if (requirement.distanceMiles && state.distanceMiles < requirement.distanceMiles) return false;
+        if (requirement.distanceMiles && state.stats.totalDistanceWalked < requirement.distanceMiles) return false;
         if (requirement.earthLoopsCompleted && state.earthLoopsCompleted < requirement.earthLoopsCompleted) return false;
         if (requirement.upgradeId && (state.upgrades[requirement.upgradeId] ?? 0) < (requirement.upgradeLevel ?? 1)) {
           return false;
@@ -345,6 +347,33 @@ const App = () => {
     });
   };
 
+  const onSelectWorld = (worldId: WorldId) => {
+    playSoundEffect('ui', state.settings.soundEnabled);
+    setState((prev) => {
+      if (!canEnterWorld(prev, worldId)) return prev;
+      const next: GameState = {
+        ...prev,
+        currentWorldId: worldId,
+        distanceMiles: prev.worlds[worldId].distanceMiles,
+        ui: {
+          ...prev.ui,
+          toast: `Entered ${worldId === 'solar_system' ? 'Solar System' : worldId.charAt(0).toUpperCase() + worldId.slice(1)}.`
+        }
+      };
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const onPrestigeEarth = () => {
+    playSoundEffect('event', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = evaluateAchievements(applyEarthPrestige(prev, Date.now()));
+      saveGameState(next);
+      return next;
+    });
+  };
+
   const onReset = () => {
     if (!window.confirm('Reset your Walk The World save?')) return;
     const fresh = resetGameState();
@@ -485,6 +514,7 @@ const App = () => {
       </GameOverlaySheet>
 
       <GameOverlaySheet open={state.ui.activeTab === 'stats'} title="Stats" onClose={closeOverlay}>
+        <ProgressPanel state={state} onPrestigeEarth={onPrestigeEarth} onSelectWorld={onSelectWorld} />
         <StatsPanel state={state} />
         <AchievementsPanel state={state} onClaim={onClaimAchievement} />
       </GameOverlaySheet>

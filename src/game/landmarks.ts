@@ -1,4 +1,4 @@
-import type { Landmark } from './types';
+import type { Landmark, WorldId } from './types';
 
 export const EARTH_LANDMARKS: Landmark[] = [
   { name: 'Walkertown', distanceMiles: 0, biome: 'plains', sceneId: 'walkertown' },
@@ -16,3 +16,21 @@ export const EARTH_LANDMARKS: Landmark[] = [
   { name: 'New York', distanceMiles: 21000, biome: 'city', sceneId: 'skyline' },
   { name: 'Walkertown Return', distanceMiles: 24901, biome: 'plains', sceneId: 'suburb' }
 ];
+
+export const MOON_LANDMARKS: Landmark[] = [
+  { name: 'Tranquility Base', distanceMiles: 0, biome: 'lunar', sceneId: 'moon_surface' },
+  { name: 'Sea of Serenity', distanceMiles: 900, biome: 'lunar', sceneId: 'moon_surface' },
+  { name: 'Copernicus Crater', distanceMiles: 2200, biome: 'lunar', sceneId: 'moon_surface' },
+  { name: 'Tycho Rim', distanceMiles: 3900, biome: 'lunar', sceneId: 'moon_surface' },
+  { name: 'Far Side Relay', distanceMiles: 5400, biome: 'space', sceneId: 'moon_surface' },
+  { name: 'Tranquility Return', distanceMiles: 6786, biome: 'lunar', sceneId: 'moon_surface' }
+];
+
+export const WORLD_LANDMARKS: Record<WorldId, Landmark[]> = {
+  earth: EARTH_LANDMARKS,
+  moon: MOON_LANDMARKS,
+  mars: [{ name: 'Mars Base Camp', distanceMiles: 0, biome: 'desert', sceneId: 'moon_surface' }],
+  solar_system: [{ name: 'Orbital Gate', distanceMiles: 0, biome: 'space', sceneId: 'moon_surface' }]
+};
+
+export const getLandmarksForWorld = (worldId: WorldId): Landmark[] => WORLD_LANDMARKS[worldId] ?? EARTH_LANDMARKS;

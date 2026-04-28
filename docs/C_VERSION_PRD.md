@@ -51,8 +51,8 @@ The game already has the MVP B loop and several early C assets:
 - Background composites exist for many scenes under `public/assets/backgrounds/`.
 - Music files exist under `public/assets/audio/music/`.
 - Generated Web Audio sound effects exist in `src/game/audio.ts`.
-- Item and cosmetic shop tabs already exist in the UI, but currently show "Coming soon in Walker World C-version."
-- `currentWorldId` only supports `earth` and `moon_locked`.
+- Item and cosmetic shop tabs exist as local guest-save collection panels.
+- `currentWorldId` now supports `earth`, playable `moon`, and locked future `mars` / `solar_system` definitions.
 
 WalkerBucks is real enough to integrate against later, but not ready for direct client use:
 

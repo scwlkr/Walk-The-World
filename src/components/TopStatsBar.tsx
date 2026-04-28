@@ -1,10 +1,12 @@
 import type { GameState } from '../game/types';
-import { getIdleMilesPerSecond } from '../game/formulas';
+import { getCurrentWorldLoopDistance, getIdleMilesPerSecond } from '../game/formulas';
+import { getCurrentWorldDefinition } from '../game/world';
 
 type TopStatsBarProps = { state: GameState };
 
 export const TopStatsBar = ({ state }: TopStatsBarProps) => {
-  const currentLoopDistance = state.distanceMiles % 24901;
+  const currentLoopDistance = getCurrentWorldLoopDistance(state);
+  const currentWorld = getCurrentWorldDefinition(state);
   return (
     <header className="panel top-stats">
       <div>
@@ -14,7 +16,7 @@ export const TopStatsBar = ({ state }: TopStatsBarProps) => {
       <div>
         <p className="label">Distance</p>
         <strong>
-          {currentLoopDistance.toFixed(1)} / 24,901 mi
+          {currentLoopDistance.toFixed(1)} / {currentWorld.loopDistanceMiles.toLocaleString()} mi
         </strong>
       </div>
       <div>

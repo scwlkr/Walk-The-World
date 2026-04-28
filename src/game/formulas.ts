@@ -1,15 +1,20 @@
 import {
   BASE_WB_PER_MILE,
   DEFAULT_OFFLINE_CAP_SECONDS,
-  EARTH_CIRCUMFERENCE_MILES,
   STARTING_CLICK_MILES,
   STARTING_IDLE_MILES_PER_SECOND
 } from './constants';
 import { getCosmeticEffectBonus } from './cosmetics';
 import { FOLLOWERS } from './followers';
 import { getEquipmentEffectBonus } from './inventory';
-import { EARTH_LANDMARKS } from './landmarks';
+import { getLandmarksForWorld } from './landmarks';
 import { UPGRADES } from './upgrades';
+import {
+  getCurrentWorldDistance,
+  getWorldDefinition,
+  getWorldLoopDistanceWalked,
+  getWorldProgressPercent
+} from './world';
 import type { Follower, GameState, Landmark, Upgrade } from './types';
 
 export const getUpgradeCost = (upgrade: Upgrade, currentLevel: number): number =>
@@ -46,7 +51,10 @@ export const getIdleMilesPerSecond = (state: GameState): number => {
 
   multiplier += getCosmeticEffectBonus(state, 'idle_speed_multiplier');
 
-  return (idle * multiplier + followerBoost) * speedBoost;
+  const prestigeMultiplier = 1 + state.prestige.permanentSpeedBonus;
+  const worldMultiplier = state.currentWorldId === 'moon' ? 1 + state.prestige.moonAccelerationBonus : 1;
+
+  return (idle * multiplier + followerBoost) * speedBoost * prestigeMultiplier * worldMultiplier;
 };
 
 export const getFollowerMilesPerSecond = (state: GameState): number => {
@@ -85,7 +93,10 @@ export const getClickMiles = (state: GameState): number => {
 
   multiplier += getCosmeticEffectBonus(state, 'click_power_multiplier');
 
-  return clickMiles * multiplier * clickBoost;
+  const prestigeMultiplier = 1 + state.prestige.permanentSpeedBonus;
+  const worldMultiplier = state.currentWorldId === 'moon' ? 1 + state.prestige.moonAccelerationBonus : 1;
+
+  return clickMiles * multiplier * clickBoost * prestigeMultiplier * worldMultiplier;
 };
 
 export const getWbPerMile = (state: GameState): number => {
@@ -100,6 +111,7 @@ export const getWbPerMile = (state: GameState): number => {
 
   multiplier += getCosmeticEffectBonus(state, 'wb_multiplier');
   multiplier += getEquipmentEffectBonus(state, 'wb_multiplier');
+  multiplier += state.prestige.permanentWbBonus;
 
   return BASE_WB_PER_MILE * multiplier;
 };
@@ -126,16 +138,20 @@ export const getOfflineCapSeconds = (state: GameState): number => {
   return Math.floor(DEFAULT_OFFLINE_CAP_SECONDS * multiplier);
 };
 
-export const getEarthProgressPercent = (state: GameState): number =>
-  ((state.distanceMiles % EARTH_CIRCUMFERENCE_MILES) / EARTH_CIRCUMFERENCE_MILES) * 100;
+export const getEarthProgressPercent = (state: GameState): number => getWorldProgressPercent(state, 'earth');
 
-const getLoopDistance = (state: GameState): number => state.distanceMiles % EARTH_CIRCUMFERENCE_MILES;
+export const getCurrentWorldProgressPercent = (state: GameState): number => getWorldProgressPercent(state);
+
+export const getCurrentWorldLoopDistance = (state: GameState): number => getWorldLoopDistanceWalked(state);
+
+export const getCurrentWorldTotalDistance = (state: GameState): number => getCurrentWorldDistance(state);
 
 export const getCurrentLandmark = (state: GameState): Landmark => {
-  const loopDistance = getLoopDistance(state);
-  let current = EARTH_LANDMARKS[0];
+  const loopDistance = getWorldLoopDistanceWalked(state);
+  const landmarks = getLandmarksForWorld(state.currentWorldId);
+  let current = landmarks[0];
 
-  for (const landmark of EARTH_LANDMARKS) {
+  for (const landmark of landmarks) {
     if (landmark.distanceMiles <= loopDistance) {
       current = landmark;
     }
@@ -145,15 +161,22 @@ export const getCurrentLandmark = (state: GameState): Landmark => {
 };
 
 export const getNextLandmark = (state: GameState): Landmark => {
-  const loopDistance = getLoopDistance(state);
+  const loopDistance = getWorldLoopDistanceWalked(state);
+  const landmarks = getLandmarksForWorld(state.currentWorldId);
   return (
-    EARTH_LANDMARKS.find((landmark) => landmark.distanceMiles > loopDistance) ?? EARTH_LANDMARKS[EARTH_LANDMARKS.length - 1]
+    landmarks.find((landmark) => landmark.distanceMiles > loopDistance) ?? landmarks[landmarks.length - 1]
   );
 };
 
 export const calculateDistanceToNextLandmark = (state: GameState): number => {
-  const loopDistance = getLoopDistance(state);
+  const loopDistance = getWorldLoopDistanceWalked(state);
   return Math.max(0, getNextLandmark(state).distanceMiles - loopDistance);
+};
+
+export const getCurrentWorldLoopLabel = (state: GameState): string => {
+  const definition = getWorldDefinition(state.currentWorldId);
+  const progress = getCurrentWorldProgressPercent(state);
+  return `${definition.shortName} ${progress.toFixed(2)}%`;
 };
 
 export const calculateOfflineProgress = (

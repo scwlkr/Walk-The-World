@@ -84,7 +84,7 @@ export type SpawnedRandomEvent = {
 export type Landmark = {
   name: string;
   distanceMiles: number;
-  biome: 'plains' | 'desert' | 'city' | 'ocean' | 'mountain' | 'snow';
+  biome: 'plains' | 'desert' | 'city' | 'ocean' | 'mountain' | 'snow' | 'lunar' | 'space';
   sceneId: string;
 };
 
@@ -99,7 +99,39 @@ export type GameStats = {
   cosmeticsEquipped: number;
 };
 
-export type WorldId = 'earth' | 'moon_locked';
+export type WorldId = 'earth' | 'moon' | 'mars' | 'solar_system';
+
+export type WorldUnlockRequirement = {
+  earthPrestiges?: number;
+  moonLoopsCompleted?: number;
+};
+
+export type WorldDefinition = {
+  id: WorldId;
+  name: string;
+  shortName: string;
+  description: string;
+  loopDistanceMiles: number;
+  defaultUnlocked: boolean;
+  status: 'playable' | 'future';
+  sceneId: string;
+  unlockRequirement?: WorldUnlockRequirement;
+  lockedSummary: string;
+};
+
+export type WorldProgressState = {
+  distanceMiles: number;
+  loopsCompleted: number;
+  unlockedAt: number | null;
+};
+
+export type PrestigeState = {
+  earthPrestigeCount: number;
+  permanentSpeedBonus: number;
+  permanentWbBonus: number;
+  moonAccelerationBonus: number;
+  lastPrestigedAt: number | null;
+};
 
 export type RewardDefinition = {
   walkerBucks?: number;
@@ -202,6 +234,8 @@ export type GameState = {
   baseIdleMilesPerSecond: number;
   baseClickMiles: number;
   currentWorldId: WorldId;
+  worlds: Record<WorldId, WorldProgressState>;
+  prestige: PrestigeState;
   earthLoopsCompleted: number;
   lastSavedAt: number;
   upgrades: Record<string, number>;

@@ -4,7 +4,7 @@ Last updated: 2026-04-28
 
 ## Current State
 
-Phase 1 and Phase 2 are complete. The remaining work should start at Phase 3 from `docs/C_VERSION_PLAN.md`.
+Phase 1, Phase 2, and Phase 3 are complete. The remaining work should start at Phase 4 from `docs/C_VERSION_PLAN.md`.
 
 Artifacts created:
 
@@ -15,6 +15,7 @@ Artifacts created:
 - `src/game/achievements.ts`
 - `src/game/inventory.ts`
 - `src/game/cosmetics.ts`
+- `src/game/world.ts`
 
 Input artifact:
 
@@ -140,9 +141,62 @@ Verification completed:
 - Reload confirmed inventory/cosmetic/equipment persistence and visible stat modifiers.
 - `npm run build` passes.
 
+Phase 3 from `docs/C_VERSION_PLAN.md` has been implemented.
+
+Resolved decision:
+
+- Canonical Moon distance is NASA's average Earth-Moon distance: `238,855` miles (`384,400` km).
+
+Implemented:
+
+- Replaced `moon_locked` with a typed world model for Earth, Moon, Mars, and Solar System.
+- Added `CANONICAL_MOON_DISTANCE_MILES`, Moon circumference, Moon loop reward, and Earth prestige bonus constants.
+- Added per-world guest-save progress plus an Earth prestige state in save version 3 while keeping `walk_the_world_save_v1`.
+- Added Earth prestige that resets Earth route progress, preserves collection/account progress, grants permanent speed/WB bonuses, unlocks Moon, and accelerates Moon walking.
+- Added Moon route landmarks using the existing `moon_surface` background.
+- Added Mars and Solar System as future locked data-only world definitions.
+- Updated HUD, stats, progress, and canvas labels to use the active world rather than hard-coded Earth progress.
+- Updated the C PRD current-state note so it no longer claims only `earth` and `moon_locked` exist.
+
+Touched files:
+
+- `src/App.tsx`
+- `src/components/GameHUD.tsx`
+- `src/components/GameSceneCanvas.tsx`
+- `src/components/ProgressPanel.tsx`
+- `src/components/StatsPanel.tsx`
+- `src/components/TopStatsBar.tsx`
+- `src/game/constants.ts`
+- `src/game/formulas.ts`
+- `src/game/initialState.ts`
+- `src/game/landmarks.ts`
+- `src/game/save.ts`
+- `src/game/tick.ts`
+- `src/game/types.ts`
+- `src/game/world.ts`
+- `src/styles/global.css`
+- `docs/C_VERSION_PLAN.md`
+- `docs/C_VERSION_HANDOFF.md`
+- `docs/C_VERSION_PRD.md`
+
+Verification completed:
+
+- `npm run build` passes.
+- Live preview opened on `http://127.0.0.1:5175/`.
+- Existing local guest save loaded after migration without reset.
+- Live preview verified the default/early guest state: Earth active, Moon locked, Mars/Solar System future-locked, and Prestige Earth disabled until requirements are met.
+- Local bundled verification harness confirmed Earth-loop prestige unlocks Moon, switches into Moon, resets Earth route progress, preserves cumulative Earth loop progress, grants permanent bonuses, and lets Moon progress independently.
+- Local bundled verification harness confirmed legacy `moon_locked` saves normalize to Earth and migrate to save version 3.
+
 ## Next Phase
 
-Proceed with Phase 3 from `docs/C_VERSION_PLAN.md`: prestige, world model, playable Moon, and future world scaffolding.
+Proceed with Phase 4 from `docs/C_VERSION_PLAN.md`: daily quests and seasonal event framework.
+
+## Next Kickoff Prompt
+
+```text
+Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md and docs/C_VERSION_HANDOFF.md first. Proceed with Phase 4 only: daily quests and seasonal event framework. Keep local guest play working, keep the checklist and handoff updated, run npm run build, use the live preview for UI/gameplay verification, and end with the next kickoff prompt.
+```
 
 ## Required Verification
 
@@ -158,7 +212,7 @@ For visual/game-feel phases:
 npm run dev
 ```
 
-Use a live browser preview for Phase 1 visual verification.
+Use a live browser preview for visual/game-feel phases before marking them complete.
 
 ## Closeout Rule
 
@@ -166,7 +220,6 @@ Every chat or phase closeout for this C-version plan must end with a copy-ready 
 
 ## Open Decisions
 
-- Canonical Moon distance.
 - Account owner for C: Supabase app account/save, WalkerBucks auth first, or another backend.
 - Whether Discord OAuth is in C or post-C.
 - First leaderboard category.

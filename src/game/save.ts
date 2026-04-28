@@ -1,7 +1,8 @@
-import { SAVE_KEY, SAVE_VERSION } from './constants';
+import { EARTH_CIRCUMFERENCE_MILES, SAVE_KEY, SAVE_VERSION } from './constants';
 import { evaluateAchievements, markDailyPlay } from './achievements';
 import { createInitialGameState } from './initialState';
-import type { GameState } from './types';
+import type { GameState, PrestigeState, WorldId, WorldProgressState } from './types';
+import { canEnterWorld, createInitialWorldProgress, normalizeWorldId, WORLD_IDS } from './world';
 
 type SavePayload = GameState;
 
@@ -31,9 +32,27 @@ const prepareLoadedState = (state: GameState): GameState => evaluateAchievements
 
 const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
   const base = createInitialGameState();
+  const worlds = mergeWorldProgress(base, rawSave);
+  const prestige = mergePrestigeState(base.prestige, rawSave.prestige);
+  if (prestige.earthPrestigeCount > 0 && !worlds.moon.unlockedAt) {
+    worlds.moon = {
+      ...worlds.moon,
+      unlockedAt: prestige.lastPrestigedAt ?? Date.now()
+    };
+  }
+  const requestedWorldId = normalizeWorldId(rawSave.currentWorldId);
+  const currentWorldId = canEnterWorld({ ...base, ...rawSave, worlds, prestige, currentWorldId: requestedWorldId } as GameState, requestedWorldId)
+    ? requestedWorldId
+    : 'earth';
+
   return {
     ...base,
     ...rawSave,
+    currentWorldId,
+    worlds,
+    prestige,
+    distanceMiles: worlds[currentWorldId].distanceMiles,
+    earthLoopsCompleted: Math.max(rawSave.earthLoopsCompleted ?? 0, worlds.earth.loopsCompleted),
     settings: {
       ...base.settings,
       ...rawSave.settings
@@ -80,6 +99,48 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
     },
     saveVersion: SAVE_VERSION
   } as GameState;
+};
+
+const mergeWorldProgress = (
+  base: GameState,
+  rawSave: Partial<SavePayload>
+): Record<WorldId, WorldProgressState> => {
+  const now = Date.now();
+  const initial = createInitialWorldProgress(now);
+  const rawWorlds = (rawSave.worlds ?? {}) as Partial<Record<WorldId, Partial<WorldProgressState>>>;
+  const legacyEarthDistance = typeof rawSave.distanceMiles === 'number' ? rawSave.distanceMiles : base.distanceMiles;
+  const legacyEarthLoops = Math.max(0, rawSave.earthLoopsCompleted ?? Math.floor(legacyEarthDistance / EARTH_CIRCUMFERENCE_MILES));
+
+  return WORLD_IDS.reduce<Record<WorldId, WorldProgressState>>((worlds, worldId) => {
+    const rawWorld = rawWorlds[worldId];
+    const fallback = initial[worldId];
+    const distanceMiles =
+      worldId === 'earth'
+        ? rawWorld?.distanceMiles ?? legacyEarthDistance
+        : rawWorld?.distanceMiles ?? fallback.distanceMiles;
+    const loopsCompleted =
+      worldId === 'earth'
+        ? rawWorld?.loopsCompleted ?? legacyEarthLoops
+        : rawWorld?.loopsCompleted ?? fallback.loopsCompleted;
+
+    worlds[worldId] = {
+      distanceMiles: Math.max(0, distanceMiles),
+      loopsCompleted: Math.max(0, loopsCompleted),
+      unlockedAt: rawWorld?.unlockedAt ?? fallback.unlockedAt
+    };
+    return worlds;
+  }, initial);
+};
+
+const mergePrestigeState = (base: PrestigeState, rawPrestige?: Partial<PrestigeState>): PrestigeState => {
+  const earthPrestigeCount = Math.max(0, rawPrestige?.earthPrestigeCount ?? base.earthPrestigeCount);
+  return {
+    earthPrestigeCount,
+    permanentSpeedBonus: Math.max(0, rawPrestige?.permanentSpeedBonus ?? base.permanentSpeedBonus),
+    permanentWbBonus: Math.max(0, rawPrestige?.permanentWbBonus ?? base.permanentWbBonus),
+    moonAccelerationBonus: Math.max(0, rawPrestige?.moonAccelerationBonus ?? base.moonAccelerationBonus),
+    lastPrestigedAt: rawPrestige?.lastPrestigedAt ?? base.lastPrestigedAt
+  };
 };
 
 const migrateSave = (rawSave: Partial<SavePayload>): GameState => mergeGameState(rawSave);

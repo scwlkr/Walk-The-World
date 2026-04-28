@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../game/types';
-import { getCurrentLandmark, getEarthProgressPercent, getIdleMilesPerSecond } from '../game/formulas';
+import { getCurrentLandmark, getCurrentWorldProgressPercent, getIdleMilesPerSecond } from '../game/formulas';
 import { getBackgroundScene } from '../game/backgroundScenes';
 import {
   WALKER_ANIMATION_ASSETS,
   type WalkerAnimationState,
   type WalkerSpriteSheet
 } from '../game/assets';
+import { getCurrentWorldDefinition } from '../game/world';
 
 type GameSceneCanvasProps = {
   state: GameState;
@@ -87,6 +88,24 @@ const biomePalette: Record<
     groundTop: '#e2e8f0',
     groundBottom: '#cbd5e1',
     path: '#f1f5f9'
+  },
+  lunar: {
+    skyTop: '#111827',
+    skyBottom: '#475569',
+    farHill: '#64748b',
+    nearHill: '#334155',
+    groundTop: '#94a3b8',
+    groundBottom: '#475569',
+    path: '#cbd5e1'
+  },
+  space: {
+    skyTop: '#020617',
+    skyBottom: '#1e1b4b',
+    farHill: '#334155',
+    nearHill: '#1e293b',
+    groundTop: '#64748b',
+    groundBottom: '#0f172a',
+    path: '#cbd5e1'
   }
 };
 
@@ -242,7 +261,8 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
       const landmark = currentLandmark;
       const palette = biomePalette[landmark.biome] ?? biomePalette.plains;
       const speed = getIdleMilesPerSecond(state);
-      const progress = getEarthProgressPercent(state);
+      const progress = getCurrentWorldProgressPercent(state);
+      const world = getCurrentWorldDefinition(state);
       const backgroundImage = backgroundImageRef.current;
       let pathY = Math.floor(height * 0.74);
 
@@ -370,7 +390,7 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
       ctx.fillRect(10, height - 40, 220, 24);
       ctx.fillStyle = '#f8fafc';
       ctx.font = 'bold 11px monospace';
-      ctx.fillText(`${landmark.name} · Earth ${progress.toFixed(2)}%`, 16, height - 24);
+      ctx.fillText(`${landmark.name} · ${world.shortName} ${progress.toFixed(2)}%`, 16, height - 24);
 
       rafRef.current = requestAnimationFrame(draw);
     };

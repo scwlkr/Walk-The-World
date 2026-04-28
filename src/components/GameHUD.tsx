@@ -1,23 +1,27 @@
 import type { GameState } from '../game/types';
 import {
   calculateDistanceToNextLandmark,
+  getCurrentWorldLoopDistance,
+  getCurrentWorldProgressPercent,
   getCurrentLandmark,
-  getEarthProgressPercent,
   getIdleMilesPerSecond,
   getNextLandmark
 } from '../game/formulas';
+import { getCurrentWorldDefinition, getWorldProgress } from '../game/world';
 
 type GameHUDProps = {
   state: GameState;
 };
 
 export const GameHUD = ({ state }: GameHUDProps) => {
-  const currentLoopDistance = state.distanceMiles % 24901;
+  const currentWorld = getCurrentWorldDefinition(state);
+  const currentLoopDistance = getCurrentWorldLoopDistance(state);
   const speed = getIdleMilesPerSecond(state);
-  const earthPercent = getEarthProgressPercent(state);
+  const worldPercent = getCurrentWorldProgressPercent(state);
   const current = getCurrentLandmark(state);
   const next = getNextLandmark(state);
   const milesToNext = calculateDistanceToNextLandmark(state);
+  const worldProgress = getWorldProgress(state);
 
   return (
     <header className="game-hud" aria-label="Game HUD">
@@ -38,11 +42,13 @@ export const GameHUD = ({ state }: GameHUDProps) => {
 
       <section className="hud-strip hud-route-strip">
         <div className="hud-progress-head">
-          <span>Earth {earthPercent.toFixed(2)}%</span>
-          <span>Loop {state.earthLoopsCompleted}</span>
+          <span>
+            {currentWorld.shortName} {worldPercent.toFixed(2)}%
+          </span>
+          <span>Loop {worldProgress.loopsCompleted}</span>
         </div>
         <div className="hud-progress-track">
-          <div className="hud-progress-fill" style={{ width: `${earthPercent}%` }} />
+          <div className="hud-progress-fill" style={{ width: `${worldPercent}%` }} />
         </div>
         <p className="hud-landmark">
           {current.name} → {next.name}
