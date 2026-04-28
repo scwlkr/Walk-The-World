@@ -1,0 +1,32 @@
+offer_id,shop_id,item_id,price_wb,currency,stock_total,stock_remaining,purchase_limit_per_account,starts_at,expires_at,unlock_type,unlock_value,active,sort_order,notes
+offer_trail_mix_main,main_shop,trail_mix,40,WB,,,99,,,none,,true,10,Maps existing consumable item
+offer_walkertown_postcard_main,main_shop,walkertown_postcard,25,WB,,,999,,,none,,true,20,Maps existing collectible item
+offer_spring_stride_ticket_seasonal,seasonal_shop,spring_stride_ticket,30,WB,500,500,20,2026-03-01T00:00:00Z,2026-06-01T00:00:00Z,event,spring_stride,true,30,Seasonal collectible offer
+offer_starter_step_counter_main,main_shop,starter_step_counter,180,WB,,,1,,,distance_miles,25,true,40,Maps existing equipment item
+offer_retro_sweatband_main,main_shop,retro_sweatband_item,220,WB,,,1,,,none,,true,50,Maps existing cosmetic item
+offer_lucky_laces_main,main_shop,lucky_laces_item,340,WB,,,1,,,distance_miles,120,true,60,Maps existing cosmetic item
+offer_golden_wayfarers_main,main_shop,golden_wayfarers_item,650,WB,,,1,,,earth_loops_completed,1,true,70,Maps existing cosmetic item
+offer_touch_grass_token_main,main_shop,touch_grass_token,60,WB,,,20,,,none,,true,80,Planned starter token
+offer_walker_passport_main,main_shop,walker_passport,400,WB,,,1,,,distance_miles,500,true,90,
+offer_white_monarch_upgrade_main,main_shop,white_monarch_upgrade,2400,WB,,,1,,,earth_loops_completed,2,true,100,
+offer_dallas_postcard_main,main_shop,dallas_postcard,35,WB,,,99,,,destination,dallas,true,110,
+offer_skill_issue_stamp_main,main_shop,skill_issue_stamp,120,WB,,,10,,,achievement,event_claims_50,true,120,
+offer_certified_ledger_receipt_main,main_shop,certified_ledger_receipt,900,WB,,,1,,,earth_loops_completed,1,true,130,
+offer_big_dawg_license_main,main_shop,big_dawg_license,1100,WB,,,1,,,distance_miles,1200,true,140,
+offer_aura_battery_main,main_shop,aura_battery,280,WB,,,5,,,none,,true,150,
+offer_streak_insurance_policy_main,main_shop,streak_insurance_policy,750,WB,,,3,,,daily_streak,7,true,160,
+offer_gas_station_sunglasses_main,main_shop,gas_station_sunglasses,95,WB,,,1,,,none,,true,170,
+offer_lucky_shoelaces_main,main_shop,lucky_shoelaces,85,WB,,,10,,,none,,true,180,
+offer_trail_socks_main,main_shop,trail_socks,140,WB,,,1,,,distance_miles,40,true,190,
+offer_route_marker_main,main_shop,route_marker,180,WB,,,20,,,distance_miles,300,true,200,
+offer_mile_badge_main,main_shop,mile_badge,70,WB,,,99,,,distance_miles,100,true,210,
+offer_detour_token_main,main_shop,detour_token,260,WB,,,5,,,none,,true,220,
+offer_souvenir_magnet_main,main_shop,souvenir_magnet,45,WB,,,99,,,destination,any_city,true,230,
+offer_grand_canyon_pebble_main,main_shop,grand_canyon_pebble,210,WB,,,10,,,destination,grand_canyon,true,240,
+offer_nyc_metro_card_main,main_shop,nyc_metro_card,190,WB,,,10,,,destination,skyline,true,250,
+offer_paris_keychain_main,main_shop,paris_keychain,200,WB,,,10,,,destination,paris,true,260,
+offer_tokyo_transit_pass_main,main_shop,tokyo_transit_pass,205,WB,,,10,,,destination,tokyo,true,270,
+offer_the_mog_saber_main,main_shop,the_mog_saber,3200,WB,,,1,,,earth_loops_completed,3,true,280,
+offer_anti_mog_shield_main,main_shop,anti_mog_shield,2800,WB,,,1,,,earth_loops_completed,3,true,290,
+offer_industrial_farmer_overalls_main,main_shop,industrial_farmer_overalls,980,WB,,,1,,,distance_miles,900,true,300,
+offer_server_pension_bond_main,main_shop,server_pension_bond,5000,WB,,,1,,,account_age_days,365,true,310,
