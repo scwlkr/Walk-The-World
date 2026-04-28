@@ -11,8 +11,9 @@ type GameSceneCanvasProps = {
 };
 
 const WALKER_SPRITE_SRC = '/assets/characters/walker/walker_walk_right_sheet.png';
-const WALKER_FRAME_SIZE = 64;
+const WALKER_FRAME_SIZE = 192;
 const WALKER_FRAME_COUNT = 9;
+const WALKER_RENDER_SIZE = 192;
 
 const biomePalette: Record<
   string,
@@ -245,7 +246,7 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
 
       if (walkerSpriteReady && walkerSprite) {
         const frameIndex = Math.floor(elapsed * 8) % WALKER_FRAME_COUNT;
-        const spriteSize = 96;
+        const spriteSize = WALKER_RENDER_SIZE;
         ctx.drawImage(
           walkerSprite,
           frameIndex * WALKER_FRAME_SIZE,

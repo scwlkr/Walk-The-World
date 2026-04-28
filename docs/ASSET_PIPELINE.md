@@ -30,8 +30,8 @@ Preferred first sprite-sheet standard:
 
 ```text
 9 frames, horizontal
-64x64 pixels per frame
-576x64 pixels total
+192x192 pixels per frame
+1728x192 pixels total
 transparent PNG
 facing right
 same ground line in every frame
