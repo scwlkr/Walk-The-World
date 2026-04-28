@@ -11,6 +11,7 @@ import { RandomEventOverlay } from './components/RandomEventOverlay';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ShopModal } from './components/ShopModal';
 import { StatsPanel } from './components/StatsPanel';
+import { WalkerBucksPanel } from './components/WalkerBucksPanel';
 import {
   MUSIC_TRACKS,
   getMusicTrackById,
@@ -22,13 +23,31 @@ import {
 import { claimAchievementReward, evaluateAchievements } from './game/achievements';
 import { equipCosmetic } from './game/cosmetics';
 import { LOGIC_TICK_RATE_MS } from './game/constants';
+import {
+  createPendingWalkerBucksGrant,
+  getServerBackedAchievementReward,
+  markWalkerBucksGrantAttempt,
+  markWalkerBucksGrantFailed,
+  markWalkerBucksGrantGranted,
+  upsertWalkerBucksGrant
+} from './game/economy';
 import { calculateOfflineProgress, getClickMiles, getFollowerCost, getUpgradeCost } from './game/formulas';
 import { equipEquipmentItem, useInventoryItem } from './game/inventory';
 import { claimQuestReward, syncDailyQuests } from './game/quests';
 import { RANDOM_EVENTS } from './game/randomEvents';
 import { exportSave, importSave, loadGameState, resetGameState, saveGameState } from './game/save';
 import { applyDistanceAndWb, clearToast, resolveRandomEvent, runGameTick, shouldAutoSave } from './game/tick';
-import type { AchievementDefinition, CosmeticDefinition, Follower, GameState, InventoryItemDefinition, QuestDefinition, Upgrade, WorldId } from './game/types';
+import type {
+  AchievementDefinition,
+  CosmeticDefinition,
+  Follower,
+  GameState,
+  InventoryItemDefinition,
+  QuestDefinition,
+  Upgrade,
+  WalkerBucksRewardGrant,
+  WorldId
+} from './game/types';
 import { applyEarthPrestige, canEnterWorld } from './game/world';
 import {
   getAuthSession,
@@ -41,6 +60,11 @@ import {
   type AuthSession
 } from './services/authClient';
 import { loadCloudSave, uploadCloudSave, type CloudSaveSnapshot } from './services/cloudSaveClient';
+import {
+  grantWalkerBucksReward,
+  isWalkerBucksBridgeConfigured,
+  loadWalkerBucksBalance
+} from './services/walkerbucksClient';
 
 type TapFeedback = {
   id: number;
@@ -56,6 +80,7 @@ const App = () => {
   const [cloudSave, setCloudSave] = useState<CloudSaveSnapshot | null>(null);
   const [accountBusy, setAccountBusy] = useState<AccountBusyState>('idle');
   const [accountMessage, setAccountMessage] = useState<string | null>(null);
+  const [walkerBucksBusy, setWalkerBucksBusy] = useState(false);
   const [tapFeedback, setTapFeedback] = useState<TapFeedback[]>([]);
   const [tapPulse, setTapPulse] = useState(0);
   const lastFrameRef = useRef<number>(performance.now());
@@ -75,6 +100,20 @@ const App = () => {
         ...prev,
         account: {
           ...prev.account,
+          ...patch
+        }
+      };
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const updateWalkerBucksBridgeState = (patch: Partial<GameState['walkerBucksBridge']>) => {
+    setState((prev) => {
+      const next = {
+        ...prev,
+        walkerBucksBridge: {
+          ...prev.walkerBucksBridge,
           ...patch
         }
       };
@@ -109,6 +148,94 @@ const App = () => {
       setAccountMessage(message);
     } finally {
       setAccountBusy('idle');
+    }
+  };
+
+  const refreshWalkerBucksBalance = async () => {
+    if (!isWalkerBucksBridgeConfigured) {
+      updateWalkerBucksBridgeState({ status: 'unavailable', lastError: null });
+      return;
+    }
+
+    const accessToken = authSession?.access_token;
+    if (!authSession?.user || !accessToken) {
+      updateWalkerBucksBridgeState({ status: 'guest', lastError: null });
+      return;
+    }
+
+    setWalkerBucksBusy(true);
+    updateWalkerBucksBridgeState({ status: 'checking', lastError: null });
+    try {
+      const { accountId, ...balance } = await loadWalkerBucksBalance(accessToken);
+      updateWalkerBucksBridgeState({
+        status: 'ready',
+        accountId,
+        balance,
+        lastCheckedAt: Date.now(),
+        lastError: null
+      });
+    } catch (error) {
+      updateWalkerBucksBridgeState({
+        status: 'error',
+        lastError: toErrorMessage(error)
+      });
+    } finally {
+      setWalkerBucksBusy(false);
+    }
+  };
+
+  const submitWalkerBucksGrant = async (grant: WalkerBucksRewardGrant) => {
+    const accessToken = authSession?.access_token;
+    if (!isWalkerBucksBridgeConfigured || !accessToken) return;
+
+    setWalkerBucksBusy(true);
+    setState((prev) => {
+      const existing = prev.walkerBucksBridge.rewardGrants[grant.id] ?? grant;
+      const next = markWalkerBucksGrantAttempt(upsertWalkerBucksGrant(prev, existing), grant.id);
+      saveGameState(next);
+      return next;
+    });
+
+    try {
+      const result = await grantWalkerBucksReward(accessToken, {
+        sourceType: grant.sourceType,
+        sourceId: grant.sourceId,
+        idempotencyKey: grant.idempotencyKey
+      });
+      setState((prev) => {
+        const next = markWalkerBucksGrantGranted(
+          prev,
+          grant.id,
+          result.transactionId,
+          result.accountId,
+          result.balance
+        );
+        const withToast: GameState = {
+          ...next,
+          ui: {
+            ...next.ui,
+            toast: `${grant.label} WalkerBucks granted.`
+          }
+        };
+        saveGameState(withToast);
+        return withToast;
+      });
+    } catch (error) {
+      const message = toErrorMessage(error);
+      setState((prev) => {
+        const next = markWalkerBucksGrantFailed(prev, grant.id, message);
+        const withToast: GameState = {
+          ...next,
+          ui: {
+            ...next.ui,
+            toast: `${grant.label} WalkerBucks grant failed.`
+          }
+        };
+        saveGameState(withToast);
+        return withToast;
+      });
+    } finally {
+      setWalkerBucksBusy(false);
     }
   };
 
@@ -170,6 +297,20 @@ const App = () => {
     });
     void refreshCloudForUser(user.id, false);
   }, [authSession?.user.id, authSession?.user.email]);
+
+  useEffect(() => {
+    if (!isWalkerBucksBridgeConfigured) {
+      updateWalkerBucksBridgeState({ status: 'unavailable', lastError: null });
+      return;
+    }
+
+    if (!authSession?.user) {
+      updateWalkerBucksBridgeState({ status: 'guest', lastError: null });
+      return;
+    }
+
+    void refreshWalkerBucksBalance();
+  }, [authSession?.user.id, authSession?.access_token]);
 
   useEffect(() => {
     soundEnabledRef.current = state.settings.soundEnabled;
@@ -444,12 +585,39 @@ const App = () => {
   };
 
   const onClaimAchievement = (achievement: AchievementDefinition) => {
+    const serverReward = getServerBackedAchievementReward(achievement.id);
+    const shouldUseBridge = Boolean(
+      serverReward && isWalkerBucksBridgeConfigured && authSession?.user && authSession.access_token
+    );
+    const pendingGrant =
+      serverReward && shouldUseBridge && authSession?.user
+        ? createPendingWalkerBucksGrant(authSession.user.id, serverReward)
+        : null;
+
     playSoundEffect('event', state.settings.soundEnabled);
     setState((prev) => {
-      const next = syncDailyQuests(claimAchievementReward(prev, achievement.id));
+      let next = claimAchievementReward(
+        prev,
+        achievement.id,
+        Date.now(),
+        pendingGrant
+          ? {
+              includeWalkerBucks: false,
+              toast: `${achievement.name} local claim saved. WalkerBucks grant pending.`
+            }
+          : undefined
+      );
+      if (pendingGrant) {
+        next = upsertWalkerBucksGrant(next, prev.walkerBucksBridge.rewardGrants[pendingGrant.id] ?? pendingGrant);
+      }
+      next = syncDailyQuests(next);
       saveGameState(next);
       return next;
     });
+
+    if (pendingGrant) {
+      void submitWalkerBucksGrant(pendingGrant);
+    }
   };
 
   const onClaimQuest = (quest: QuestDefinition) => {
@@ -832,6 +1000,14 @@ const App = () => {
           onRefreshCloud={handleRefreshCloud}
           onUploadLocal={handleUploadLocal}
           onLoadCloud={handleLoadCloud}
+        />
+        <WalkerBucksPanel
+          state={state}
+          isBridgeConfigured={isWalkerBucksBridgeConfigured}
+          isSignedIn={Boolean(authSession?.user)}
+          isBusy={walkerBucksBusy}
+          onRefreshBalance={refreshWalkerBucksBalance}
+          onRetryGrant={(grant) => void submitWalkerBucksGrant(grant)}
         />
         <SettingsPanel
           soundEnabled={state.settings.soundEnabled}

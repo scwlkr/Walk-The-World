@@ -13,13 +13,12 @@ export const EARTH_PRESTIGE_SPEED_BONUS = 0.05;
 export const EARTH_PRESTIGE_WB_BONUS = 0.05;
 export const EARTH_PRESTIGE_MOON_ACCELERATION_BONUS = 0.15;
 export const SAVE_KEY = 'walk_the_world_save_v1';
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 export const LOGIC_TICK_RATE_MS = 100;
 export const AUTO_SAVE_INTERVAL_MS = 5000;
 export const RANDOM_EVENT_MIN_INTERVAL_MS = 20000;
 export const RANDOM_EVENT_MAX_INTERVAL_MS = 60000;
 export const RANDOM_EVENT_LIFE_MS = 12000;
 
-// TODO: Future WalkerBucks API integration.
-// Local WB is currently client-side only.
-// Server-authoritative rewards should replace this before shared economy launch.
+// Local WB remains client-side for guest play. Shared WalkerBucks grants must
+// route through the trusted bridge, never directly from the browser.

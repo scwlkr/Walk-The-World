@@ -48,7 +48,7 @@ Known repo gaps:
 - [x] Phase 3: Prestige, world model, playable Moon, and future world scaffolding.
 - [x] Phase 4: Daily quests and seasonal event framework.
 - [x] Phase 5: Account persistence and cloud save decision.
-- [ ] Phase 6: WalkerBucks bridge and server-authoritative rewards.
+- [x] Phase 6: WalkerBucks bridge and server-authoritative rewards.
 - [ ] Phase 7: Leaderboards, marketplace proof, Discord bridge, and Telegram decision.
 - [ ] Phase 8: Private beta hardening and release gate.
 
@@ -410,6 +410,8 @@ Implemented:
 
 ## Phase 6: WalkerBucks Bridge And Server-Authoritative Rewards
 
+Status: complete.
+
 Goal: connect the game to the WalkerBucks economy without exposing privileged API calls to the browser.
 
 Primary files:
@@ -440,25 +442,49 @@ game client -> trusted game backend -> WalkerBucks API
 
 Tasks:
 
-- [ ] Write `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` with endpoint mapping, idempotency keys, failure behavior, and auth assumptions.
-- [ ] Create a local abstraction for economy balance and reward status.
-- [ ] Implement read-only WB balance display first.
-- [ ] Implement one server-authoritative reward source with idempotency.
-- [ ] Mark local-only rewards separately from server-backed rewards in UI/state.
-- [ ] Add retry and "pending reward" behavior so failed grants do not disappear.
+- [x] Write `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` with endpoint mapping, idempotency keys, failure behavior, and auth assumptions.
+- [x] Create a local abstraction for economy balance and reward status.
+- [x] Implement read-only WB balance display first.
+- [x] Implement one server-authoritative reward source with idempotency.
+- [x] Mark local-only rewards separately from server-backed rewards in UI/state.
+- [x] Add retry and "pending reward" behavior so failed grants do not disappear.
 
 Acceptance criteria:
 
-- [ ] Browser never stores a privileged WalkerBucks admin/reward secret.
-- [ ] Reward grants use stable idempotency keys.
-- [ ] Failed bridge calls are visible and retryable.
-- [ ] Guest/local mode still works if WalkerBucks is unavailable.
-- [ ] `npm run build` passes.
+- [x] Browser never stores a privileged WalkerBucks admin/reward secret.
+- [x] Reward grants use stable idempotency keys.
+- [x] Failed bridge calls are visible and retryable.
+- [x] Guest/local mode still works if WalkerBucks is unavailable.
+- [x] `npm run build` passes.
+
+Verification:
+
+```bash
+npm run build
+```
+
+Manual/config checks:
+
+- [x] Confirmed `git ls-remote git@github-scwlkr:scwlkr/WalkerBucks.git HEAD` still resolves to `2090e62a1854f4724e5ea56e08d1e577932464d1`.
+- [x] Confirmed browser config only adds `VITE_WALKERBUCKS_BRIDGE_URL`; WalkerBucks API URL/service token are server-only bridge secrets documented in `docs/C_VERSION_WALKERBUCKS_BRIDGE.md`.
+- [x] Confirmed missing bridge URL leaves the app in guest/local mode.
+- [x] Confirmed save migration advances to version 6 with persisted WalkerBucks bridge reward state.
+- [ ] Live WalkerBucks grant smoke test is pending a deployed Supabase Edge Function, `WALKERBUCKS_API_URL`, optional `WALKERBUCKS_SERVICE_TOKEN`, Supabase auth env vars, and a reachable WalkerBucks API.
+
+Implemented:
+
+- `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` records the bridge contract, endpoint mapping, idempotency rules, failure behavior, and auth assumptions.
+- `src/services/walkerbucksClient.ts` calls only the trusted bridge URL with a Supabase access token.
+- `supabase/functions/walkerbucks-bridge/index.ts` verifies the Supabase user, resolves a deterministic WalkerBucks account, reads balance, and grants the first server-owned reward source.
+- `src/game/economy.ts` defines the local bridge abstraction, stable idempotency key derivation, and pending/failed/granted reward state helpers.
+- `src/components/WalkerBucksPanel.tsx` displays read-only shared WB balance and retryable grant status.
+- `src/components/AchievementsPanel.tsx` labels server-backed versus local-only reward scope.
+- The first server-backed reward source is `achievement:day_one_check_in`; guest/unconfigured play continues to receive the local fallback reward.
 
 Blockers:
 
-- WalkerBucks `/v1/accounts/me` is not implemented.
-- AuthN/authZ for privileged endpoints must be designed before public/shared economy use.
+- WalkerBucks `/v1/accounts/me` is not implemented, so the Phase 6 bridge uses deterministic `wtw:{supabase_user_id}` account mapping.
+- WalkerBucks production AuthN/AuthZ middleware is still needed before public/shared economy launch; Phase 6 keeps any future WalkerBucks service token server-side.
 
 ## Phase 7: Leaderboards, Marketplace Proof, Discord Bridge, And Telegram Decision
 
@@ -564,8 +590,14 @@ Acceptance criteria:
 
 - Status: external dependency.
 - Evidence: WalkerBucks `/v1/accounts/me` is stubbed and privileged endpoints are functional but not production-authenticated.
-- Required decision: trusted game backend/server function shape.
-- Recommended next action: write `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` before Phase 6 code.
+- C-version decision: use a Supabase Edge Function bridge that verifies Supabase Auth and keeps WalkerBucks API secrets server-side.
+- Remaining production action: add real WalkerBucks AuthN/AuthZ middleware and replace deterministic `wtw:{supabase_user_id}` mapping when `/v1/accounts/me` exists.
+
+### WalkerBucks Bridge Live Configuration
+
+- Status: external setup pending.
+- Required setup: deploy `supabase/functions/walkerbucks-bridge`, configure `VITE_WALKERBUCKS_BRIDGE_URL`, `WALKERBUCKS_API_URL`, and optional `WALKERBUCKS_SERVICE_TOKEN`.
+- Current behavior without setup: guest/local WB and local rewards continue, while shared-WB balance and grants remain unavailable.
 
 ### Discord/Telegram Bridge
 
@@ -587,7 +619,7 @@ For frontend/game-feel work:
 npm run dev
 ```
 
-For WalkerBucks integration planning, inspect the external repo before coding:
+For WalkerBucks integration planning or bridge changes, inspect the external repo before coding:
 
 ```bash
 git ls-remote git@github-scwlkr:scwlkr/WalkerBucks.git HEAD
@@ -601,4 +633,4 @@ git -C /Users/shanewalker/Desktop/dev/walker-world-discord status --short
 
 ## Next Implementation Target
 
-Proceed to Phase 6 only: WalkerBucks bridge and server-authoritative rewards. Start by writing `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` before any WalkerBucks bridge code.
+Proceed to Phase 7 only: leaderboards, marketplace proof, Discord bridge, and Telegram decision. Start by writing `docs/C_VERSION_SOCIAL_BRIDGE.md` before social bridge code.

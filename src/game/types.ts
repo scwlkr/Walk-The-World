@@ -309,6 +309,46 @@ export type AccountSyncState = {
   lastSyncError: string | null;
 };
 
+export type WalkerBucksBridgeStatus = 'unavailable' | 'guest' | 'ready' | 'checking' | 'error';
+
+export type WalkerBucksBalanceSnapshot = {
+  assetCode: 'WB';
+  balance: number;
+  lockedBalance: number;
+  availableBalance: number;
+  updatedAt: number;
+};
+
+export type ServerRewardSourceType = 'achievement';
+
+export type WalkerBucksRewardGrantStatus = 'pending' | 'granted' | 'failed';
+
+export type WalkerBucksRewardGrant = {
+  id: string;
+  sourceType: ServerRewardSourceType;
+  sourceId: string;
+  label: string;
+  amount: number;
+  idempotencyKey: string;
+  reasonCode: string;
+  status: WalkerBucksRewardGrantStatus;
+  attempts: number;
+  transactionId: string | null;
+  lastError: string | null;
+  createdAt: number;
+  updatedAt: number;
+  settledAt: number | null;
+};
+
+export type WalkerBucksBridgeState = {
+  status: WalkerBucksBridgeStatus;
+  accountId: string | null;
+  balance: WalkerBucksBalanceSnapshot | null;
+  rewardGrants: Record<string, WalkerBucksRewardGrant>;
+  lastCheckedAt: number | null;
+  lastError: string | null;
+};
+
 export type GameState = {
   saveVersion: number;
   distanceMiles: number;
@@ -329,6 +369,7 @@ export type GameState = {
   quests: QuestState;
   dailyPlay: DailyPlayState;
   account: AccountSyncState;
+  walkerBucksBridge: WalkerBucksBridgeState;
   activeBoosts: ActiveBoost[];
   stats: GameStats;
   wbBankedRemainder: number;

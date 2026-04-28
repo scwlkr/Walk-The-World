@@ -3,6 +3,7 @@ import {
   getAchievementProgressValue,
   getRewardSummary
 } from '../game/achievements';
+import { getRewardGrantStateId, getServerBackedAchievementReward } from '../game/economy';
 import type { AchievementDefinition, GameState } from '../game/types';
 
 type AchievementsPanelProps = {
@@ -30,6 +31,17 @@ export const AchievementsPanel = ({ state, onClaim }: AchievementsPanelProps) =>
         const claimed = Boolean(progress?.claimedAt);
         const hidden = achievement.hidden && !unlocked;
         const progressPercent = Math.min(100, (currentProgress / achievement.condition.target) * 100);
+        const serverReward = getServerBackedAchievementReward(achievement.id);
+        const grant = serverReward
+          ? state.walkerBucksBridge.rewardGrants[getRewardGrantStateId(serverReward.sourceType, serverReward.sourceId)]
+          : undefined;
+        const rewardScope = serverReward
+          ? grant?.status === 'granted'
+            ? 'WalkerBucks granted'
+            : grant?.status === 'failed'
+              ? 'WalkerBucks retry needed'
+              : 'WalkerBucks-backed with account sync'
+          : 'Local-only reward';
 
         return (
           <article key={achievement.id} className={`panel shop-card achievement-card ${unlocked ? 'is-unlocked' : ''}`}>
@@ -43,6 +55,7 @@ export const AchievementsPanel = ({ state, onClaim }: AchievementsPanelProps) =>
             </div>
             <p className="muted">Progress: {formatProgress(currentProgress, achievement.condition.target)}</p>
             {!hidden && <p className="muted">Reward: {getRewardSummary(achievement)}</p>}
+            {!hidden && <p className="muted">{rewardScope}</p>}
             <button type="button" className="mini-btn" disabled={!unlocked || claimed} onClick={() => onClaim(achievement)}>
               {claimed ? 'Claimed' : unlocked ? 'Claim reward' : 'Locked'}
             </button>

@@ -111,6 +111,7 @@ Walk-The-World/
       save.ts
       tick.ts
       world.ts
+      economy.ts
     components/
       AccountPanel.tsx
       GameSceneCanvas.tsx
@@ -124,51 +125,59 @@ Walk-The-World/
       RandomEventOverlay.tsx
       StatsPanel.tsx
       SettingsPanel.tsx
+      WalkerBucksPanel.tsx
       BottomNav.tsx
     services/
       authClient.ts
       cloudSaveClient.ts
+      walkerbucksClient.ts
+  supabase/
+    functions/
+      walkerbucks-bridge/
 ```
 
 ## Save System Notes
 
 - Save key: `walk_the_world_save_v1`
-- Includes `saveVersion: 5` with migration from earlier local saves
+- Includes `saveVersion: 6` with migration from earlier local saves
 - Autosaves every 5s and on important actions (walk, purchases, events)
 - Save before unload
 - Import/export as JSON text in settings
-- Guest play works without Supabase configuration
+- Guest play works without Supabase or WalkerBucks bridge configuration
 - Signed-in players can manually upload local saves or load cloud saves
+- WalkerBucks bridge reward state stores pending/failed grants for retry
 
 ## Account Sync Environment
 
-Optional account sync uses Supabase Auth and a `game_saves` table.
+Optional account sync uses Supabase Auth and a `game_saves` table. Optional WalkerBucks bridge reads and grants use a trusted server function.
 
 ```text
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
+VITE_WALKERBUCKS_BRIDGE_URL=
 ```
 
-See `.env.example` for the local env names and `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md` for the table/RLS setup SQL. Without these variables, the app stays in guest-only mode.
+See `.env.example`, `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`, and `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` for setup details. Without these variables, the app stays in guest/local mode.
 
 ## WalkerBucks API Readiness
 
-Current WB is local-only game currency.
+Local WB remains the guest-play currency for upgrades and offline play. Shared WalkerBucks now has a Phase 6 bridge contract and optional Supabase Edge Function scaffold.
 
-```ts
-// TODO: Future WalkerBucks API integration.
-// Local WB is currently client-side only.
-// Server-authoritative rewards should replace this before shared economy launch.
-```
+- Browser code only uses `VITE_WALKERBUCKS_BRIDGE_URL`.
+- WalkerBucks API URL and service token belong in server-side function secrets.
+- The first server-backed reward source is `achievement:day_one_check_in`.
+- Failed shared-WB grants persist in the local save and can be retried with the same idempotency key.
+- Live shared-economy QA still requires a deployed bridge function and reachable WalkerBucks API.
 
 No real-money value, no crypto, no paid loot boxes.
 
 ## Known Limitations
 
 - Account sync requires Supabase env vars and table/RLS setup
+- WalkerBucks bridge live QA requires deployed Supabase function secrets and a reachable WalkerBucks API
 - No service worker yet (manifest-only PWA readiness)
 - Mars and Solar System are data-only future tiers
-- C-version rewards and WB remain local-first and not WalkerBucks-backed yet
+- Most C-version rewards and WB remain local-first; only Day One Walker is wired as the first optional shared-WB grant source
 
 ## C Version Asset Intake
 
@@ -230,5 +239,6 @@ Persistent C-version planning lives in:
 - `docs/C_VERSION_PRD.md`
 - `docs/C_VERSION_PLAN.md`
 - `docs/C_VERSION_HANDOFF.md`
+- `docs/C_VERSION_WALKERBUCKS_BRIDGE.md`
 
 Every roadmap item should either ship in C, be gated by a blocker doc, or be explicitly planned for a future release.

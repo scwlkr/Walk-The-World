@@ -49,6 +49,14 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
     status: 'guest',
     lastSyncError: null
   },
+  walkerBucksBridge: {
+    status: 'unavailable',
+    accountId: null,
+    balance: null,
+    rewardGrants: {},
+    lastCheckedAt: null,
+    lastError: null
+  },
   activeBoosts: [],
   stats: {
     totalClicks: 0,

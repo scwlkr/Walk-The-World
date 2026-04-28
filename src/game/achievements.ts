@@ -1,5 +1,5 @@
 import { grantRewardToState } from './inventory';
-import type { AchievementDefinition, AchievementProgress, GameState } from './types';
+import type { AchievementDefinition, AchievementProgress, GameState, RewardDefinition } from './types';
 
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
   {
@@ -177,12 +177,31 @@ export const evaluateAchievements = (state: GameState, now = Date.now()): GameSt
   };
 };
 
-export const claimAchievementReward = (state: GameState, achievementId: string, now = Date.now()): GameState => {
+type ClaimAchievementRewardOptions = {
+  includeWalkerBucks?: boolean;
+  toast?: string;
+};
+
+const maybeRemoveWalkerBucksReward = (reward: RewardDefinition, includeWalkerBucks: boolean): RewardDefinition => {
+  if (includeWalkerBucks) return reward;
+  return {
+    ...reward,
+    walkerBucks: undefined
+  };
+};
+
+export const claimAchievementReward = (
+  state: GameState,
+  achievementId: string,
+  now = Date.now(),
+  options: ClaimAchievementRewardOptions = {}
+): GameState => {
   const definition = getAchievementById(achievementId);
   const progress = state.achievements[achievementId];
   if (!definition || !progress?.unlockedAt || progress.claimedAt) return state;
 
-  const rewarded = grantRewardToState(state, definition.reward);
+  const includeWalkerBucks = options.includeWalkerBucks ?? true;
+  const rewarded = grantRewardToState(state, maybeRemoveWalkerBucksReward(definition.reward, includeWalkerBucks));
   return {
     ...rewarded,
     achievements: {
@@ -198,7 +217,7 @@ export const claimAchievementReward = (state: GameState, achievementId: string, 
     },
     ui: {
       ...rewarded.ui,
-      toast: `${definition.name} reward claimed.`
+      toast: options.toast ?? `${definition.name} reward claimed.`
     }
   };
 };

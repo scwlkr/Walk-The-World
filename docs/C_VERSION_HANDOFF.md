@@ -4,7 +4,7 @@ Last updated: 2026-04-28
 
 ## Current State
 
-Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 are complete. The remaining work should start at Phase 6 from `docs/C_VERSION_PLAN.md`.
+Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and Phase 6 are complete. The remaining work should start at Phase 7 from `docs/C_VERSION_PLAN.md`.
 
 Artifacts created:
 
@@ -19,9 +19,14 @@ Artifacts created:
 - `src/game/quests.ts`
 - `src/game/seasonalEvents.ts`
 - `docs/C_VERSION_ACCOUNT_SYNC_DECISION.md`
+- `docs/C_VERSION_WALKERBUCKS_BRIDGE.md`
 - `src/components/AccountPanel.tsx`
+- `src/components/WalkerBucksPanel.tsx`
 - `src/services/authClient.ts`
 - `src/services/cloudSaveClient.ts`
+- `src/services/walkerbucksClient.ts`
+- `src/game/economy.ts`
+- `supabase/functions/walkerbucks-bridge/index.ts`
 
 Input artifact:
 
@@ -287,14 +292,63 @@ Verification not completed:
 
 - Live Supabase sign-in/upload/load smoke test was not run because the local shell does not have Supabase env vars and a configured `game_saves` table.
 
+Phase 6 from `docs/C_VERSION_PLAN.md` has been implemented.
+
+Resolved decisions:
+
+- Supabase Edge Function is the C-version trusted WalkerBucks bridge target.
+- Browser code only knows `VITE_WALKERBUCKS_BRIDGE_URL`; WalkerBucks API URL/service token are server-side function secrets.
+- Until WalkerBucks `/v1/accounts/me` exists, the bridge maps Supabase users to deterministic WalkerBucks usernames shaped as `wtw:{supabase_user_id}`.
+- The first server-backed reward source is `achievement:day_one_check_in`.
+
+Implemented:
+
+- Added `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` before bridge code.
+- Added `src/services/walkerbucksClient.ts` for optional bridge balance/grant calls through the trusted bridge URL.
+- Added `supabase/functions/walkerbucks-bridge/index.ts` to verify Supabase users, resolve WalkerBucks accounts, read balances, and grant the first server-owned reward source.
+- Added `src/game/economy.ts` for shared-WB balance state, pending/failed/granted reward grants, and stable idempotency key helpers.
+- Added save version 6 WalkerBucks bridge state while keeping `walk_the_world_save_v1`.
+- Added `src/components/WalkerBucksPanel.tsx` in Settings for read-only shared balance and retryable grant visibility.
+- Updated achievement claiming so signed-in configured bridge mode skips local WB for Day One Walker and records a pending shared-WB grant; guest/unconfigured mode keeps the local fallback reward.
+- Updated README and `.env.example` for the bridge URL and server-only secret boundary.
+
+Touched files:
+
+- `.env.example`
+- `README.md`
+- `src/App.tsx`
+- `src/components/AchievementsPanel.tsx`
+- `src/components/WalkerBucksPanel.tsx`
+- `src/game/achievements.ts`
+- `src/game/constants.ts`
+- `src/game/economy.ts`
+- `src/game/initialState.ts`
+- `src/game/save.ts`
+- `src/game/types.ts`
+- `src/services/walkerbucksClient.ts`
+- `src/vite-env.d.ts`
+- `supabase/functions/walkerbucks-bridge/index.ts`
+- `docs/C_VERSION_WALKERBUCKS_BRIDGE.md`
+- `docs/C_VERSION_PLAN.md`
+- `docs/C_VERSION_HANDOFF.md`
+
+Verification completed:
+
+- `git ls-remote git@github-scwlkr:scwlkr/WalkerBucks.git HEAD` returns `2090e62a1854f4724e5ea56e08d1e577932464d1`.
+- `npm run build` passes.
+
+Verification not completed:
+
+- Live WalkerBucks balance/grant smoke test was not run because the bridge function is not deployed in this local shell and no `VITE_WALKERBUCKS_BRIDGE_URL` / `WALKERBUCKS_API_URL` / optional `WALKERBUCKS_SERVICE_TOKEN` configuration is present.
+
 ## Next Phase
 
-Proceed with Phase 6 from `docs/C_VERSION_PLAN.md`: WalkerBucks bridge and server-authoritative rewards.
+Proceed with Phase 7 from `docs/C_VERSION_PLAN.md`: leaderboards, marketplace proof, Discord bridge, and Telegram decision.
 
 ## Next Kickoff Prompt
 
 ```text
-Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, and docs/C_VERSION_ACCOUNT_SYNC_DECISION.md first. Proceed with Phase 6 only: WalkerBucks bridge and server-authoritative rewards. Start by writing docs/C_VERSION_WALKERBUCKS_BRIDGE.md before any WalkerBucks bridge code, keep guest/local mode working if WalkerBucks is unavailable, never expose privileged WalkerBucks secrets in the browser, keep the checklist and handoff updated, run npm run build if code changes, and end with the next kickoff prompt.
+Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, and docs/C_VERSION_WALKERBUCKS_BRIDGE.md first. Proceed with Phase 7 only: leaderboards, marketplace proof, Discord bridge, and Telegram decision. Start by writing docs/C_VERSION_SOCIAL_BRIDGE.md before any social bridge code, keep guest/local mode working if WalkerBucks or Discord is unavailable, never expose privileged WalkerBucks or Discord secrets in the browser, keep the checklist and handoff updated, run npm run build if code changes, and end with the next kickoff prompt.
 ```
 
 ## Required Verification
@@ -320,14 +374,15 @@ Every chat or phase closeout for this C-version plan must end with a copy-ready 
 ## Open Decisions
 
 - First leaderboard category.
-- Which rewards become WalkerBucks-backed first.
-- First server-authoritative reward source for Phase 6.
-- Trusted game backend/server-function shape for WalkerBucks reward grants.
+- First marketplace proof scope.
+- Discord identity-linking contract.
+- Telegram future-path decision.
+- Live WalkerBucks bridge deployment/configuration.
 
 ## Do Not Start Yet
 
-Do not start Phase 6 code before writing and approving:
+Do not start Phase 7 social bridge code before writing:
 
-- `docs/C_VERSION_WALKERBUCKS_BRIDGE.md`
+- `docs/C_VERSION_SOCIAL_BRIDGE.md`
 
-This is required because WalkerBucks auth and privileged reward flow are still unresolved.
+This is required because leaderboard, marketplace, Discord identity, and Telegram scope need a durable contract before implementation.
