@@ -1,5 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+
+const readCurrentSaveVersion = async () => {
+  const source = await readFile(new URL('../src/game/constants.ts', import.meta.url), 'utf8');
+  const match = source.match(/export const SAVE_VERSION = (\d+);/);
+  if (!match) throw new Error('Could not read SAVE_VERSION from src/game/constants.ts.');
+  return Number(match[1]);
+};
 
 const requiredEnv = [
   'VITE_SUPABASE_URL',
@@ -86,8 +94,9 @@ const bridgeRequest = async (path, accessToken, init = {}) => {
 const runCloudSaveSmoke = async (userId) => {
   const runId = randomUUID();
   const now = Date.now();
+  const saveVersion = await readCurrentSaveVersion();
   const payload = {
-    saveVersion: 7,
+    saveVersion,
     lastSavedAt: now,
     smoke: {
       runId,
@@ -99,7 +108,7 @@ const runCloudSaveSmoke = async (userId) => {
     .upsert(
       {
         user_id: userId,
-        save_version: payload.saveVersion,
+        save_version: saveVersion,
         save_payload: payload,
         updated_at: new Date(now).toISOString()
       },
@@ -109,7 +118,7 @@ const runCloudSaveSmoke = async (userId) => {
     .single();
 
   if (upsert.error) throw new Error(`Cloud save upload failed: ${upsert.error.message}`);
-  assert(upsert.data.save_version === 7, 'Cloud save upload returned the wrong save_version.');
+  assert(upsert.data.save_version === saveVersion, 'Cloud save upload returned the wrong save_version.');
 
   const load = await gameSaveTable()
     .select('save_version, save_payload, updated_at')

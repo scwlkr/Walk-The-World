@@ -56,6 +56,8 @@ public/assets/characters/walker/walker_reward_sheet.png
 public/assets/characters/walker/walker_celebration_sheet.png
 ```
 
+When an optional state sheet is added, enable that state in `src/game/assets.ts`. Disabled optional states use the walk sheet fallback and should not create production 404s.
+
 Optional state sheets should follow the same initial standard:
 
 ```text

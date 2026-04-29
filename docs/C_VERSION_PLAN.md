@@ -35,12 +35,12 @@ Current C-adjacent assets:
 
 Known repo gaps:
 
-- Final production browser QA and beta-tag decision remain open.
+- Version C private beta is deployed and ready to tag as `v0.2.0-beta.1`; this is still not a public launch build.
 - Supabase client/Edge Function artifacts are linked to the shared `WalkerWorld` Supabase project.
 - WalkerBucks API exists in a separate repo, but `/v1/accounts/me` auth is stubbed and privileged endpoints still depend on the trusted bridge.
 - Guest/local play, generated catalog items, Journey milestones, route encounters, Moon, and Mars prototype are implemented locally.
 - Shared WalkerBucks inventory maps into read-only entitlements when an offer matches a generated catalog item; unknown shared items remain shared-only.
-- Logic tests and a local browser smoke now exist, but wider production QA is still needed before a beta tag.
+- Logic tests, local browser smoke, production browser smoke, and live private-beta service smoke now exist for the beta gate.
 
 ## Phase Checklist
 
@@ -695,14 +695,16 @@ Result on 2026-04-29:
 
 - `npm run build` passes with the existing Vite large-chunk warning.
 - `npm run items:validate` passes for 31 items, 14 effect rows, and 31 offers.
-- `npm run test` passes 7 pure game tests.
+- `npm run test` passes 8 pure game tests.
 - `npm run smoke:local` passes through a headless mobile browser path against Vite.
 
-Remaining release decision:
+Final release-gate result:
 
-- Run production browser QA on `https://walk-the-world.vercel.app/`.
-- Confirm guest fallback and signed-in Supabase/WalkerBucks surfaces still behave after the retention pass is deployed.
-- Decide whether to cut the beta tag or hold for any UI/runtime fixes found in production QA.
+- Production deployment is Ready and aliased to `https://walk-the-world.vercel.app/`.
+- `npm run smoke:production-browser` passes against production with save version 8, 12 leaderboard rows, 13 marketplace offers, runtimeErrors 0, and screenshot artifacts under ignored `qa-artifacts/`.
+- In-app browser visual QA confirmed the live guest surface renders with the pixel scene, WALK control, Journey HUD, route label, and mobile controls.
+- `npm run smoke:private-beta-live` passes with `WTW_BETA_SMOKE_REQUIRE_BRIDGE=true`, `WTW_BETA_SMOKE_ALLOW_PURCHASE=true`, offer id `13`, cloudSaveRunId `f1ae971c-5102-4d06-b125-25bcf61cfa0e`, 13 leaderboard rows, 13 marketplace offers, and `purchaseStatus` `purchased`.
+- Recommendation: cut `v0.2.0-beta.1` for Version C private beta.
 
 | README item | C target status | Current plan |
 | --- | --- | --- |
@@ -780,6 +782,12 @@ npm run test
 npm run smoke:local
 ```
 
+For production browser QA:
+
+```bash
+npm run smoke:production-browser
+```
+
 For live private-beta service verification after the Supabase project and bridge are configured:
 
 ```bash
@@ -806,4 +814,4 @@ git -C /Users/shanewalker/Desktop/dev/walker-world-discord status --short
 
 ## Next Implementation Target
 
-Proceed to final Version C private-beta QA: deploy the retention pass, verify the production browser account flow on `https://walk-the-world.vercel.app/`, confirm guest fallback still works without a session, confirm shared WalkerBucks surfaces remain bridge-only, capture any UI/runtime issues, and decide whether to cut a beta tag or hold for fixes.
+Cut and push the annotated `v0.2.0-beta.1` tag, then use this beta as the private-friends testing baseline. Do not start public launch promotion until beta testers have exercised account recovery, shared WalkerBucks bridge behavior, mobile gameplay, and reset/export flows outside the smoke harness.

@@ -3,6 +3,7 @@ export type WalkerAnimationState = 'walk' | 'idle' | 'click' | 'reward' | 'celeb
 export type WalkerSpriteSheet = {
   state: WalkerAnimationState;
   src: string;
+  enabled?: boolean;
   fallbackState?: WalkerAnimationState;
   frameWidth: number;
   frameHeight: number;
@@ -28,6 +29,7 @@ export const WALKER_ANIMATION_ASSETS: Record<WalkerAnimationState, WalkerSpriteS
   idle: {
     state: 'idle',
     src: '/assets/characters/walker/walker_idle_sheet.png',
+    enabled: false,
     fallbackState: 'walk',
     ...WALKER_BASE_SHEET,
     fps: 5
@@ -35,6 +37,7 @@ export const WALKER_ANIMATION_ASSETS: Record<WalkerAnimationState, WalkerSpriteS
   click: {
     state: 'click',
     src: '/assets/characters/walker/walker_click_sheet.png',
+    enabled: false,
     fallbackState: 'walk',
     ...WALKER_BASE_SHEET,
     fps: 12
@@ -42,6 +45,7 @@ export const WALKER_ANIMATION_ASSETS: Record<WalkerAnimationState, WalkerSpriteS
   reward: {
     state: 'reward',
     src: '/assets/characters/walker/walker_reward_sheet.png',
+    enabled: false,
     fallbackState: 'walk',
     ...WALKER_BASE_SHEET,
     fps: 10
@@ -49,6 +53,7 @@ export const WALKER_ANIMATION_ASSETS: Record<WalkerAnimationState, WalkerSpriteS
   celebration: {
     state: 'celebration',
     src: '/assets/characters/walker/walker_celebration_sheet.png',
+    enabled: false,
     fallbackState: 'walk',
     ...WALKER_BASE_SHEET,
     fps: 10

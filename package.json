@@ -1,7 +1,7 @@
 {
   "name": "walk-the-world",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0-beta.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "smoke:local": "node scripts/local-dev-smoke.mjs",
+    "smoke:production-browser": "node scripts/production-browser-qa.mjs",
     "smoke:private-beta-live": "node scripts/live-private-beta-smoke.mjs",
     "items:prompts": "node scripts/generate-item-art-prompts.mjs",
     "items:export": "node scripts/export-items-csv-to-json.mjs",
