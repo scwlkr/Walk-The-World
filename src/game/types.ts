@@ -255,6 +255,12 @@ export type InventoryItemDefinition = {
   description: string;
   type: InventoryItemType;
   rarity: 'common' | 'uncommon' | 'rare';
+  assetPath?: string;
+  asset_path?: string;
+  assetFilename?: string;
+  asset_filename?: string;
+  icon?: string;
+  emoji?: string;
   effect?: {
     type: InventoryEffectType;
     value: number;
@@ -283,6 +289,12 @@ export type CosmeticDefinition = {
   description: string;
   slot: CosmeticSlot;
   rarity: 'common' | 'uncommon' | 'rare';
+  assetPath?: string;
+  asset_path?: string;
+  assetFilename?: string;
+  asset_filename?: string;
+  icon?: string;
+  emoji?: string;
   effect: {
     type: CosmeticEffectType;
     value: number;
@@ -361,6 +373,14 @@ export type WalkerBucksMarketplaceOffer = {
   name: string;
   description: string;
   priceWb: number;
+  itemId?: string;
+  item_id?: string;
+  assetPath?: string;
+  asset_path?: string;
+  assetFilename?: string;
+  asset_filename?: string;
+  icon?: string;
+  emoji?: string;
 };
 
 export type WalkerBucksInventoryItem = {

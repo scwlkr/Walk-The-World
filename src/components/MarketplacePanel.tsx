@@ -1,5 +1,8 @@
 import { getMarketplacePurchaseStateId } from '../game/economy';
+import { getInventoryItemById, INVENTORY_ITEMS } from '../game/inventory';
+import type { ItemImageCandidate } from '../game/itemImages';
 import type { GameState, WalkerBucksMarketplaceOffer } from '../game/types';
+import { ItemArtwork } from './ItemArtwork';
 
 type MarketplacePanelProps = {
   state: GameState;
@@ -24,6 +27,25 @@ const getActionLabel = (state: GameState, offer: WalkerBucksMarketplaceOffer): s
   if (purchase.status === 'pending') return 'Pending';
   if (purchase.status === 'purchased') return 'Purchased';
   return 'Retry purchase';
+};
+
+const localItemByName = new Map(INVENTORY_ITEMS.map((item) => [item.name, item]));
+
+const getMarketplaceOfferArtworkSource = (offer: WalkerBucksMarketplaceOffer): ItemImageCandidate => {
+  const offerArtwork: ItemImageCandidate = {
+    itemId: offer.itemId ?? offer.item_id,
+    assetPath: offer.assetPath ?? offer.asset_path,
+    assetFilename: offer.assetFilename ?? offer.asset_filename,
+    icon: offer.icon,
+    emoji: offer.emoji
+  };
+
+  if (offerArtwork.assetPath || offerArtwork.assetFilename) return offerArtwork;
+
+  const itemId = offerArtwork.itemId;
+  if (itemId) return getInventoryItemById(itemId) ?? offerArtwork;
+
+  return localItemByName.get(offer.name) ?? offerArtwork;
 };
 
 export const MarketplacePanel = ({
@@ -65,20 +87,25 @@ export const MarketplacePanel = ({
           const disabled = !canUseBridge || purchase?.status === 'pending' || purchase?.status === 'purchased' || insufficientSharedWb;
           return (
             <article key={offer.id} className="panel shop-card">
-              <div className="card-row">
-                <h4>{offer.name}</h4>
-                <span className="pill">{offer.priceWb.toLocaleString()} WB</span>
+              <div className="item-card-layout">
+                <ItemArtwork item={getMarketplaceOfferArtworkSource(offer)} />
+                <div className="item-card-body">
+                  <div className="card-row">
+                    <h4>{offer.name}</h4>
+                    <span className="pill">{offer.priceWb.toLocaleString()} WB</span>
+                  </div>
+                  <p>{offer.description}</p>
+                  <p className="muted">
+                    Offer #{offer.id} · Shared item #{offer.itemDefinitionId}
+                  </p>
+                  {purchase?.itemInstanceId && <p className="muted">Item instance: {purchase.itemInstanceId}</p>}
+                  {purchase?.lastError && <p className="muted">Last error: {purchase.lastError}</p>}
+                  {insufficientSharedWb && <p className="muted">Shared balance is too low for this proof purchase.</p>}
+                  <button type="button" className="mini-btn" disabled={disabled} onClick={() => onPurchaseOffer(offer)}>
+                    {getActionLabel(state, offer)}
+                  </button>
+                </div>
               </div>
-              <p>{offer.description}</p>
-              <p className="muted">
-                Offer #{offer.id} · Shared item #{offer.itemDefinitionId}
-              </p>
-              {purchase?.itemInstanceId && <p className="muted">Item instance: {purchase.itemInstanceId}</p>}
-              {purchase?.lastError && <p className="muted">Last error: {purchase.lastError}</p>}
-              {insufficientSharedWb && <p className="muted">Shared balance is too low for this proof purchase.</p>}
-              <button type="button" className="mini-btn" disabled={disabled} onClick={() => onPurchaseOffer(offer)}>
-                {getActionLabel(state, offer)}
-              </button>
             </article>
           );
         })}

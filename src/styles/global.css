@@ -451,6 +451,57 @@ button {
   margin: 0.2rem 0;
 }
 
+.item-card-layout {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.item-card-body {
+  min-width: 0;
+}
+
+.item-art {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(250, 204, 21, 0.16), transparent 58%),
+    rgba(2, 6, 23, 0.44);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.item-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.22rem;
+}
+
+.item-art span {
+  color: #fde68a;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+@media (max-width: 360px) {
+  .item-card-layout {
+    grid-template-columns: 50px minmax(0, 1fr);
+    gap: 0.55rem;
+  }
+
+  .item-art {
+    width: 50px;
+    height: 50px;
+  }
+}
+
 .leaderboard-list {
   display: grid;
   gap: 0.45rem;

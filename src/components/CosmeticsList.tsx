@@ -4,6 +4,7 @@ import {
   getCosmeticSlotLabel
 } from '../game/cosmetics';
 import type { CosmeticDefinition, GameState } from '../game/types';
+import { ItemArtwork } from './ItemArtwork';
 
 type CosmeticsListProps = {
   state: GameState;
@@ -28,15 +29,20 @@ export const CosmeticsList = ({ state, onEquipCosmetic }: CosmeticsListProps) =>
 
         return (
           <article key={cosmetic.id} className="panel shop-card">
-            <div className="card-row">
-              <h4>{cosmetic.name}</h4>
-              <span className="pill">{getCosmeticSlotLabel(cosmetic.slot)}</span>
+            <div className="item-card-layout">
+              <ItemArtwork item={cosmetic} />
+              <div className="item-card-body">
+                <div className="card-row">
+                  <h4>{cosmetic.name}</h4>
+                  <span className="pill">{getCosmeticSlotLabel(cosmetic.slot)}</span>
+                </div>
+                <p>{cosmetic.description}</p>
+                <p className="muted">Effect: {formatCosmeticEffect(cosmetic)}</p>
+                <button type="button" className="mini-btn" disabled={equipped} onClick={() => onEquipCosmetic(cosmetic)}>
+                  {equipped ? 'Equipped' : 'Equip'}
+                </button>
+              </div>
             </div>
-            <p>{cosmetic.description}</p>
-            <p className="muted">Effect: {formatCosmeticEffect(cosmetic)}</p>
-            <button type="button" className="mini-btn" disabled={equipped} onClick={() => onEquipCosmetic(cosmetic)}>
-              {equipped ? 'Equipped' : 'Equip'}
-            </button>
           </article>
         );
       })}
