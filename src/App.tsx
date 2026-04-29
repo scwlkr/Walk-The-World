@@ -1080,7 +1080,31 @@ const App = () => {
     <div className="game-shell">
       <GameSceneCanvas state={state} onEventClaim={onClaimEvent} tapPulse={tapPulse} onSceneTap={(x, y) => onWalk({ x, y })} />
       <GameHUD state={state} />
-      <RandomEventOverlay spawnedEvent={state.spawnedEvent} onClaim={onClaimEvent} />
+
+      <div className="notice-stack" aria-live="polite">
+        {state.ui.toast && <aside className="panel toast">{state.ui.toast}</aside>}
+
+        <RandomEventOverlay spawnedEvent={state.spawnedEvent} onClaim={onClaimEvent} />
+
+        {state.ui.offlineSummary && (
+          <aside className="panel offline-banner">
+            You walked {state.ui.offlineSummary.distance.toFixed(2)} mi and earned{' '}
+            {Math.floor(state.ui.offlineSummary.wb).toLocaleString()} WB while away.
+            <button
+              type="button"
+              className="mini-btn"
+              onClick={() =>
+                setState((prev) => ({
+                  ...prev,
+                  ui: { ...prev.ui, offlineSummary: null }
+                }))
+              }
+            >
+              Nice
+            </button>
+          </aside>
+        )}
+      </div>
 
       <div className="tap-feedback-layer" aria-hidden="true">
         {tapFeedback.map((item) => (
@@ -1089,27 +1113,6 @@ const App = () => {
           </div>
         ))}
       </div>
-
-      {state.ui.offlineSummary && (
-        <aside className="panel offline-banner">
-          You walked {state.ui.offlineSummary.distance.toFixed(2)} mi and earned{' '}
-          {Math.floor(state.ui.offlineSummary.wb).toLocaleString()} WB while away.
-          <button
-            type="button"
-            className="mini-btn"
-            onClick={() =>
-              setState((prev) => ({
-                ...prev,
-                ui: { ...prev.ui, offlineSummary: null }
-              }))
-            }
-          >
-            Nice
-          </button>
-        </aside>
-      )}
-
-      {state.ui.toast && <aside className="panel toast">{state.ui.toast}</aside>}
 
       <BottomControls active={state.ui.activeTab} onSelect={openTab} />
 

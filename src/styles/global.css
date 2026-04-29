@@ -209,12 +209,12 @@ button {
 
 .bottom-controls {
   position: absolute;
-  top: 118px;
-  top: calc(env(safe-area-inset-top, 0px) + 118px);
+  top: 124px;
+  top: calc(env(safe-area-inset-top, 0px) + 124px);
   right: 10px;
   right: calc(env(safe-area-inset-right, 0px) + 10px);
   bottom: auto;
-  z-index: 32;
+  z-index: 36;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -370,18 +370,31 @@ button {
   color: #fecaca;
 }
 
-.event-overlay {
+.notice-stack {
   position: absolute;
-  right: 10px;
-  top: 178px;
-  top: calc(env(safe-area-inset-top, 0px) + 178px);
-  z-index: 31;
+  top: 112px;
+  top: calc(env(safe-area-inset-top, 0px) + 112px);
+  left: 10px;
+  right: 70px;
+  right: calc(env(safe-area-inset-right, 0px) + 70px);
+  z-index: 34;
+  display: grid;
+  gap: 0.52rem;
+  pointer-events: none;
+}
+
+.notice-stack > * {
+  min-width: 0;
+  pointer-events: auto;
+}
+
+.event-overlay {
   border: 1px dashed var(--gold);
   background: rgba(15, 23, 42, 0.8);
   color: var(--text);
   border-radius: 12px;
   padding: 0.5rem 0.65rem;
-  width: min(280px, calc(100vw - 20px));
+  width: 100%;
   overflow-wrap: anywhere;
   display: grid;
   text-align: left;
@@ -783,37 +796,39 @@ button {
 
 .offline-banner,
 .toast {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  z-index: 35;
   display: flex;
   gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
+  width: 100%;
 }
 
-.offline-banner {
-  bottom: 130px;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 130px);
+.offline-banner .mini-btn {
+  margin-left: auto;
 }
 
 .toast {
-  top: 104px;
-  top: calc(env(safe-area-inset-top, 0px) + 104px);
   border-color: var(--gold);
 }
 
 @media (min-width: 900px) {
-  .game-hud,
-  .bottom-controls,
-  .offline-banner,
-  .toast,
-  .event-overlay {
+  .game-hud {
     max-width: 680px;
     margin: 0 auto;
     left: 0;
     right: 0;
+  }
+
+  .notice-stack {
+    left: calc((100vw - 680px) / 2);
+    right: calc((100vw - 680px) / 2 + 70px);
+  }
+
+  .bottom-controls {
+    left: auto;
+    right: calc((100vw - 680px) / 2 + 10px);
+    margin: 0;
+    max-width: none;
   }
 
   .overlay-backdrop {
