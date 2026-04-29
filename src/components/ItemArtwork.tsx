@@ -26,7 +26,10 @@ export const ItemArtwork = ({ item, className }: ItemArtworkProps) => {
           onError={() => setFailedSrc(imageSrc)}
         />
       ) : (
-        <span>{getItemFallbackIcon(item)}</span>
+        <>
+          <span>{getItemFallbackIcon(item)}</span>
+          {import.meta.env.DEV && src && <small>missing art</small>}
+        </>
       )}
     </div>
   );

@@ -1,7 +1,9 @@
 import { FollowerList } from './FollowerList';
+import { CatalogShopPanel } from './CatalogShopPanel';
 import { CosmeticsList } from './CosmeticsList';
 import { InventoryList } from './InventoryList';
 import { UpgradeList } from './UpgradeList';
+import type { LocalCatalogShopOffer } from '../game/items';
 import type { CosmeticDefinition, Follower, GameState, InventoryItemDefinition, Upgrade } from '../game/types';
 
 type ShopModalProps = {
@@ -9,6 +11,7 @@ type ShopModalProps = {
   onTab: (tab: GameState['ui']['shopTab']) => void;
   onBuyUpgrade: (upgrade: Upgrade) => void;
   onBuyFollower: (follower: Follower) => void;
+  onBuyCatalogOffer: (offer: LocalCatalogShopOffer) => void;
   onUseInventoryItem: (item: InventoryItemDefinition) => void;
   onEquipEquipment: (item: InventoryItemDefinition) => void;
   onEquipCosmetic: (cosmetic: CosmeticDefinition) => void;
@@ -21,6 +24,7 @@ export const ShopModal = ({
   onTab,
   onBuyUpgrade,
   onBuyFollower,
+  onBuyCatalogOffer,
   onUseInventoryItem,
   onEquipEquipment,
   onEquipCosmetic,
@@ -48,7 +52,10 @@ export const ShopModal = ({
       <FollowerList state={state} onBuyFollower={onBuyFollower} isUnlocked={isFollowerUnlocked} />
     )}
     {state.ui.shopTab === 'items' && (
-      <InventoryList state={state} onUseItem={onUseInventoryItem} onEquipEquipment={onEquipEquipment} />
+      <>
+        <InventoryList state={state} onUseItem={onUseInventoryItem} onEquipEquipment={onEquipEquipment} />
+        <CatalogShopPanel state={state} onBuyOffer={onBuyCatalogOffer} />
+      </>
     )}
     {state.ui.shopTab === 'cosmetics' && (
       <CosmeticsList state={state} onEquipCosmetic={onEquipCosmetic} />

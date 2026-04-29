@@ -7,6 +7,7 @@ import {
 } from './constants';
 import { createInitialAchievementState, getLocalDateKey } from './achievements';
 import { DEFAULT_MUSIC_TRACK_ID as DEFAULT_TRACK_ID } from './audio';
+import { createInitialMilestoneState } from './milestones';
 import { createInitialQuestState } from './quests';
 import type { GameState } from './types';
 import { createInitialPrestigeState, createInitialWorldProgress } from './world';
@@ -35,6 +36,11 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
     owned: {},
     equippedBySlot: {}
   },
+  profile: {
+    unlockedTitles: {},
+    activeTitleId: null
+  },
+  milestones: createInitialMilestoneState(),
   quests: createInitialQuestState(now),
   dailyPlay: {
     lastPlayedDate: getLocalDateKey(now),
@@ -65,16 +71,20 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
   stats: {
     totalClicks: 0,
     randomEventsClaimed: 0,
+    routeEncountersClaimed: 0,
     totalDistanceWalked: 0,
     upgradesPurchased: 0,
     followersHired: 0,
     itemsUsed: 0,
     achievementsClaimed: 0,
-    cosmeticsEquipped: 0
+    cosmeticsEquipped: 0,
+    milestonesClaimed: 0
   },
   wbBankedRemainder: 0,
   nextRandomEventAt: now + AUTO_SAVE_INTERVAL_MS,
   spawnedEvent: null,
+  nextRouteEncounterAt: now + AUTO_SAVE_INTERVAL_MS * 2,
+  spawnedRouteEncounter: null,
   settings: {
     soundEnabled: false,
     selectedMusicTrackId: DEFAULT_TRACK_ID,
@@ -86,6 +96,7 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
     showShop: false,
     offlineSummary: null,
     toast: null,
+    recentRewards: [],
     moonTeaseUnlocked: false
   }
 });

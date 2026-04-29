@@ -1,4 +1,4 @@
-import { formatInventoryEffect, getInventoryQuantity, INVENTORY_ITEMS } from '../game/inventory';
+import { formatInventoryEffect, getInventoryQuantity, INVENTORY_ITEMS, isInventoryItemUsable } from '../game/inventory';
 import type { GameState, InventoryItemDefinition } from '../game/types';
 import { ItemArtwork } from './ItemArtwork';
 
@@ -37,10 +37,13 @@ export const InventoryList = ({ state, onUseItem, onEquipEquipment }: InventoryL
                 <p>{item.description}</p>
                 <p className="muted">Owned: {quantity.toLocaleString()}</p>
                 <p className="muted">Effect: {formatInventoryEffect(item)}</p>
-                {item.type === 'consumable' && (
+                {isInventoryItemUsable(item) && (
                   <button type="button" className="mini-btn" onClick={() => onUseItem(item)}>
                     Use
                   </button>
+                )}
+                {item.type === 'consumable' && !isInventoryItemUsable(item) && (
+                  <p className="muted">Planned effect</p>
                 )}
                 {item.type === 'equipment' && (
                   <button type="button" className="mini-btn" disabled={equipped} onClick={() => onEquipEquipment(item)}>

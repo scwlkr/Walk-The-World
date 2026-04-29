@@ -1,10 +1,10 @@
 # Walk The World C Version Handoff
 
-Last updated: 2026-04-28
+Last updated: 2026-04-29
 
 ## Current State
 
-Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, and the live private-beta service configuration pass are complete. Live Supabase recovery and WalkerBucks bridge/economy smokes pass against the shared `WalkerWorld` project.
+Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, the live private-beta service configuration pass, and the retention/gameplay depth pass are complete. Live Supabase recovery and WalkerBucks bridge/economy smokes pass against the shared `WalkerWorld` project. The remaining decision is production browser QA plus beta tag/no-tag.
 
 Artifacts created:
 
@@ -35,6 +35,18 @@ Artifacts created:
 - `supabase/migrations/20260428063000_create_game_saves.sql`
 - `scripts/live-private-beta-smoke.mjs`
 - `docs/WALKERWORLD_SUPABASE_ARCHITECTURE.md`
+- `src/game/items.ts`
+- `src/game/milestones.ts`
+- `src/game/progression.ts`
+- `src/game/routeEncounters.ts`
+- `src/game/devPresets.ts`
+- `src/components/JourneyPanel.tsx`
+- `src/components/RouteEncounterOverlay.tsx`
+- `src/components/CatalogShopPanel.tsx`
+- `src/components/SharedInventoryPanel.tsx`
+- `src/components/DevLabPanel.tsx`
+- `tests/game-retention.test.ts`
+- `scripts/local-dev-smoke.mjs`
 
 Input artifact:
 
@@ -53,6 +65,16 @@ C Version means:
 - improved minute-to-minute idle/clicker play
 - path to the shared WalkerBucks economy
 - every README roadmap item shipped, gated with blocker doc, or future-planned
+
+Retention pass means:
+
+- first-session milestones and visible next steps
+- route encounters and active choice moments
+- generated item catalog wired into local gameplay where safe
+- shared WalkerBucks inventory visible as read-only entitlements
+- dev-only scene/vibe lab for rapid background, seasonal, music, speed, and preset testing
+- Mars prototype after Moon loop while Solar System stays future data
+- logic tests and local browser smoke added as required gates
 
 ## Constraints To Preserve
 
@@ -465,6 +487,73 @@ Live private-beta configuration pass repo-side setup:
 - Final production HTTP check returned HTTP 200 from `https://walk-the-world.vercel.app/`.
 - Final WalkerBucks checks returned HTTP 200 for `/healthz` and HTTP 401 for unauthenticated `/v1/shop/offers`.
 
+Retention/gameplay depth pass from `docs/C_VERSION_PLAN.md` has been implemented.
+
+Implemented:
+
+- Added save version 8 with Journey milestone state, profile/title unlocks, route encounter schedule/spawn state, and recent reward feedback.
+- Added first-session Journey milestones for quick rewards, first route stop, first upgrade, first follower, first event, first item set, and first collection/title moment.
+- Tuned early pacing constants and added close Earth micro-landmarks so fresh play shows visible route progress quickly.
+- Added route encounters with short choices, item drops, local WB, distance rewards, and temporary boost effects through the existing reward/boost model.
+- Added generated catalog runtime adapter for `items.generated.json` and `shop_offers.generated.json`.
+- Promoted safe generated catalog items into local inventory, catalog shop, equipment, cosmetics, titles, and inert collectibles for planned effects.
+- Added read-only shared WalkerBucks inventory entitlements, mapping only known shared offer metadata to generated catalog item IDs.
+- Added Journey, route encounter, catalog shop, shared inventory, and dev lab UI surfaces.
+- Added dev-only `?dev=1` scene/vibe lab with presets, scene override, seasonal override, music selection, speed multiplier, and bridge-disabled testing.
+- Made Mars a playable local prototype after a Moon loop; Solar System remains future data.
+- Added Vitest game tests and a Chrome/CDP-backed `npm run smoke:local` browser smoke.
+
+Touched files:
+
+- `package.json`
+- `package-lock.json`
+- `README.md`
+- `docs/C_VERSION_PLAN.md`
+- `docs/C_VERSION_HANDOFF.md`
+- `src/App.tsx`
+- `src/components/CatalogShopPanel.tsx`
+- `src/components/DevLabPanel.tsx`
+- `src/components/GameHUD.tsx`
+- `src/components/GameSceneCanvas.tsx`
+- `src/components/ItemArtwork.tsx`
+- `src/components/JourneyPanel.tsx`
+- `src/components/RouteEncounterOverlay.tsx`
+- `src/components/SharedInventoryPanel.tsx`
+- `src/components/ShopModal.tsx`
+- `src/components/StatsPanel.tsx`
+- `src/game/backgroundScenes.ts`
+- `src/game/constants.ts`
+- `src/game/cosmetics.ts`
+- `src/game/devPresets.ts`
+- `src/game/formulas.ts`
+- `src/game/initialState.ts`
+- `src/game/inventory.ts`
+- `src/game/items.ts`
+- `src/game/landmarks.ts`
+- `src/game/milestones.ts`
+- `src/game/progression.ts`
+- `src/game/routeEncounters.ts`
+- `src/game/save.ts`
+- `src/game/tick.ts`
+- `src/game/types.ts`
+- `src/game/world.ts`
+- `src/styles/global.css`
+- `scripts/local-dev-smoke.mjs`
+- `tests/game-retention.test.ts`
+
+Verification completed:
+
+- `npm run build` passes with the existing Vite large-chunk warning.
+- `npm run items:validate` passes for 31 items, 14 effect rows, and 31 offers.
+- `npm run test` passes 7 pure game tests.
+- `npm run smoke:local` passes: fresh mobile viewport, Journey milestone claim, starter item use, local catalog purchase, forced route encounter resolution, dev lab render, and reload continuity.
+
+Verification not completed:
+
+- Production browser QA has not yet been rerun after this retention pass.
+- Live private-beta smoke has not yet been rerun after deploying this retention pass.
+- Version C beta tag decision has not been made.
+
 ## Next Phase
 
 Proceed to final Version C private-beta QA and beta-tag decision.
@@ -472,7 +561,7 @@ Proceed to final Version C private-beta QA and beta-tag decision.
 ## Next Kickoff Prompt
 
 ```text
-Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/WALKERWORLD_SUPABASE_ARCHITECTURE.md, docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, docs/C_VERSION_WALKERBUCKS_BRIDGE.md, and docs/C_VERSION_SOCIAL_BRIDGE.md first. Proceed with final Version C private-beta QA only: verify the production browser account flow on https://walk-the-world.vercel.app/, confirm guest/local fallback still works without a session, confirm the WalkerBucks panel can read shared balance and that marketplace/leaderboard controls remain usable, run npm run smoke:private-beta-live with WTW_BETA_SMOKE_REQUIRE_BRIDGE=true and WTW_BETA_SMOKE_ALLOW_PURCHASE=true using offer id 13 only if another idempotent purchase proof is needed, keep privileged WalkerBucks and Discord secrets out of VITE_* and browser code, update README/checklist/handoff with live browser evidence, run npm run build, and end with a go/no-go recommendation for cutting a Version C private-beta tag.
+Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/WALKERWORLD_SUPABASE_ARCHITECTURE.md, docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, docs/C_VERSION_WALKERBUCKS_BRIDGE.md, and docs/C_VERSION_SOCIAL_BRIDGE.md first. Proceed with final Version C private-beta QA only: deploy the retention/gameplay depth pass, verify the production browser account flow on https://walk-the-world.vercel.app/, confirm guest/local fallback still works without a session, confirm Journey milestones, route encounters, catalog shop, shared inventory, and Mars prototype are not broken in production, confirm the WalkerBucks panel can read shared balance and that marketplace/leaderboard controls remain usable, run npm run smoke:private-beta-live with WTW_BETA_SMOKE_REQUIRE_BRIDGE=true and WTW_BETA_SMOKE_ALLOW_PURCHASE=true using offer id 13 only if another idempotent purchase proof is needed, keep privileged WalkerBucks and Discord secrets out of VITE_* and browser code, update README/checklist/handoff with live browser evidence, run npm run build, npm run items:validate, npm run test, and npm run smoke:local, and end with a go/no-go recommendation for cutting a Version C private-beta tag.
 ```
 
 ## Required Verification
@@ -481,6 +570,9 @@ Before closing a code phase:
 
 ```bash
 npm run build
+npm run items:validate
+npm run test
+npm run smoke:local
 ```
 
 For visual/game-feel phases:

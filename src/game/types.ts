@@ -68,7 +68,7 @@ export type RandomEventDefinition = {
 export type ActiveBoost = {
   id: string;
   sourceEventId: string;
-  effectType: 'speed_multiplier' | 'click_multiplier' | 'follower_multiplier';
+  effectType: 'speed_multiplier' | 'click_multiplier' | 'follower_multiplier' | 'event_reward_multiplier' | 'drop_rate_multiplier';
   multiplier: number;
   expiresAt: number;
 };
@@ -76,6 +76,42 @@ export type ActiveBoost = {
 export type SpawnedRandomEvent = {
   id: string;
   eventDefId: string;
+  spawnedAt: number;
+  expiresAt: number;
+  label: string;
+};
+
+export type RouteEncounterChoiceEffectType = 'local_wb' | 'distance' | 'item_drop' | 'temporary_boost';
+
+export type RouteEncounterChoiceEffect = {
+  type: RouteEncounterChoiceEffectType;
+  value?: number;
+  itemId?: string;
+  quantity?: number;
+  boostType?: ActiveBoost['effectType'];
+  multiplier?: number;
+  durationMs?: number;
+};
+
+export type RouteEncounterChoice = {
+  id: string;
+  label: string;
+  description: string;
+  effects: RouteEncounterChoiceEffect[];
+};
+
+export type RouteEncounterDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  rarity: 'common' | 'uncommon' | 'rare';
+  weight: number;
+  choices: RouteEncounterChoice[];
+};
+
+export type SpawnedRouteEncounter = {
+  id: string;
+  encounterDefId: string;
   spawnedAt: number;
   expiresAt: number;
   label: string;
@@ -91,12 +127,14 @@ export type Landmark = {
 export type GameStats = {
   totalClicks: number;
   randomEventsClaimed: number;
+  routeEncountersClaimed: number;
   totalDistanceWalked: number;
   upgradesPurchased: number;
   followersHired: number;
   itemsUsed: number;
   achievementsClaimed: number;
   cosmeticsEquipped: number;
+  milestonesClaimed: number;
 };
 
 export type WorldId = 'earth' | 'moon' | 'mars' | 'solar_system';
@@ -140,6 +178,7 @@ export type RewardDefinition = {
     quantity: number;
   }>;
   cosmetics?: string[];
+  titleIds?: string[];
 };
 
 export type QuestProgressType =
@@ -247,14 +286,31 @@ export type AchievementProgress = {
 
 export type InventoryItemType = 'consumable' | 'collectible' | 'equipment' | 'cosmetic';
 
-export type InventoryEffectType = 'instant_wb' | 'wb_multiplier';
+export type InventoryEffectType =
+  | 'none'
+  | 'instant_wb'
+  | 'currency_grant'
+  | 'wb_multiplier'
+  | 'tap_multiplier_temp'
+  | 'event_reward_multiplier'
+  | 'drop_rate_boost_temp'
+  | 'souvenir_collectible'
+  | 'cosmetic_equip'
+  | 'title_unlock'
+  | 'travel_theme_unlock'
+  | 'daily_streak_freeze'
+  | 'step_reward_bonus_temp';
+
+export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 export type InventoryItemDefinition = {
   id: string;
   name: string;
   description: string;
   type: InventoryItemType;
-  rarity: 'common' | 'uncommon' | 'rare';
+  category?: string;
+  rarity: ItemRarity;
+  flavorText?: string;
   assetPath?: string;
   asset_path?: string;
   assetFilename?: string;
@@ -264,8 +320,12 @@ export type InventoryItemDefinition = {
   effect?: {
     type: InventoryEffectType;
     value: number;
+    durationSeconds?: number | null;
+    cooldownSeconds?: number | null;
   };
   cosmeticId?: string;
+  titleId?: string;
+  implementationStatus?: 'existing' | 'planned' | string;
 };
 
 export type InventoryState = {
@@ -274,9 +334,10 @@ export type InventoryState = {
   usedConsumables: Record<string, number>;
 };
 
-export type CosmeticSlot = 'head' | 'face' | 'shoes';
+export type CosmeticSlot = 'head' | 'face' | 'shoes' | 'body' | 'flair';
 
 export type CosmeticEffectType =
+  | 'style_only'
   | 'idle_speed_multiplier'
   | 'click_power_multiplier'
   | 'wb_multiplier'
@@ -288,7 +349,7 @@ export type CosmeticDefinition = {
   name: string;
   description: string;
   slot: CosmeticSlot;
-  rarity: 'common' | 'uncommon' | 'rare';
+  rarity: ItemRarity;
   assetPath?: string;
   asset_path?: string;
   assetFilename?: string;
@@ -304,6 +365,43 @@ export type CosmeticDefinition = {
 export type CosmeticState = {
   owned: Record<string, boolean>;
   equippedBySlot: Partial<Record<CosmeticSlot, string>>;
+};
+
+export type ProfileState = {
+  unlockedTitles: Record<string, boolean>;
+  activeTitleId: string | null;
+};
+
+export type MilestoneConditionType =
+  | 'clicks'
+  | 'distance_walked'
+  | 'upgrades_purchased'
+  | 'followers_hired'
+  | 'items_owned'
+  | 'random_events_claimed'
+  | 'route_encounters_claimed'
+  | 'distinct_items_owned';
+
+export type MilestoneDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  condition: {
+    type: MilestoneConditionType;
+    target: number;
+  };
+  reward: RewardDefinition;
+  actionHint: string;
+};
+
+export type MilestoneProgress = {
+  progress: number;
+  completedAt: number | null;
+  claimedAt: number | null;
+};
+
+export type MilestoneState = {
+  progress: Record<string, MilestoneProgress>;
 };
 
 export type DailyPlayState = {
@@ -389,6 +487,18 @@ export type WalkerBucksInventoryItem = {
   status: string;
 };
 
+export type SharedInventoryEntitlement = {
+  itemInstanceId: string;
+  itemDefinitionId: number;
+  status: string;
+  itemId: string | null;
+  name: string;
+  description: string;
+  assetPath?: string | null;
+  assetFilename?: string | null;
+  knownLocalItem: boolean;
+};
+
 export type WalkerBucksMarketplacePurchaseStatus = 'pending' | 'purchased' | 'failed';
 
 export type WalkerBucksMarketplacePurchase = {
@@ -437,6 +547,8 @@ export type GameState = {
   achievements: Record<string, AchievementProgress>;
   inventory: InventoryState;
   cosmetics: CosmeticState;
+  profile: ProfileState;
+  milestones: MilestoneState;
   quests: QuestState;
   dailyPlay: DailyPlayState;
   account: AccountSyncState;
@@ -446,6 +558,8 @@ export type GameState = {
   wbBankedRemainder: number;
   nextRandomEventAt: number;
   spawnedEvent: SpawnedRandomEvent | null;
+  nextRouteEncounterAt: number;
+  spawnedRouteEncounter: SpawnedRouteEncounter | null;
   settings: {
     soundEnabled: boolean;
     selectedMusicTrackId: MusicTrackId;
@@ -460,6 +574,11 @@ export type GameState = {
       wb: number;
     } | null;
     toast: string | null;
+    recentRewards: Array<{
+      id: string;
+      label: string;
+      createdAt: number;
+    }>;
     moonTeaseUnlocked: boolean;
   };
 };

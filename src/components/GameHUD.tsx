@@ -8,15 +8,17 @@ import {
   getNextLandmark
 } from '../game/formulas';
 import { getQuestCompletionSummary } from '../game/quests';
-import { getActiveSeasonalEventForState } from '../game/seasonalEvents';
+import { getActiveSeasonalEventForState, getSeasonalEventById } from '../game/seasonalEvents';
 import { getCurrentWorldDefinition, getWorldProgress } from '../game/world';
 import type { CSSProperties } from 'react';
+import { getJourneyMilestones, getMilestoneProgressText } from '../game/milestones';
 
 type GameHUDProps = {
   state: GameState;
+  seasonalEventOverrideId?: string | null;
 };
 
-export const GameHUD = ({ state }: GameHUDProps) => {
+export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
   const currentWorld = getCurrentWorldDefinition(state);
   const currentLoopDistance = getCurrentWorldLoopDistance(state);
   const speed = getIdleMilesPerSecond(state);
@@ -26,7 +28,9 @@ export const GameHUD = ({ state }: GameHUDProps) => {
   const milesToNext = calculateDistanceToNextLandmark(state);
   const worldProgress = getWorldProgress(state);
   const questSummary = getQuestCompletionSummary(state);
-  const activeEvent = getActiveSeasonalEventForState(state);
+  const activeEvent = getSeasonalEventById(seasonalEventOverrideId) ?? getActiveSeasonalEventForState(state);
+  const journeyMilestones = getJourneyMilestones(state, 2);
+  const activeBoosts = state.activeBoosts.filter((boost) => boost.expiresAt > Date.now()).slice(0, 3);
   const routeDistance = Math.max(0, next.distanceMiles - current.distanceMiles);
   const routeWalked = Math.max(0, currentLoopDistance - current.distanceMiles);
   const routePercent = routeDistance > 0 ? Math.min(100, (routeWalked / routeDistance) * 100) : 100;
@@ -75,6 +79,35 @@ export const GameHUD = ({ state }: GameHUDProps) => {
             Quests {questSummary.completed}/{questSummary.total}
           </span>
         </div>
+
+        <div className="hud-journey-row">
+          {journeyMilestones.map((milestone) => {
+            const progress = state.milestones.progress[milestone.id] ?? {
+              progress: 0,
+              completedAt: null,
+              claimedAt: null
+            };
+            return (
+              <span key={milestone.id} className={progress.completedAt && !progress.claimedAt ? 'is-ready' : ''}>
+                {progress.completedAt && !progress.claimedAt ? 'Ready' : milestone.actionHint}: {milestone.name}{' '}
+                <b>{getMilestoneProgressText(milestone, progress)}</b>
+              </span>
+            );
+          })}
+        </div>
+
+        {(activeBoosts.length > 0 || state.ui.recentRewards.length > 0) && (
+          <div className="hud-boost-row">
+            {activeBoosts.map((boost) => (
+              <span key={boost.id}>
+                {boost.effectType.replace(/_/g, ' ')} {Math.max(0, Math.ceil((boost.expiresAt - Date.now()) / 1000))}s
+              </span>
+            ))}
+            {state.ui.recentRewards.slice(0, 2).map((reward) => (
+              <span key={reward.id}>{reward.label}</span>
+            ))}
+          </div>
+        )}
       </section>
     </header>
   );
