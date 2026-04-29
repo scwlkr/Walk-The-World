@@ -9,10 +9,9 @@ import { GameSceneCanvas } from './components/GameSceneCanvas';
 import { JourneyPanel } from './components/JourneyPanel';
 import { LeaderboardPanel } from './components/LeaderboardPanel';
 import { MarketplacePanel } from './components/MarketplacePanel';
+import { NotificationCenter } from './components/NotificationCenter';
 import { ProgressPanel } from './components/ProgressPanel';
 import { QuestPanel } from './components/QuestPanel';
-import { RandomEventOverlay } from './components/RandomEventOverlay';
-import { RouteEncounterOverlay } from './components/RouteEncounterOverlay';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SharedInventoryPanel } from './components/SharedInventoryPanel';
 import { ShopModal } from './components/ShopModal';
@@ -838,6 +837,13 @@ const App = () => {
     if (choice) onChooseRouteEncounter(choice);
   };
 
+  const dismissOfflineSummary = () => {
+    setState((prev) => ({
+      ...prev,
+      ui: { ...prev.ui, offlineSummary: null }
+    }));
+  };
+
   const onUseInventoryItem = (item: InventoryItemDefinition) => {
     playSoundEffect('event', state.settings.soundEnabled);
     setState((prev) => {
@@ -1157,31 +1163,12 @@ const App = () => {
       />
       <GameHUD state={state} seasonalEventOverrideId={devLabEnabled ? devLabOverrides.seasonalEventId : null} />
 
-      <div className="notice-stack" aria-live="polite">
-        {state.ui.toast && <aside className="panel toast">{state.ui.toast}</aside>}
-
-        <RandomEventOverlay spawnedEvent={state.spawnedEvent} onClaim={onClaimEvent} />
-        <RouteEncounterOverlay spawnedEncounter={state.spawnedRouteEncounter} onChoose={onChooseRouteEncounter} />
-
-        {state.ui.offlineSummary && (
-          <aside className="panel offline-banner">
-            You walked {state.ui.offlineSummary.distance.toFixed(2)} mi and earned{' '}
-            {Math.floor(state.ui.offlineSummary.wb).toLocaleString()} WB while away.
-            <button
-              type="button"
-              className="mini-btn"
-              onClick={() =>
-                setState((prev) => ({
-                  ...prev,
-                  ui: { ...prev.ui, offlineSummary: null }
-                }))
-              }
-            >
-              Nice
-            </button>
-          </aside>
-        )}
-      </div>
+      <NotificationCenter
+        state={state}
+        onClaimEvent={onClaimEvent}
+        onChooseRouteEncounter={onChooseRouteEncounter}
+        onDismissOfflineSummary={dismissOfflineSummary}
+      />
 
       <div className="tap-feedback-layer" aria-hidden="true">
         {tapFeedback.map((item) => (

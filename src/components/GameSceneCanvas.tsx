@@ -337,8 +337,9 @@ export const GameSceneCanvas = ({
     const drawLocationPlaque = (width: number, height: number, landmarkName: string, worldLabel: string, progress: number) => {
       const plaqueWidth = Math.min(228, Math.max(174, width - 142));
       const plaqueHeight = 42;
-      const x = 10;
-      const y = height - plaqueHeight - 16;
+      const x = 16;
+      const bottomReserved = Math.min(92, Math.max(64, Math.round(height * 0.1)));
+      const y = height - plaqueHeight - bottomReserved;
 
       ctx.fillStyle = 'rgba(15, 23, 42, 0.68)';
       ctx.fillRect(x, y, plaqueWidth, plaqueHeight);
