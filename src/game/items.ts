@@ -11,6 +11,7 @@ import type {
 
 type GeneratedItem = {
   itemId: string;
+  slug?: string;
   name: string;
   category: string;
   itemType: string;
@@ -89,6 +90,7 @@ export const mapCatalogItemToInventoryItem = (item: GeneratedItem): InventoryIte
 
   return {
     id: item.itemId,
+    slug: item.slug,
     name: item.name,
     description: item.description,
     type: normalizeItemType(item.itemType),
@@ -231,6 +233,7 @@ export const getSharedInventoryEntitlements = (state: GameState): SharedInventor
       itemDefinitionId: entry.itemDefinitionId,
       status: entry.status,
       itemId: catalogItem?.id ?? null,
+      slug: catalogItem?.slug ?? null,
       name: catalogItem?.name ?? fallbackName,
       description: catalogItem?.description ?? 'Shared WalkerBucks inventory item.',
       assetPath: catalogItem?.assetPath ?? offer?.assetPath ?? offer?.asset_path,

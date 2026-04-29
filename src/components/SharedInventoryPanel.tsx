@@ -25,6 +25,9 @@ export const SharedInventoryPanel = ({ state }: SharedInventoryPanelProps) => {
               <ItemArtwork
                 item={{
                   itemId: item.itemId ?? undefined,
+                  slug: item.slug ?? undefined,
+                  name: item.name,
+                  image: item.image,
                   assetPath: item.assetPath,
                   assetFilename: item.assetFilename,
                   type: item.knownLocalItem ? 'collectible' : 'shared'

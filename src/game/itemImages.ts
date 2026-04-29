@@ -1,5 +1,10 @@
+import { generatedItemImages } from '../data/generatedItemImages';
+
 export type ItemImageCandidate = {
   id?: string;
+  slug?: string;
+  name?: string;
+  image?: string | null;
   itemId?: string;
   item_id?: string;
   assetPath?: string | null;
@@ -37,7 +42,40 @@ const getAvailableItemAssetPath = (assetPath: string): string | null => {
   return availableItemAssetFilenames.has(filename) ? normalized : null;
 };
 
+const slugifyItemKey = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/_item$/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const getGeneratedItemImagePath = (item: ItemImageCandidate): string | null => {
+  const keys = [
+    item.slug,
+    item.id,
+    item.itemId,
+    item.item_id,
+    item.name ? slugifyItemKey(item.name) : null,
+    item.id ? slugifyItemKey(item.id) : null,
+    item.itemId ? slugifyItemKey(item.itemId) : null,
+    item.item_id ? slugifyItemKey(item.item_id) : null
+  ].filter((key): key is string => Boolean(key?.trim()));
+
+  for (const key of keys) {
+    const generatedPath = generatedItemImages[key];
+    if (generatedPath) return generatedPath;
+  }
+
+  return null;
+};
+
 export const getItemImageSrc = (item: ItemImageCandidate): string | null => {
+  if (item.image?.trim()) return normalizeItemAssetPath(item.image);
+
+  const generatedPath = getGeneratedItemImagePath(item);
+  if (generatedPath) return generatedPath;
+
   const directAssetPath = item.assetPath ?? item.asset_path;
   if (directAssetPath?.trim()) return getAvailableItemAssetPath(directAssetPath);
 

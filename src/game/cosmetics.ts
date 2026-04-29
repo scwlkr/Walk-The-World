@@ -4,6 +4,7 @@ import type { CosmeticDefinition, CosmeticEffectType, CosmeticSlot, GameState, I
 
 type GeneratedItem = {
   itemId: string;
+  slug?: string;
   name: string;
   itemType: string;
   rarity: string;
@@ -46,6 +47,7 @@ export const COSMETICS: CosmeticDefinition[] = (generatedItems as GeneratedItem[
   .map((item) => ({
     id: getCosmeticIdForItemId(item.itemId),
     itemId: item.itemId,
+    slug: item.slug,
     name: item.name,
     description: item.description,
     slot: getSlotForCosmeticItem(item),

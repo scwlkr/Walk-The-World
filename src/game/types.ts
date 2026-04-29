@@ -305,7 +305,9 @@ export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 export type InventoryItemDefinition = {
   id: string;
+  slug?: string;
   name: string;
+  image?: string;
   description: string;
   type: InventoryItemType;
   category?: string;
@@ -346,7 +348,9 @@ export type CosmeticEffectType =
 export type CosmeticDefinition = {
   id: string;
   itemId: string;
+  slug?: string;
   name: string;
+  image?: string;
   description: string;
   slot: CosmeticSlot;
   rarity: ItemRarity;
@@ -468,7 +472,9 @@ export type WalkerBucksMarketplaceOffer = {
   id: number;
   shopId: number;
   itemDefinitionId: number;
+  slug?: string;
   name: string;
+  image?: string;
   description: string;
   priceWb: number;
   itemId?: string;
@@ -492,6 +498,8 @@ export type SharedInventoryEntitlement = {
   itemDefinitionId: number;
   status: string;
   itemId: string | null;
+  slug?: string | null;
+  image?: string | null;
   name: string;
   description: string;
   assetPath?: string | null;
