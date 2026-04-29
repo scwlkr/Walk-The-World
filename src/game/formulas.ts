@@ -127,6 +127,9 @@ export const getEventRewardMultiplier = (state: GameState): number => {
   }
 
   multiplier += getCosmeticEffectBonus(state, 'event_reward_multiplier');
+  multiplier *= state.activeBoosts
+    .filter((boost) => boost.effectType === 'event_reward_multiplier')
+    .reduce((acc, boost) => acc * boost.multiplier, 1);
 
   return multiplier;
 };

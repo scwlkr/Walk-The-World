@@ -1,43 +1,59 @@
-import type { CosmeticDefinition, CosmeticEffectType, CosmeticSlot, GameState } from './types';
+import generatedItems from '../data/generated/items.generated.json';
+import { getCosmeticIdForItemId } from './items';
+import type { CosmeticDefinition, CosmeticEffectType, CosmeticSlot, GameState, ItemRarity } from './types';
 
-export const COSMETICS: CosmeticDefinition[] = [
-  {
-    id: 'retro_sweatband',
-    itemId: 'retro_sweatband_item',
-    name: 'Retro Sweatband',
-    description: 'A bright headband that turns effort into slightly better WB gains.',
-    slot: 'head',
-    rarity: 'common',
-    effect: {
-      type: 'wb_multiplier',
-      value: 0.05
-    }
-  },
-  {
-    id: 'lucky_laces',
-    itemId: 'lucky_laces_item',
-    name: 'Lucky Laces',
-    description: 'Shoelaces that make every manual tap feel a little stronger.',
-    slot: 'shoes',
-    rarity: 'uncommon',
-    effect: {
-      type: 'click_power_multiplier',
-      value: 0.08
-    }
-  },
-  {
-    id: 'golden_wayfarers',
-    itemId: 'golden_wayfarers_item',
-    name: 'Golden Wayfarers',
-    description: 'Too shiny for jogging, perfect for spotting better random-event rewards.',
-    slot: 'face',
-    rarity: 'rare',
-    effect: {
-      type: 'event_reward_multiplier',
-      value: 0.1
-    }
+type GeneratedItem = {
+  itemId: string;
+  name: string;
+  itemType: string;
+  rarity: string;
+  description: string;
+  effectType: string;
+  effect_value: number | null;
+  assetPath: string;
+  assetFilename: string;
+};
+
+const RARITIES = new Set<ItemRarity>(['common', 'uncommon', 'rare', 'epic', 'legendary']);
+
+const normalizeRarity = (rarity: string): ItemRarity =>
+  RARITIES.has(rarity as ItemRarity) ? (rarity as ItemRarity) : 'common';
+
+const getSlotForCosmeticItem = (item: GeneratedItem): CosmeticSlot => {
+  const name = item.name.toLowerCase();
+  if (name.includes('lace') || name.includes('shoe')) return 'shoes';
+  if (name.includes('sunglasses') || name.includes('wayfarer')) return 'face';
+  if (name.includes('sweatband') || name.includes('hat')) return 'head';
+  if (name.includes('overall')) return 'body';
+  return 'flair';
+};
+
+const getCosmeticEffect = (item: GeneratedItem): CosmeticDefinition['effect'] => {
+  switch (item.effectType) {
+    case 'wb_multiplier':
+      return { type: 'wb_multiplier', value: item.effect_value ?? 0.01 };
+    case 'click_power_multiplier':
+      return { type: 'click_power_multiplier', value: item.effect_value ?? 0.01 };
+    case 'event_reward_multiplier':
+      return { type: 'event_reward_multiplier', value: item.effect_value ?? 0.01 };
+    default:
+      return { type: 'style_only', value: 0 };
   }
-];
+};
+
+export const COSMETICS: CosmeticDefinition[] = (generatedItems as GeneratedItem[])
+  .filter((item) => item.itemType === 'cosmetic')
+  .map((item) => ({
+    id: getCosmeticIdForItemId(item.itemId),
+    itemId: item.itemId,
+    name: item.name,
+    description: item.description,
+    slot: getSlotForCosmeticItem(item),
+    rarity: normalizeRarity(item.rarity),
+    assetPath: item.assetPath,
+    assetFilename: item.assetFilename,
+    effect: getCosmeticEffect(item)
+  }));
 
 export const getCosmeticById = (cosmeticId: string): CosmeticDefinition | undefined =>
   COSMETICS.find((cosmetic) => cosmetic.id === cosmeticId);
@@ -58,6 +74,8 @@ export const formatCosmeticEffect = (cosmetic: CosmeticDefinition): string => {
   const bonus = formatPercentBonus(cosmetic.effect.value);
 
   switch (cosmetic.effect.type) {
+    case 'style_only':
+      return 'Style unlock';
     case 'idle_speed_multiplier':
       return `${bonus} idle speed`;
     case 'click_power_multiplier':
@@ -104,5 +122,9 @@ export const getCosmeticSlotLabel = (slot: CosmeticSlot): string => {
       return 'Face';
     case 'shoes':
       return 'Shoes';
+    case 'body':
+      return 'Body';
+    case 'flair':
+      return 'Flair';
   }
 };

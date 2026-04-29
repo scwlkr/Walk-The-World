@@ -1,6 +1,7 @@
 import { EARTH_CIRCUMFERENCE_MILES, SAVE_KEY, SAVE_VERSION } from './constants';
 import { evaluateAchievements, markDailyPlay } from './achievements';
 import { createInitialGameState } from './initialState';
+import { createInitialMilestoneState, syncMilestones } from './milestones';
 import { createQuestStateForGameState, mergeQuestState, syncDailyQuests } from './quests';
 import type { GameState, PrestigeState, WorldId, WorldProgressState } from './types';
 import { canEnterWorld, createInitialWorldProgress, normalizeWorldId, WORLD_IDS } from './world';
@@ -30,7 +31,7 @@ export const loadGameState = (): GameState => {
 };
 
 const prepareLoadedState = (state: GameState): GameState =>
-  evaluateAchievements(syncDailyQuests(markDailyPlay(state)));
+  syncMilestones(evaluateAchievements(syncDailyQuests(markDailyPlay(state))));
 
 const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
   const base = createInitialGameState();
@@ -91,6 +92,20 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
         ...rawSave.cosmetics?.equippedBySlot
       }
     },
+    profile: {
+      ...base.profile,
+      ...rawSave.profile,
+      unlockedTitles: {
+        ...base.profile.unlockedTitles,
+        ...rawSave.profile?.unlockedTitles
+      }
+    },
+    milestones: {
+      progress: {
+        ...createInitialMilestoneState().progress,
+        ...rawSave.milestones?.progress
+      }
+    },
     quests: base.quests,
     dailyPlay: {
       ...base.dailyPlay,
@@ -118,8 +133,11 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
     },
     ui: {
       ...base.ui,
-      ...rawSave.ui
+      ...rawSave.ui,
+      recentRewards: rawSave.ui?.recentRewards ?? base.ui.recentRewards
     },
+    nextRouteEncounterAt: rawSave.nextRouteEncounterAt ?? base.nextRouteEncounterAt,
+    spawnedRouteEncounter: rawSave.spawnedRouteEncounter ?? base.spawnedRouteEncounter,
     saveVersion: SAVE_VERSION
   } as GameState;
 

@@ -194,6 +194,42 @@ button {
   text-align: right;
 }
 
+.hud-journey-row,
+.hud-boost-row {
+  display: flex;
+  gap: 0.32rem;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.hud-journey-row span,
+.hud-boost-row span {
+  min-width: 0;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(2, 6, 23, 0.28);
+  color: #dbeafe;
+  border-radius: 6px;
+  padding: 0.16rem 0.3rem;
+  font-size: 0.58rem;
+  line-height: 1.1;
+}
+
+.hud-journey-row span.is-ready {
+  border-color: rgba(250, 204, 21, 0.5);
+  color: #fef3c7;
+}
+
+.hud-journey-row b {
+  color: #facc15;
+}
+
+.hud-boost-row span {
+  color: #bbf7d0;
+}
+
 @media (max-width: 360px) {
   .hud-route-line,
   .hud-sub-row {
@@ -274,6 +310,16 @@ button {
 .walk-btn:active {
   transform: translateY(3px);
   box-shadow: 0 2px 0 rgba(124, 45, 18, 0.72);
+}
+
+.walk-button-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  z-index: 35;
+  transform: translateX(-50%);
+  pointer-events: auto;
 }
 
 .tap-feedback-layer {
@@ -476,6 +522,7 @@ button {
 }
 
 .item-art {
+  position: relative;
   width: 58px;
   height: 58px;
   display: grid;
@@ -501,6 +548,15 @@ button {
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0;
+}
+
+.item-art small {
+  position: absolute;
+  inset: auto 2px 2px;
+  color: #fecaca;
+  font-size: 0.45rem;
+  line-height: 1;
+  text-align: center;
 }
 
 @media (max-width: 360px) {
@@ -669,6 +725,25 @@ button {
   border-color: rgba(34, 197, 94, 0.58);
 }
 
+.milestone-card.is-ready {
+  border-color: rgba(250, 204, 21, 0.58);
+}
+
+.route-encounter-overlay {
+  gap: 0.35rem;
+}
+
+.encounter-choice-row {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.encounter-choice-row .mini-btn {
+  min-height: 34px;
+  padding: 0.35rem 0.48rem;
+}
+
 .event-card {
   --event-accent: var(--gold);
   border-color: color-mix(in srgb, var(--event-accent) 70%, rgba(148, 163, 184, 0.34));
@@ -717,6 +792,11 @@ button {
   display: grid;
   gap: 0.6rem;
   margin-bottom: 0.8rem;
+}
+
+.dev-lab-panel {
+  border-top: 1px solid rgba(148, 163, 184, 0.28);
+  padding-top: 0.8rem;
 }
 
 .account-card {

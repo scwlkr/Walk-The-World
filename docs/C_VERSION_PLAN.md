@@ -1,6 +1,6 @@
 # Walk The World C Version Plan
 
-Last updated: 2026-04-28
+Last updated: 2026-04-29
 
 ## Execution Mode
 
@@ -35,11 +35,12 @@ Current C-adjacent assets:
 
 Known repo gaps:
 
-- No automated tests are configured beyond `npm run build` and the optional live private-beta smoke runner.
+- Final production browser QA and beta-tag decision remain open.
 - Supabase client/Edge Function artifacts are linked to the shared `WalkerWorld` Supabase project.
-- WalkerBucks API exists in a separate repo, but `/v1/accounts/me` auth is stubbed and privileged endpoints need a trusted caller.
-- No hosted WalkerBucks API URL is configured in this checkout.
-- Local item/cosmetic panels exist; shared WalkerBucks inventory is not merged into local game inventory yet.
+- WalkerBucks API exists in a separate repo, but `/v1/accounts/me` auth is stubbed and privileged endpoints still depend on the trusted bridge.
+- Guest/local play, generated catalog items, Journey milestones, route encounters, Moon, and Mars prototype are implemented locally.
+- Shared WalkerBucks inventory maps into read-only entitlements when an offer matches a generated catalog item; unknown shared items remain shared-only.
+- Logic tests and a local browser smoke now exist, but wider production QA is still needed before a beta tag.
 
 ## Phase Checklist
 
@@ -53,6 +54,7 @@ Known repo gaps:
 - [x] Phase 7: Leaderboards, marketplace proof, Discord bridge, and Telegram decision.
 - [x] Phase 8: Private beta hardening and release gate.
 - [x] Live private-beta configuration pass: live Supabase project link, WalkerBucks API deployment, bridge config, and external smoke tests.
+- [x] Retention/gameplay depth pass: first-session milestones, route encounters, catalog runtime integration, shared inventory follow-through, Mars prototype, dev lab, and tests.
 
 ## Phase 0: Scope And Planning Artifacts
 
@@ -660,23 +662,65 @@ Blocked live steps:
 
 ## README Roadmap Mapping
 
+## Retention And Gameplay Depth Pass
+
+Status: complete.
+
+Goal: fill the bare-bones gameplay gaps without changing the C-version architecture. Pure game state, math, content, rewards, milestones, items, route encounters, world unlocks, and save migration stay in `src/game/*`; React components remain render/dispatch surfaces; guest/local play stays first; Supabase and WalkerBucks stay optional/trusted-bridge only.
+
+Implemented:
+
+- Added save version 8 retention state with `profile`, `milestones`, route encounter schedule/spawn state, and recent reward feedback.
+- Added `src/game/milestones.ts` with early Journey goals for first tap, first route stop, first upgrade, first follower, first event, item collection, and title reward.
+- Tuned fresh pacing constants and added early Earth micro-landmarks so a player sees route progress in the first minutes.
+- Added `src/game/routeEncounters.ts` with tap/choice route encounters that use existing local WB, distance, item-drop, and temporary boost effects.
+- Added `src/game/items.ts` as the runtime adapter for `src/data/generated/items.generated.json` and `shop_offers.generated.json`.
+- Promoted generated catalog items into local inventory/shop behavior where safe; unknown or planned effects remain inert/collectible until implemented.
+- Added read-only shared inventory entitlement mapping from WalkerBucks marketplace inventory to known generated catalog item IDs.
+- Added Journey HUD/panel, route encounter overlay, local catalog shop panel, shared inventory panel, and active boost/recent reward HUD feedback.
+- Added dev-only `?dev=1` scene/vibe lab with save presets, background override, seasonal override, music selection, reduced-motion control through settings, and speed multiplier.
+- Made Mars a local playable prototype after Moon loop completion while Solar System remains future data.
+- Added Vitest logic coverage and `npm run smoke:local` browser smoke for fresh-save, milestone, item, route encounter, dev lab, and reload continuity.
+
+Verification:
+
+```bash
+npm run build
+npm run items:validate
+npm run test
+npm run smoke:local
+```
+
+Result on 2026-04-29:
+
+- `npm run build` passes with the existing Vite large-chunk warning.
+- `npm run items:validate` passes for 31 items, 14 effect rows, and 31 offers.
+- `npm run test` passes 7 pure game tests.
+- `npm run smoke:local` passes through a headless mobile browser path against Vite.
+
+Remaining release decision:
+
+- Run production browser QA on `https://walk-the-world.vercel.app/`.
+- Confirm guest fallback and signed-in Supabase/WalkerBucks surfaces still behave after the retention pass is deployed.
+- Decide whether to cut the beta tag or hold for any UI/runtime fixes found in production QA.
+
 | README item | C target status | Current plan |
 | --- | --- | --- |
 | Real pixel art asset pack | Shipped | Phase 1 strict pixel art pass and asset pipeline update. |
 | Sound effects/music | Shipped | Phase 1 track picker and persisted audio settings. |
 | Achievements | Shipped | Phase 2 data-driven achievements with rewards. |
-| Inventory items | Shipped | Phase 2 local inventory model. |
+| Inventory items | Shipped | Phase 2 local inventory model plus generated catalog runtime adapter and catalog shop. |
 | Cosmetics | Shipped | Phase 2 gameplay-affecting cosmetics. |
 | Prestige / world expansion | Shipped | Phase 3 prestige and world model. |
 | Moon fully playable | Shipped | Phase 3 playable Moon after distance decision. |
-| Mars/Solar System tiers | Future-planned | Phase 3 locked data scaffolding; full tiers remain out of C scope. |
+| Mars/Solar System tiers | Partial | Mars prototype is playable after Moon loop completion; Solar System remains future data scaffolding. |
 | Supabase account sync | Shipped | Phase 5 client/auth/cloud-save code, shared `walk_the_world.game_saves`, RLS, Vercel env, and live recovery smoke are complete. |
 | Shared WalkerBucks economy API | Shipped | Phase 6 bridge contract, hosted API, server-only secrets, browser-safe bridge URL, and live bridge smoke are complete. |
 | Server-authoritative rewards | Shipped | Phase 6 first idempotent reward path passes live through the trusted bridge. |
 | Leaderboards | Shipped | Phase 7 shared WalkerBucks balance leaderboard passes live through the trusted bridge. |
 | Daily quests | Shipped | Phase 4 local generation, progress, rewards, and persistence. |
 | Seasonal events | Shipped | Phase 4 Spring Stride framework and example event. |
-| Marketplace/inventory integration | Shipped | Phase 7 WalkerBucks shop offer and purchase proof pass live; shared inventory merge into local inventory remains future work. |
+| Marketplace/inventory integration | Shipped | Phase 7 WalkerBucks shop offer and purchase proof pass live; read-only shared inventory entitlement mapping is now implemented. |
 | Discord/Telegram reward bridge | Gated | Phase 7 defines Discord identity linking, keeps Discord secrets server-side, and defers Telegram until Discord is stable. |
 
 ## Blocked Or Deferred Items
@@ -731,6 +775,9 @@ Always run:
 
 ```bash
 npm run build
+npm run items:validate
+npm run test
+npm run smoke:local
 ```
 
 For live private-beta service verification after the Supabase project and bridge are configured:
@@ -759,4 +806,4 @@ git -C /Users/shanewalker/Desktop/dev/walker-world-discord status --short
 
 ## Next Implementation Target
 
-Proceed to final Version C private-beta QA: verify the production browser account flow on `https://walk-the-world.vercel.app/`, confirm guest fallback still works without a session, capture any UI/runtime issues, and decide whether to cut a beta tag or hold for fixes.
+Proceed to final Version C private-beta QA: deploy the retention pass, verify the production browser account flow on `https://walk-the-world.vercel.app/`, confirm guest fallback still works without a session, confirm shared WalkerBucks surfaces remain bridge-only, capture any UI/runtime issues, and decide whether to cut a beta tag or hold for fixes.

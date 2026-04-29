@@ -42,10 +42,15 @@ export const StatsPanel = ({ state }: StatsPanelProps) => {
         <li>Offline cap: {Math.floor(getOfflineCapSeconds(state) / 60)} minutes</li>
         <li>Total clicks/taps: {state.stats.totalClicks}</li>
         <li>Random events claimed: {state.stats.randomEventsClaimed}</li>
+        <li>Route encounters claimed: {state.stats.routeEncountersClaimed}</li>
+        <li>Journey milestones claimed: {state.stats.milestonesClaimed}</li>
         <li>Upgrades purchased: {state.stats.upgradesPurchased}</li>
         <li>Followers hired: {state.stats.followersHired}</li>
         <li>Items used: {state.stats.itemsUsed}</li>
         <li>Daily play days: {state.dailyPlay.daysPlayed}</li>
+        <li>Active title: {state.profile.activeTitleId?.replace(/_/g, ' ') ?? 'none'}</li>
+        <li>Unlocked titles: {Object.keys(state.profile.unlockedTitles).length}</li>
+        <li>Shared inventory items: {state.walkerBucksBridge.inventory.length}</li>
         <li>
           Equipped equipment:{' '}
           {equippedEquipment ? `${equippedEquipment.name} (${formatInventoryEffect(equippedEquipment)})` : 'none'}

@@ -2,18 +2,23 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AccountPanel, type AccountBusyState } from './components/AccountPanel';
 import { AchievementsPanel } from './components/AchievementsPanel';
 import { BottomControls } from './components/BottomControls';
+import { DevLabPanel, type DevLabOverrides } from './components/DevLabPanel';
 import { GameHUD } from './components/GameHUD';
 import { GameOverlaySheet } from './components/GameOverlaySheet';
 import { GameSceneCanvas } from './components/GameSceneCanvas';
+import { JourneyPanel } from './components/JourneyPanel';
 import { LeaderboardPanel } from './components/LeaderboardPanel';
 import { MarketplacePanel } from './components/MarketplacePanel';
 import { ProgressPanel } from './components/ProgressPanel';
 import { QuestPanel } from './components/QuestPanel';
 import { RandomEventOverlay } from './components/RandomEventOverlay';
+import { RouteEncounterOverlay } from './components/RouteEncounterOverlay';
 import { SettingsPanel } from './components/SettingsPanel';
+import { SharedInventoryPanel } from './components/SharedInventoryPanel';
 import { ShopModal } from './components/ShopModal';
 import { SocialBridgePanel } from './components/SocialBridgePanel';
 import { StatsPanel } from './components/StatsPanel';
+import { WalkButton } from './components/WalkButton';
 import { WalkerBucksPanel } from './components/WalkerBucksPanel';
 import {
   MUSIC_TRACKS,
@@ -25,6 +30,7 @@ import {
 } from './game/audio';
 import { claimAchievementReward, evaluateAchievements } from './game/achievements';
 import { equipCosmetic } from './game/cosmetics';
+import { createDevPresetState } from './game/devPresets';
 import { LOGIC_TICK_RATE_MS } from './game/constants';
 import {
   createPendingWalkerBucksGrant,
@@ -40,9 +46,12 @@ import {
   upsertWalkerBucksGrant
 } from './game/economy';
 import { calculateOfflineProgress, getClickMiles, getFollowerCost, getUpgradeCost } from './game/formulas';
+import { purchaseLocalCatalogOffer, type LocalCatalogShopOffer } from './game/items';
 import { equipEquipmentItem, useInventoryItem } from './game/inventory';
+import { claimMilestoneReward, syncMilestones } from './game/milestones';
 import { claimQuestReward, syncDailyQuests } from './game/quests';
 import { RANDOM_EVENTS } from './game/randomEvents';
+import { getRouteEncounterById, resolveRouteEncounterChoice } from './game/routeEncounters';
 import { exportSave, importSave, loadGameState, resetGameState, saveGameState } from './game/save';
 import { applyDistanceAndWb, clearToast, resolveRandomEvent, runGameTick, shouldAutoSave } from './game/tick';
 import type {
@@ -51,7 +60,9 @@ import type {
   Follower,
   GameState,
   InventoryItemDefinition,
+  MilestoneDefinition,
   QuestDefinition,
+  RouteEncounterChoice,
   Upgrade,
   WalkerBucksMarketplaceOffer,
   WalkerBucksMarketplacePurchase,
@@ -88,6 +99,11 @@ type TapFeedback = {
 
 const App = () => {
   const [state, setState] = useState<GameState>(() => loadGameState());
+  const [devLabOverrides, setDevLabOverrides] = useState<DevLabOverrides>({
+    sceneId: null,
+    seasonalEventId: null,
+    speedMultiplier: 1
+  });
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
   const [authReady, setAuthReady] = useState(!isAuthConfigured);
   const [cloudSave, setCloudSave] = useState<CloudSaveSnapshot | null>(null);
@@ -101,6 +117,10 @@ const App = () => {
   const musicTrackIndexRef = useRef(getMusicTrackIndex(state.settings.selectedMusicTrackId));
   const soundEnabledRef = useRef(state.settings.soundEnabled);
   const tapFeedbackIdRef = useRef(0);
+  const devLabEnabled =
+    import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('dev') === '1';
 
   const toErrorMessage = (error: unknown): string => {
     if (error instanceof Error) return error.message;
@@ -547,7 +567,7 @@ const App = () => {
   useEffect(() => {
     const tick = () => {
       const nowPerf = performance.now();
-      const deltaSeconds = Math.min(0.5, (nowPerf - lastFrameRef.current) / 1000);
+      const deltaSeconds = Math.min(0.5, (nowPerf - lastFrameRef.current) / 1000) * (devLabEnabled ? devLabOverrides.speedMultiplier : 1);
       lastFrameRef.current = nowPerf;
       const now = Date.now();
 
@@ -563,7 +583,7 @@ const App = () => {
 
     const interval = window.setInterval(tick, LOGIC_TICK_RATE_MS);
     return () => window.clearInterval(interval);
-  }, []);
+  }, [devLabEnabled, devLabOverrides.speedMultiplier]);
 
   useEffect(() => {
     const onUnload = () => saveGameState(state);
@@ -619,7 +639,7 @@ const App = () => {
           distance
         )
       );
-      const synced = syncDailyQuests(next);
+      const synced = syncMilestones(syncDailyQuests(next));
       saveGameState(synced);
       return synced;
     });
@@ -665,7 +685,7 @@ const App = () => {
           upgradesPurchased: prev.stats.upgradesPurchased + 1
         }
       };
-      const evaluated = syncDailyQuests(evaluateAchievements(next));
+      const evaluated = syncMilestones(syncDailyQuests(evaluateAchievements(next)));
       saveGameState(evaluated);
       return evaluated;
     });
@@ -700,7 +720,7 @@ const App = () => {
           followersHired: prev.stats.followersHired + 1
         }
       };
-      const evaluated = syncDailyQuests(evaluateAchievements(next));
+      const evaluated = syncMilestones(syncDailyQuests(evaluateAchievements(next)));
       saveGameState(evaluated);
       return evaluated;
     });
@@ -716,8 +736,9 @@ const App = () => {
       const def = RANDOM_EVENTS.find((event) => event.id === prev.spawnedEvent?.eventDefId);
       if (!def) return { ...prev, spawnedEvent: null };
       const next = syncDailyQuests(resolveRandomEvent(prev, def, Date.now()));
-      saveGameState(next);
-      return next;
+      const synced = syncMilestones(next);
+      saveGameState(synced);
+      return synced;
     });
   };
 
@@ -747,7 +768,7 @@ const App = () => {
       if (pendingGrant) {
         next = upsertWalkerBucksGrant(next, prev.walkerBucksBridge.rewardGrants[pendingGrant.id] ?? pendingGrant);
       }
-      next = syncDailyQuests(next);
+      next = syncMilestones(syncDailyQuests(next));
       saveGameState(next);
       return next;
     });
@@ -774,19 +795,53 @@ const App = () => {
     void submitMarketplacePurchase(pendingPurchase);
   };
 
-  const onClaimQuest = (quest: QuestDefinition) => {
-    playSoundEffect('event', state.settings.soundEnabled);
+  const onBuyCatalogOffer = (offer: LocalCatalogShopOffer) => {
+    playSoundEffect('purchase', state.settings.soundEnabled);
     setState((prev) => {
-      const next = claimQuestReward(prev, quest.id);
+      const next = syncMilestones(evaluateAchievements(purchaseLocalCatalogOffer(prev, offer.offerId)));
       saveGameState(next);
       return next;
     });
   };
 
+  const onClaimQuest = (quest: QuestDefinition) => {
+    playSoundEffect('event', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = syncMilestones(claimQuestReward(prev, quest.id));
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const onClaimMilestone = (milestone: MilestoneDefinition) => {
+    playSoundEffect('event', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = syncMilestones(evaluateAchievements(claimMilestoneReward(prev, milestone.id)));
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const onChooseRouteEncounter = (choice: RouteEncounterChoice) => {
+    playSoundEffect('event', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = syncMilestones(evaluateAchievements(syncDailyQuests(resolveRouteEncounterChoice(prev, choice))));
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const onClaimDefaultRouteEncounter = () => {
+    const spawned = state.spawnedRouteEncounter;
+    if (!spawned) return;
+    const choice = getRouteEncounterById(spawned.encounterDefId)?.choices[0];
+    if (choice) onChooseRouteEncounter(choice);
+  };
+
   const onUseInventoryItem = (item: InventoryItemDefinition) => {
     playSoundEffect('event', state.settings.soundEnabled);
     setState((prev) => {
-      const next = syncDailyQuests(evaluateAchievements(useInventoryItem(prev, item.id)));
+      const next = syncMilestones(syncDailyQuests(evaluateAchievements(useInventoryItem(prev, item.id))));
       saveGameState(next);
       return next;
     });
@@ -818,6 +873,13 @@ const App = () => {
         ...prev,
         currentWorldId: worldId,
         distanceMiles: prev.worlds[worldId].distanceMiles,
+        worlds: {
+          ...prev.worlds,
+          [worldId]: {
+            ...prev.worlds[worldId],
+            unlockedAt: prev.worlds[worldId].unlockedAt ?? Date.now()
+          }
+        },
         ui: {
           ...prev.ui,
           toast: `Entered ${worldId === 'solar_system' ? 'Solar System' : worldId.charAt(0).toUpperCase() + worldId.slice(1)}.`
@@ -831,10 +893,16 @@ const App = () => {
   const onPrestigeEarth = () => {
     playSoundEffect('event', state.settings.soundEnabled);
     setState((prev) => {
-      const next = syncDailyQuests(evaluateAchievements(applyEarthPrestige(prev, Date.now())));
+      const next = syncMilestones(syncDailyQuests(evaluateAchievements(applyEarthPrestige(prev, Date.now()))));
       saveGameState(next);
       return next;
     });
+  };
+
+  const onApplyDevPreset = (presetId: Parameters<typeof createDevPresetState>[0]) => {
+    const preset = createDevPresetState(presetId);
+    setState(preset);
+    saveGameState(preset);
   };
 
   const onReset = () => {
@@ -1078,13 +1146,22 @@ const App = () => {
 
   return (
     <div className="game-shell">
-      <GameSceneCanvas state={state} onEventClaim={onClaimEvent} tapPulse={tapPulse} onSceneTap={(x, y) => onWalk({ x, y })} />
-      <GameHUD state={state} />
+      <GameSceneCanvas
+        state={state}
+        onEventClaim={onClaimEvent}
+        onRouteEncounterClaim={onClaimDefaultRouteEncounter}
+        tapPulse={tapPulse}
+        onSceneTap={(x, y) => onWalk({ x, y })}
+        sceneOverrideId={devLabEnabled ? devLabOverrides.sceneId : null}
+        seasonalEventOverrideId={devLabEnabled ? devLabOverrides.seasonalEventId : null}
+      />
+      <GameHUD state={state} seasonalEventOverrideId={devLabEnabled ? devLabOverrides.seasonalEventId : null} />
 
       <div className="notice-stack" aria-live="polite">
         {state.ui.toast && <aside className="panel toast">{state.ui.toast}</aside>}
 
         <RandomEventOverlay spawnedEvent={state.spawnedEvent} onClaim={onClaimEvent} />
+        <RouteEncounterOverlay spawnedEncounter={state.spawnedRouteEncounter} onChoose={onChooseRouteEncounter} />
 
         {state.ui.offlineSummary && (
           <aside className="panel offline-banner">
@@ -1114,6 +1191,10 @@ const App = () => {
         ))}
       </div>
 
+      <div className="walk-button-wrap">
+        <WalkButton onWalk={() => onWalk()} />
+      </div>
+
       <BottomControls active={state.ui.activeTab} onSelect={openTab} />
 
       <GameOverlaySheet open={state.ui.activeTab === 'shop' || state.ui.showShop} title="Shop" onClose={closeOverlay}>
@@ -1122,6 +1203,7 @@ const App = () => {
           onTab={(tab) => setState((prev) => ({ ...prev, ui: { ...prev.ui, shopTab: tab } }))}
           onBuyUpgrade={onBuyUpgrade}
           onBuyFollower={onBuyFollower}
+          onBuyCatalogOffer={onBuyCatalogOffer}
           onUseInventoryItem={onUseInventoryItem}
           onEquipEquipment={onEquipEquipment}
           onEquipCosmetic={onEquipCosmetic}
@@ -1136,9 +1218,11 @@ const App = () => {
           onRefreshMarketplace={refreshWalkerBucksMarketplace}
           onPurchaseOffer={onPurchaseMarketplaceOffer}
         />
+        <SharedInventoryPanel state={state} />
       </GameOverlaySheet>
 
       <GameOverlaySheet open={state.ui.activeTab === 'quests'} title="Quests" onClose={closeOverlay}>
+        <JourneyPanel state={state} onClaim={onClaimMilestone} />
         <QuestPanel state={state} onClaim={onClaimQuest} />
       </GameOverlaySheet>
 
@@ -1199,6 +1283,15 @@ const App = () => {
           }
           onToggleReducedMotion={toggleReducedMotion}
         />
+        {devLabEnabled && (
+          <DevLabPanel
+            overrides={devLabOverrides}
+            musicTracks={MUSIC_TRACKS}
+            onChange={setDevLabOverrides}
+            onApplyPreset={onApplyDevPreset}
+            onSelectMusicTrack={setMusicTrack}
+          />
+        )}
       </GameOverlaySheet>
     </div>
   );

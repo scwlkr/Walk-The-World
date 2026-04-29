@@ -7,14 +7,17 @@ import {
   type WalkerAnimationState,
   type WalkerSpriteSheet
 } from '../game/assets';
-import { getActiveSeasonalEventForState } from '../game/seasonalEvents';
+import { getActiveSeasonalEventForState, getSeasonalEventById } from '../game/seasonalEvents';
 import { getCurrentWorldDefinition } from '../game/world';
 
 type GameSceneCanvasProps = {
   state: GameState;
   onEventClaim: () => void;
+  onRouteEncounterClaim: () => void;
   tapPulse: number;
   onSceneTap: (x: number, y: number) => void;
+  sceneOverrideId?: string | null;
+  seasonalEventOverrideId?: string | null;
 };
 
 type LoadedWalkerSprite = {
@@ -110,15 +113,23 @@ const biomePalette: Record<
   }
 };
 
-export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: GameSceneCanvasProps) => {
+export const GameSceneCanvas = ({
+  state,
+  onEventClaim,
+  onRouteEncounterClaim,
+  tapPulse,
+  onSceneTap,
+  sceneOverrideId,
+  seasonalEventOverrideId
+}: GameSceneCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number>();
   const backgroundImageRef = useRef<HTMLImageElement | null>(null);
   const [walkerSprites, setWalkerSprites] = useState<Partial<Record<WalkerAnimationState, LoadedWalkerSprite>>>({});
   const [backgroundReady, setBackgroundReady] = useState(false);
   const currentLandmark = getCurrentLandmark(state);
-  const backgroundScene = getBackgroundScene(currentLandmark.sceneId);
-  const activeSeasonalEvent = getActiveSeasonalEventForState(state);
+  const backgroundScene = getBackgroundScene(sceneOverrideId ?? currentLandmark.sceneId);
+  const activeSeasonalEvent = getSeasonalEventById(seasonalEventOverrideId) ?? getActiveSeasonalEventForState(state);
 
   useEffect(() => {
     let cancelled = false;
@@ -487,6 +498,22 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
         ctx.restore();
       }
 
+      if (state.spawnedRouteEncounter) {
+        const pulse = 1 + Math.sin(elapsed * 6) * 0.1;
+        const routeX = width * 0.58;
+        const routeY = pathY - 30;
+        ctx.save();
+        ctx.translate(routeX, routeY);
+        ctx.scale(pulse, pulse);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(-16, -10, 32, 20);
+        ctx.fillStyle = '#fef3c7';
+        ctx.fillRect(-8, -4, 16, 8);
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-3, -1, 6, 3);
+        ctx.restore();
+      }
+
       drawLocationPlaque(width, height, landmark.name, world.shortName, progress);
 
       rafRef.current = requestAnimationFrame(draw);
@@ -498,7 +525,7 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
       window.removeEventListener('resize', resize);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [state, onEventClaim, tapPulse, walkerSprites, backgroundReady, backgroundScene, currentLandmark]);
+  }, [state, tapPulse, walkerSprites, backgroundReady, backgroundScene, currentLandmark]);
 
   return (
     <canvas
@@ -511,6 +538,11 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
 
         if (state.spawnedEvent && x > rect.width * 0.67 && x < rect.width * 0.82 && y > rect.height * 0.6 && y < rect.height * 0.86) {
           onEventClaim();
+          return;
+        }
+
+        if (state.spawnedRouteEncounter && x > rect.width * 0.48 && x < rect.width * 0.68 && y > rect.height * 0.55 && y < rect.height * 0.86) {
+          onRouteEncounterClaim();
           return;
         }
 

@@ -38,13 +38,13 @@ export const WORLDS: Record<WorldId, WorldDefinition> = {
     id: 'mars',
     name: 'Mars',
     shortName: 'Mars',
-    description: 'Future red-planet route placeholder. Data-only until later world-expansion phases.',
+    description: 'Prototype red-planet route unlocked after a Moon loop.',
     loopDistanceMiles: 13263,
     defaultUnlocked: false,
-    status: 'future',
-    sceneId: 'moon_surface',
+    status: 'playable',
+    sceneId: 'desert',
     unlockRequirement: { moonLoopsCompleted: 1 },
-    lockedSummary: 'Future tier after Moon loops'
+    lockedSummary: 'Complete one Moon loop to unlock Mars prototype'
   },
   solar_system: {
     id: 'solar_system',
@@ -105,6 +105,9 @@ export const isWorldUnlocked = (state: GameState, worldId: WorldId): boolean => 
   const definition = getWorldDefinition(worldId);
   if (definition.defaultUnlocked) return true;
   if (definition.status !== 'playable') return false;
+  if (worldId === 'mars' && getWorldProgress(state, 'moon').loopsCompleted >= (definition.unlockRequirement?.moonLoopsCompleted ?? 1)) {
+    return true;
+  }
   return Boolean(getWorldProgress(state, worldId).unlockedAt);
 };
 
