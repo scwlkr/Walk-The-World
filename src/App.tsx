@@ -627,7 +627,7 @@ const App = () => {
     if (tapPosition) {
       tapFeedbackIdRef.current += 1;
       const id = tapFeedbackIdRef.current;
-      setTapFeedback((prev) => [...prev, { id, x: tapPosition.x, y: tapPosition.y, distance }]);
+      setTapFeedback((prev) => [...prev.slice(-3), { id, x: tapPosition.x, y: tapPosition.y, distance }]);
       window.setTimeout(() => {
         setTapFeedback((prev) => prev.filter((item) => item.id !== id));
       }, 700);
@@ -1085,7 +1085,7 @@ const App = () => {
       <div className="tap-feedback-layer" aria-hidden="true">
         {tapFeedback.map((item) => (
           <div key={item.id} className="tap-feedback" style={{ left: item.x, top: item.y }}>
-            +{item.distance.toFixed(3)} mi
+            +step
           </div>
         ))}
       </div>

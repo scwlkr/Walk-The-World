@@ -6,9 +6,9 @@ type BottomControlsProps = {
 };
 
 const CONTROL_ITEMS: Array<{ tab: Extract<GameState['ui']['activeTab'], 'shop' | 'quests' | 'stats' | 'settings'>; icon: string; label: string }> = [
-  { tab: 'shop', icon: '👜', label: 'Shop' },
-  { tab: 'quests', icon: '🎯', label: 'Quests' },
-  { tab: 'stats', icon: '📊', label: 'Stats' },
+  { tab: 'shop', icon: '🎒', label: 'Shop' },
+  { tab: 'quests', icon: '🗺️', label: 'Quests' },
+  { tab: 'stats', icon: '📓', label: 'Stats' },
   { tab: 'settings', icon: '⚙️', label: 'Settings' }
 ];
 

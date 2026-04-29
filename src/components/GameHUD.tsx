@@ -27,51 +27,55 @@ export const GameHUD = ({ state }: GameHUDProps) => {
   const worldProgress = getWorldProgress(state);
   const questSummary = getQuestCompletionSummary(state);
   const activeEvent = getActiveSeasonalEventForState(state);
+  const routeDistance = Math.max(0, next.distanceMiles - current.distanceMiles);
+  const routeWalked = Math.max(0, currentLoopDistance - current.distanceMiles);
+  const routePercent = routeDistance > 0 ? Math.min(100, (routeWalked / routeDistance) * 100) : 100;
+  const routeRemainingLabel = next.name !== current.name ? `${milesToNext.toFixed(1)} mi remaining` : 'Route complete';
+  const seasonalLabel =
+    activeEvent?.visualTreatment.bannerLabel.replace(' active', '').replace('route', 'Route') ?? 'Local Route';
 
   return (
     <header className="game-hud" aria-label="Game HUD">
-      <section className="hud-strip hud-main-strip">
-        <div className="hud-chip">
-          <small>WB</small>
-          <strong>{Math.floor(state.walkerBucks).toLocaleString()}</strong>
+      <section
+        className="hud-strip hud-travel-panel"
+        style={{ '--event-accent': activeEvent?.visualTreatment.accentColor ?? '#facc15' } as CSSProperties}
+      >
+        <div className="hud-meter-row" aria-label="Wallet, distance, and speed">
+          <span>
+            WB <strong>{Math.floor(state.walkerBucks).toLocaleString()}</strong>
+          </span>
+          <span>
+            <strong>{currentLoopDistance.toFixed(1)}</strong> mi
+          </span>
+          <span>
+            <strong>{speed.toFixed(3)}</strong> mi/s
+          </span>
         </div>
-        <div className="hud-chip">
-          <small>Distance</small>
-          <strong>{currentLoopDistance.toFixed(1)} mi</strong>
-        </div>
-        <div className="hud-chip">
-          <small>Speed</small>
-          <strong>{speed.toFixed(3)} mi/s</strong>
-        </div>
-      </section>
 
-      <section className="hud-strip hud-route-strip">
-        <div className="hud-progress-head">
+        <div className="hud-route-line">
+          <strong>
+            {current.name} → {next.name}
+          </strong>
+          <span>{routeRemainingLabel}</span>
+        </div>
+
+        <div className="hud-progress-track" aria-label={`${routePercent.toFixed(0)} percent of current route complete`}>
+          <span className="hud-progress-fill" style={{ width: `${routePercent}%` }} />
+          <span className="hud-route-marker" style={{ left: `${routePercent}%` }} />
+        </div>
+
+        <div className="hud-sub-row">
           <span>
             {currentWorld.shortName} {worldPercent.toFixed(2)}%
+            {' · '}Loop {worldProgress.loopsCompleted}
           </span>
-          <span>Loop {worldProgress.loopsCompleted}</span>
-        </div>
-        <div className="hud-progress-track">
-          <div className="hud-progress-fill" style={{ width: `${worldPercent}%` }} />
-        </div>
-        <p className="hud-landmark">
-          {current.name} → {next.name}
-          {next.name !== current.name ? ` · ${milesToNext.toFixed(1)} mi` : ''}
-        </p>
-      </section>
-
-      {activeEvent && (
-        <section
-          className="hud-strip hud-event-strip"
-          style={{ '--event-accent': activeEvent.visualTreatment.accentColor } as CSSProperties}
-        >
-          <span>{activeEvent.visualTreatment.bannerLabel}</span>
-          <strong>
+          <span>
+            {seasonalLabel}
+            {' · '}
             Quests {questSummary.completed}/{questSummary.total}
-          </strong>
-        </section>
-      )}
+          </span>
+        </div>
+      </section>
     </header>
   );
 };

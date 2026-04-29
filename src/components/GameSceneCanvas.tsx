@@ -213,6 +213,7 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
       const panRangeX = Math.max(0, drawWidth - width);
       const panRangeY = Math.max(0, drawHeight - height);
       const motion = state.settings.reducedMotion ? 0.18 : 1;
+      // Current scene art is a composite. Keep this isolated so split parallax layers can drop in later.
       const drift = Math.sin(elapsed * (0.035 + Math.min(speed * 2, 0.22)) * motion);
       const x = -Math.round(((drift + 1) / 2) * panRangeX);
       const y = -Math.round(panRangeY * 0.52);
@@ -254,6 +255,97 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
         ctx.fillStyle = `rgba(250,204,21,${0.72 * alpha})`;
         ctx.fillRect(x, y, size, size);
       }
+    };
+
+    const getLaneColors = (biome: string) => {
+      if (biome === 'city' || biome === 'space' || biome === 'lunar') {
+        return {
+          base: '#7d8795',
+          light: 'rgba(226, 232, 240, 0.46)',
+          dark: 'rgba(15, 23, 42, 0.32)',
+          seam: 'rgba(15, 23, 42, 0.2)'
+        };
+      }
+
+      if (biome === 'desert' || biome === 'mountain') {
+        return {
+          base: '#c49256',
+          light: 'rgba(254, 240, 138, 0.32)',
+          dark: 'rgba(67, 20, 7, 0.22)',
+          seam: 'rgba(67, 20, 7, 0.18)'
+        };
+      }
+
+      return {
+        base: '#bca36c',
+        light: 'rgba(254, 240, 138, 0.3)',
+        dark: 'rgba(55, 48, 28, 0.24)',
+        seam: 'rgba(55, 48, 28, 0.18)'
+      };
+    };
+
+    const drawWalkingLane = (
+      width: number,
+      pathY: number,
+      laneHeight: number,
+      elapsed: number,
+      speed: number,
+      biome: string
+    ) => {
+      const colors = getLaneColors(biome);
+      const scroll = state.settings.reducedMotion ? 0 : elapsed * (42 + speed * 120);
+
+      ctx.fillStyle = 'rgba(21, 83, 45, 0.36)';
+      ctx.fillRect(0, pathY - 8, width, 8);
+
+      ctx.fillStyle = colors.base;
+      ctx.fillRect(0, pathY, width, laneHeight);
+      ctx.fillStyle = colors.light;
+      ctx.fillRect(0, pathY + 3, width, 3);
+      ctx.fillStyle = colors.dark;
+      ctx.fillRect(0, pathY + laneHeight - 7, width, 7);
+
+      for (let x = -60; x < width + 80; x += 46) {
+        const markX = ((x - scroll) % (width + 46)) - 23;
+        ctx.fillStyle = colors.seam;
+        ctx.fillRect(Math.round(markX), pathY + 8, 2, laneHeight - 16);
+        ctx.fillRect(Math.round(markX + 23), pathY + Math.floor(laneHeight * 0.52), 24, 2);
+      }
+    };
+
+    const drawWalkerShadow = (centerX: number, footY: number, pulse: number) => {
+      const widthBoost = pulse * 10;
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.26)';
+      ctx.fillRect(Math.round(centerX - 43 - widthBoost), Math.round(footY + 5), Math.round(86 + widthBoost * 2), 7);
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.14)';
+      ctx.fillRect(Math.round(centerX - 30), Math.round(footY + 1), 60, 4);
+    };
+
+    const drawLocationPlaque = (width: number, height: number, landmarkName: string, worldLabel: string, progress: number) => {
+      const plaqueWidth = Math.min(228, Math.max(174, width - 142));
+      const plaqueHeight = 42;
+      const x = 10;
+      const y = height - plaqueHeight - 16;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.68)';
+      ctx.fillRect(x, y, plaqueWidth, plaqueHeight);
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.72)';
+      ctx.fillRect(x, y, plaqueWidth, 2);
+      ctx.fillRect(x, y + plaqueHeight - 2, plaqueWidth, 2);
+      ctx.fillRect(x, y, 2, plaqueHeight);
+      ctx.fillRect(x + plaqueWidth - 2, y, 2, plaqueHeight);
+      ctx.fillStyle = 'rgba(254, 240, 138, 0.16)';
+      ctx.fillRect(x + 4, y + 4, plaqueWidth - 8, 5);
+
+      ctx.fillStyle = '#fde68a';
+      ctx.font = 'bold 9px monospace';
+      ctx.fillText('NOW WALKING', x + 10, y + 15);
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 13px monospace';
+      ctx.fillText(landmarkName.slice(0, 20), x + 10, y + 30);
+      ctx.fillStyle = '#bfdbfe';
+      ctx.font = 'bold 9px monospace';
+      ctx.fillText(`${worldLabel} ${progress.toFixed(2)}%`, x + plaqueWidth - 84, y + 30);
     };
 
     const draw = (time: number) => {
@@ -327,29 +419,23 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
         }
       }
 
-      ctx.fillStyle = backgroundReady && backgroundImage ? backgroundScene.pathTint : palette.path;
-      ctx.fillRect(0, pathY, width, 32);
-      const scroll = elapsed * (34 + speed * 100);
-      for (let x = -20; x < width + 20; x += 22) {
-        const markX = ((x - scroll) % (width + 22)) - 11;
-        ctx.fillStyle = backgroundReady && backgroundImage ? backgroundScene.pathLine : 'rgba(255,255,255,0.22)';
-        ctx.fillRect(markX, pathY + 12, 12, 3);
-      }
+      const laneHeight = Math.min(58, Math.max(42, Math.round(height * 0.07)));
+      const footY = pathY + Math.round(laneHeight * 0.58);
+      drawWalkingLane(width, pathY, laneHeight, elapsed, speed, landmark.biome);
 
       const cadence = 4 + Math.min(12, speed * 22);
       const strideSwing = Math.sin(elapsed * cadence) * 5;
       const bob = state.settings.reducedMotion ? -tapPulse * 5 : Math.sin(elapsed * cadence * 0.9) * (2.5 + Math.min(3, speed * 2)) - tapPulse * 9;
-      const playerCenterX = width * 0.25;
+      const playerCenterX = Math.max(88, Math.min(width * 0.28, width - 116));
       const activeAnimation = getActiveAnimationState(speed);
       const walkerSprite = getLoadedWalkerSprite(activeAnimation);
 
-      ctx.fillStyle = 'rgba(2,6,23,0.24)';
-      ctx.fillRect(playerCenterX - 46, pathY + 25, 88, 7);
+      drawWalkerShadow(playerCenterX, footY, tapPulse);
 
       if (walkerSprite) {
         const asset = walkerSprite.asset;
         const frameIndex = state.settings.reducedMotion ? 0 : Math.floor(elapsed * asset.fps) % asset.frameCount;
-        const spriteSize = Math.min(asset.renderSize, Math.max(142, Math.round(height * 0.34)));
+        const spriteSize = Math.min(Math.round(asset.renderSize * 1.18), Math.max(168, Math.round(height * 0.38)));
         ctx.drawImage(
           walkerSprite.image,
           frameIndex * asset.frameWidth,
@@ -357,13 +443,13 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
           asset.frameWidth,
           asset.frameHeight,
           playerCenterX - spriteSize / 2,
-          pathY - spriteSize + bob + 6,
+          footY - spriteSize + bob + 2,
           spriteSize,
           spriteSize
         );
       } else {
         const playerX = playerCenterX - 17;
-        const playerY = pathY - 78 + bob;
+        const playerY = footY - 84 + bob;
 
         ctx.fillStyle = '#facc15';
         ctx.fillRect(playerX + 4, playerY, 26, 30);
@@ -384,7 +470,7 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
       }
 
       if (tapPulse > 0.01) {
-        drawTapBurst(playerCenterX, pathY, tapPulse);
+        drawTapBurst(playerCenterX, footY, tapPulse);
       }
 
       if (state.spawnedEvent) {
@@ -401,11 +487,7 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
         ctx.restore();
       }
 
-      ctx.fillStyle = 'rgba(2,6,23,0.55)';
-      ctx.fillRect(10, height - 40, 220, 24);
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = 'bold 11px monospace';
-      ctx.fillText(`${landmark.name} · ${world.shortName} ${progress.toFixed(2)}%`, 16, height - 24);
+      drawLocationPlaque(width, height, landmark.name, world.shortName, progress);
 
       rafRef.current = requestAnimationFrame(draw);
     };
@@ -432,7 +514,10 @@ export const GameSceneCanvas = ({ state, onEventClaim, tapPulse, onSceneTap }: G
           return;
         }
 
-        onSceneTap(x, y);
+        const laneHeight = Math.min(58, Math.max(42, Math.round(rect.height * 0.07)));
+        const feedbackX = Math.max(88, Math.min(rect.width * 0.28, rect.width - 116));
+        const feedbackY = Math.floor(rect.height * backgroundScene.pathYRatio) - Math.round(laneHeight * 0.18);
+        onSceneTap(feedbackX, feedbackY);
       }}
     />
   );
