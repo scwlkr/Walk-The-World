@@ -15,6 +15,13 @@ export type ItemImageCandidate = {
 };
 
 const itemAssetRoot = '/assets/items/';
+const availableItemAssetFilenames = new Set([
+  'retro_sweatband_item.png',
+  'spring_stride_ticket.png',
+  'starter_step_counter.png',
+  'trail_mix.png',
+  'walkertown_postcard.png'
+]);
 
 const normalizeItemAssetPath = (assetPath: string): string => {
   const trimmed = assetPath.trim();
@@ -22,17 +29,25 @@ const normalizeItemAssetPath = (assetPath: string): string => {
   return `${itemAssetRoot}${trimmed.replace(/^\/+/, '')}`;
 };
 
+const getAvailableItemAssetPath = (assetPath: string): string | null => {
+  const normalized = normalizeItemAssetPath(assetPath);
+  if (!normalized.startsWith(itemAssetRoot)) return normalized;
+
+  const filename = normalized.slice(itemAssetRoot.length);
+  return availableItemAssetFilenames.has(filename) ? normalized : null;
+};
+
 export const getItemImageSrc = (item: ItemImageCandidate): string | null => {
   const directAssetPath = item.assetPath ?? item.asset_path;
-  if (directAssetPath?.trim()) return normalizeItemAssetPath(directAssetPath);
+  if (directAssetPath?.trim()) return getAvailableItemAssetPath(directAssetPath);
 
   const assetFilename = item.assetFilename ?? item.asset_filename;
-  if (assetFilename?.trim()) return normalizeItemAssetPath(assetFilename);
+  if (assetFilename?.trim()) return getAvailableItemAssetPath(assetFilename);
 
   const itemId = item.itemId ?? item.item_id ?? item.id;
   if (!itemId?.trim()) return null;
 
-  return `${itemAssetRoot}${itemId}.png`;
+  return getAvailableItemAssetPath(`${itemId}.png`);
 };
 
 export const getItemFallbackIcon = (item: ItemImageCandidate): string => {

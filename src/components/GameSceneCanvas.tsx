@@ -136,6 +136,8 @@ export const GameSceneCanvas = ({
 
     for (const animationState of WALKER_ANIMATION_STATES) {
       const asset = WALKER_ANIMATION_ASSETS[animationState];
+      if (asset.enabled === false) continue;
+
       const sprite = new Image();
 
       sprite.onload = () => {

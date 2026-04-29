@@ -205,6 +205,14 @@ npm run smoke:local
 
 `smoke:local` starts Vite, launches a Chrome-compatible browser through the debugging protocol, verifies a mobile fresh-save path, claims a Journey milestone, uses and buys an item, resolves a route encounter, opens the dev lab, and reloads without losing local state.
 
+Production browser smoke command:
+
+```bash
+npm run smoke:production-browser
+```
+
+`smoke:production-browser` opens `https://walk-the-world.vercel.app/` in a clean mobile browser profile, verifies guest play, Journey milestones, route encounters, local catalog items, account creation, cloud upload, shared WalkerBucks balance, leaderboard, marketplace offers, shared inventory, Mars prototype entry, sign-out fallback, and screenshot capture under ignored `qa-artifacts/`.
+
 Required smoke env vars:
 
 ```text
@@ -241,6 +249,7 @@ No real-money value, no crypto, no paid loot boxes.
 - Discord reward linking is contract-defined only. Telegram remains deferred until Discord linking and shared WalkerBucks flows are stable.
 - No service worker yet (manifest-only PWA readiness).
 - Mars has a local playable prototype after the Moon loop. Solar System remains future data scaffolding.
+- Version C private beta is tagged as `v0.2.0-beta.1` after production browser QA and live bridge smoke passed.
 
 ## C Version Asset Intake
 

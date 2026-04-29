@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.2.0-retention-depth';
+export const GAME_VERSION = '0.2.0-beta.1';
 export const EARTH_CIRCUMFERENCE_MILES = 24901;
 export const CANONICAL_MOON_DISTANCE_MILES = 238855;
 export const MOON_CIRCUMFERENCE_MILES = 6786;

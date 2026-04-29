@@ -4,7 +4,7 @@ Last updated: 2026-04-29
 
 ## Current State
 
-Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, the live private-beta service configuration pass, and the retention/gameplay depth pass are complete. Live Supabase recovery and WalkerBucks bridge/economy smokes pass against the shared `WalkerWorld` project. The remaining decision is production browser QA plus beta tag/no-tag.
+Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, the live private-beta service configuration pass, the retention/gameplay depth pass, and final production browser QA are complete. Live Supabase recovery and WalkerBucks bridge/economy smokes pass against the shared `WalkerWorld` project. Decision: cut `v0.2.0-beta.1` for Version C private beta.
 
 Artifacts created:
 
@@ -47,6 +47,7 @@ Artifacts created:
 - `src/components/DevLabPanel.tsx`
 - `tests/game-retention.test.ts`
 - `scripts/local-dev-smoke.mjs`
+- `scripts/production-browser-qa.mjs`
 
 Input artifact:
 
@@ -502,14 +503,18 @@ Implemented:
 - Added dev-only `?dev=1` scene/vibe lab with presets, scene override, seasonal override, music selection, speed multiplier, and bridge-disabled testing.
 - Made Mars a playable local prototype after a Moon loop; Solar System remains future data.
 - Added Vitest game tests and a Chrome/CDP-backed `npm run smoke:local` browser smoke.
+- Added `npm run smoke:production-browser` for deployed production browser QA with screenshot artifacts under ignored `qa-artifacts/`.
+- Disabled missing optional walker sprite probes and missing generated item art requests so production falls back without noisy 404s.
 
 Touched files:
 
 - `package.json`
 - `package-lock.json`
 - `README.md`
+- `.gitignore`
 - `docs/C_VERSION_PLAN.md`
 - `docs/C_VERSION_HANDOFF.md`
+- `docs/ASSET_PIPELINE.md`
 - `src/App.tsx`
 - `src/components/CatalogShopPanel.tsx`
 - `src/components/DevLabPanel.tsx`
@@ -522,12 +527,14 @@ Touched files:
 - `src/components/ShopModal.tsx`
 - `src/components/StatsPanel.tsx`
 - `src/game/backgroundScenes.ts`
+- `src/game/assets.ts`
 - `src/game/constants.ts`
 - `src/game/cosmetics.ts`
 - `src/game/devPresets.ts`
 - `src/game/formulas.ts`
 - `src/game/initialState.ts`
 - `src/game/inventory.ts`
+- `src/game/itemImages.ts`
 - `src/game/items.ts`
 - `src/game/landmarks.ts`
 - `src/game/milestones.ts`
@@ -539,29 +546,34 @@ Touched files:
 - `src/game/world.ts`
 - `src/styles/global.css`
 - `scripts/local-dev-smoke.mjs`
+- `scripts/live-private-beta-smoke.mjs`
+- `scripts/production-browser-qa.mjs`
 - `tests/game-retention.test.ts`
 
 Verification completed:
 
 - `npm run build` passes with the existing Vite large-chunk warning.
 - `npm run items:validate` passes for 31 items, 14 effect rows, and 31 offers.
-- `npm run test` passes 7 pure game tests.
+- `npm run test` passes 8 pure game tests.
 - `npm run smoke:local` passes: fresh mobile viewport, Journey milestone claim, starter item use, local catalog purchase, forced route encounter resolution, dev lab render, and reload continuity.
+- Production deployment is Ready and aliased to `https://walk-the-world.vercel.app/`.
+- `npm run smoke:production-browser` passes against production with save version 8, 12 leaderboard rows, 13 marketplace offers, runtimeErrors 0, and screenshot artifacts under ignored `qa-artifacts/`.
+- In-app browser visual QA confirms the live production guest surface renders with the pixel scene, WALK control, Journey HUD, route label, and mobile controls.
+- `npm run smoke:private-beta-live` passes with bridge required, purchase enabled, offer id `13`, cloudSaveRunId `f1ae971c-5102-4d06-b125-25bcf61cfa0e`, WalkerBucks account `1a08c59a-143a-4231-b90f-209db7cbcf2f`, reward transaction `b6290de6-a442-41ca-8bce-1c7c14b09242`, 13 leaderboard entries, 13 marketplace offers, and `purchaseStatus` `purchased`.
 
-Verification not completed:
+Release decision:
 
-- Production browser QA has not yet been rerun after this retention pass.
-- Live private-beta smoke has not yet been rerun after deploying this retention pass.
-- Version C beta tag decision has not been made.
+- Go for Version C private beta tag `v0.2.0-beta.1`.
+- This is not a public launch approval; WalkerBucks production AuthN/AuthZ, Discord linking, service-worker/offline installability, and real tester feedback remain future gates.
 
 ## Next Phase
 
-Proceed to final Version C private-beta QA and beta-tag decision.
+Use `v0.2.0-beta.1` as the private-friends beta baseline and collect tester feedback before any public launch promotion.
 
 ## Next Kickoff Prompt
 
 ```text
-Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/WALKERWORLD_SUPABASE_ARCHITECTURE.md, docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, docs/C_VERSION_WALKERBUCKS_BRIDGE.md, and docs/C_VERSION_SOCIAL_BRIDGE.md first. Proceed with final Version C private-beta QA only: deploy the retention/gameplay depth pass, verify the production browser account flow on https://walk-the-world.vercel.app/, confirm guest/local fallback still works without a session, confirm Journey milestones, route encounters, catalog shop, shared inventory, and Mars prototype are not broken in production, confirm the WalkerBucks panel can read shared balance and that marketplace/leaderboard controls remain usable, run npm run smoke:private-beta-live with WTW_BETA_SMOKE_REQUIRE_BRIDGE=true and WTW_BETA_SMOKE_ALLOW_PURCHASE=true using offer id 13 only if another idempotent purchase proof is needed, keep privileged WalkerBucks and Discord secrets out of VITE_* and browser code, update README/checklist/handoff with live browser evidence, run npm run build, npm run items:validate, npm run test, and npm run smoke:local, and end with a go/no-go recommendation for cutting a Version C private-beta tag.
+Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/WALKERWORLD_SUPABASE_ARCHITECTURE.md, docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, docs/C_VERSION_WALKERBUCKS_BRIDGE.md, and docs/C_VERSION_SOCIAL_BRIDGE.md first. Use `v0.2.0-beta.1` as the Version C private-beta baseline: push/verify the tag if it has not already been pushed, invite private testers, monitor account recovery, guest fallback, Journey milestones, route encounters, catalog shop, shared inventory, WalkerBucks balance/leaderboard/marketplace surfaces, Mars prototype entry, and reset/export flows, then collect a concise blocker list before any public launch work.
 ```
 
 ## Required Verification
@@ -573,6 +585,7 @@ npm run build
 npm run items:validate
 npm run test
 npm run smoke:local
+npm run smoke:production-browser
 ```
 
 For visual/game-feel phases:
@@ -595,8 +608,7 @@ Every chat or phase closeout for this C-version plan must end with a copy-ready 
 
 ## Open Decisions
 
-- Final production browser QA result.
-- Version C private-beta tag decision.
+- None for the Version C private-beta tag gate.
 
 ## Do Not Start Yet
 
