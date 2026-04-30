@@ -281,7 +281,24 @@ const run = async () => {
     routeSave.ui = {
       ...routeSave.ui,
       activeTab: 'walk',
-      showShop: false
+      showShop: false,
+      offlineSummary: {
+        distance: 1.23,
+        wb: 45
+      },
+      toast: 'Quest reminder: Warm-Up Walk ready.',
+      recentRewards: [
+        { id: 'smoke_reward_item', label: '1 item', createdAt: Date.now() },
+        { id: 'smoke_reward_wb', label: '+45 WB', createdAt: Date.now() },
+        { id: 'smoke_reward_extra', label: 'queued reward', createdAt: Date.now() }
+      ]
+    };
+    routeSave.spawnedEvent = {
+      id: 'event_smoke_loose_walkerbuck',
+      eventDefId: 'loose_walkerbuck',
+      spawnedAt: Date.now(),
+      expiresAt: Date.now() + 60000,
+      label: 'Loose WalkerBuck'
     };
     routeSave.spawnedRouteEncounter = {
       id: 'route_smoke_split_path',
@@ -296,6 +313,46 @@ const run = async () => {
     await navigateToApp(client, 'route encounter reload');
     await client.call('Page.removeScriptToEvaluateOnNewDocument', { identifier: routeInjection.identifier });
     await waitFor('route encounter overlay', () => evaluate(client, 'document.body.textContent.includes("Split Path")'));
+    const notificationLayout = await evaluate(
+      client,
+      `(() => {
+        const getRect = (selector) => {
+          const element = document.querySelector(selector);
+          if (!element) return null;
+          const rect = element.getBoundingClientRect();
+          return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
+        };
+        const overlaps = (a, b) => Boolean(a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top);
+        const notificationItems = Array.from(document.querySelectorAll('.notification-large-slot > *, .notification-toast'))
+          .map((element) => {
+            const rect = element.getBoundingClientRect();
+            return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
+          });
+        const hud = getRect('.game-hud');
+        const rail = getRect('.bottom-controls');
+        const walk = getRect('.walk-btn');
+        return {
+          largeCount: document.querySelectorAll('.notification-large-slot > *').length,
+          toastCount: document.querySelectorAll('.notification-toast').length,
+          hasRouteCard: Boolean(document.querySelector('.notification-large-slot')?.textContent?.includes('Split Path')),
+          hasRandomCard: Boolean(document.querySelector('.notification-large-slot')?.textContent?.includes('Loose WalkerBuck')),
+          hasOfflineCard: Boolean(document.querySelector('.notification-large-slot')?.textContent?.includes('while away')),
+          overlapsHud: notificationItems.some((item) => overlaps(item, hud)),
+          overlapsRail: notificationItems.some((item) => overlaps(item, rail)),
+          overlapsWalk: notificationItems.some((item) => overlaps(item, walk)),
+          unsafeEdges: [hud, rail, walk, ...notificationItems].some((item) => item && (item.left < 12 || item.right > window.innerWidth - 12 || item.top < 12 || item.bottom > window.innerHeight - 12))
+        };
+      })()`
+    );
+    assert(notificationLayout.largeCount === 1, 'Notification center rendered more than one large card.');
+    assert(notificationLayout.toastCount <= 2, 'Notification center rendered more than two toasts.');
+    assert(notificationLayout.hasRouteCard, 'Route encounter was not the visible priority notification.');
+    assert(!notificationLayout.hasRandomCard, 'Random event card overlapped instead of queueing behind route encounter.');
+    assert(!notificationLayout.hasOfflineCard, 'Offline summary overlapped instead of queueing behind route encounter.');
+    assert(!notificationLayout.overlapsHud, 'Notification overlapped the HUD.');
+    assert(!notificationLayout.overlapsRail, 'Notification overlapped the right action rail.');
+    assert(!notificationLayout.overlapsWalk, 'Notification overlapped the WALK button.');
+    assert(!notificationLayout.unsafeEdges, 'A fixed UI element is too close to the mobile viewport edge.');
     assert(await evaluate(client, clickByText('button', 'Sprint line')), 'Route encounter choice did not click.');
     const encounterSave = await readSave(client);
     assert(encounterSave?.stats?.routeEncountersClaimed >= 1, 'Route encounter did not persist as claimed.');

@@ -7,6 +7,19 @@
   --gold: #facc15;
   --red: #ef4444;
   --border: rgba(148, 163, 184, 0.36);
+  --safe-edge-padding: 16px;
+  --safe-top: calc(env(safe-area-inset-top, 0px) + var(--safe-edge-padding));
+  --safe-right: calc(env(safe-area-inset-right, 0px) + var(--safe-edge-padding));
+  --safe-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--safe-edge-padding));
+  --safe-left: calc(env(safe-area-inset-left, 0px) + var(--safe-edge-padding));
+  --hud-top-offset: var(--safe-top);
+  --hud-zone-height: 132px;
+  --right-rail-width: 44px;
+  --right-rail-gap: 14px;
+  --side-button-offset: var(--safe-right);
+  --bottom-controls-offset: var(--safe-bottom);
+  --walk-button-zone-height: 74px;
+  --notification-zone-gap: 12px;
 }
 
 * {
@@ -54,10 +67,9 @@ button {
 
 .game-hud {
   position: absolute;
-  top: 8px;
-  top: calc(env(safe-area-inset-top, 0px) + 8px);
-  left: 8px;
-  right: 8px;
+  top: var(--hud-top-offset);
+  left: var(--safe-left);
+  right: var(--safe-right);
   z-index: 30;
   pointer-events: none;
   display: grid;
@@ -231,6 +243,11 @@ button {
 }
 
 @media (max-width: 360px) {
+  :root {
+    --safe-edge-padding: 14px;
+    --hud-zone-height: 150px;
+  }
+
   .hud-route-line,
   .hud-sub-row {
     grid-template-columns: minmax(0, 1fr);
@@ -245,10 +262,8 @@ button {
 
 .bottom-controls {
   position: absolute;
-  top: 124px;
-  top: calc(env(safe-area-inset-top, 0px) + 124px);
-  right: 10px;
-  right: calc(env(safe-area-inset-right, 0px) + 10px);
+  top: calc(var(--hud-top-offset) + var(--hud-zone-height) + 8px);
+  right: var(--side-button-offset);
   bottom: auto;
   z-index: 36;
   display: flex;
@@ -315,8 +330,7 @@ button {
 .walk-button-wrap {
   position: absolute;
   left: 50%;
-  bottom: 18px;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  bottom: var(--bottom-controls-offset);
   z-index: 35;
   transform: translateX(-50%);
   pointer-events: auto;
@@ -416,22 +430,52 @@ button {
   color: #fecaca;
 }
 
-.notice-stack {
+.notification-zone {
   position: absolute;
-  top: 112px;
-  top: calc(env(safe-area-inset-top, 0px) + 112px);
-  left: 10px;
-  right: 70px;
-  right: calc(env(safe-area-inset-right, 0px) + 70px);
+  top: calc(var(--hud-top-offset) + var(--hud-zone-height) + var(--notification-zone-gap));
+  left: var(--safe-left);
+  right: calc(var(--side-button-offset) + var(--right-rail-width) + var(--right-rail-gap));
+  bottom: calc(var(--bottom-controls-offset) + var(--walk-button-zone-height) + var(--notification-zone-gap));
   z-index: 34;
   display: grid;
+  grid-template-rows: auto auto;
+  align-content: start;
   gap: 0.52rem;
   pointer-events: none;
 }
 
-.notice-stack > * {
+.notification-zone > *,
+.notification-zone .event-overlay,
+.notification-zone .notification-card {
   min-width: 0;
   pointer-events: auto;
+}
+
+.notification-large-slot {
+  display: grid;
+  gap: 0.52rem;
+}
+
+.notification-toast-stack {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.notification-card,
+.notification-zone .event-overlay {
+  max-width: min(100%, 430px);
+  justify-self: stretch;
+}
+
+.notification-card-large,
+.notification-zone .event-overlay {
+  max-height: min(28dvh, 190px);
+  overflow: auto;
+}
+
+.notification-toast {
+  width: 100%;
+  border-color: var(--gold);
 }
 
 .event-overlay {
@@ -1004,7 +1048,8 @@ button.event-overlay {
 }
 
 .offline-banner,
-.toast {
+.toast,
+.notification-toast {
   display: flex;
   gap: 0.5rem;
   align-items: center;
@@ -1028,14 +1073,14 @@ button.event-overlay {
     right: 0;
   }
 
-  .notice-stack {
+  .notification-zone {
     left: calc((100vw - 680px) / 2);
-    right: calc((100vw - 680px) / 2 + 70px);
+    right: calc((100vw - 680px) / 2 + var(--right-rail-width) + var(--right-rail-gap) + var(--safe-edge-padding));
   }
 
   .bottom-controls {
     left: auto;
-    right: calc((100vw - 680px) / 2 + 10px);
+    right: calc((100vw - 680px) / 2 + var(--safe-edge-padding));
     margin: 0;
     max-width: none;
   }

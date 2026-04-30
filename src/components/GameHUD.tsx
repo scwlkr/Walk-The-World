@@ -96,15 +96,12 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
           })}
         </div>
 
-        {(activeBoosts.length > 0 || state.ui.recentRewards.length > 0) && (
+        {activeBoosts.length > 0 && (
           <div className="hud-boost-row">
             {activeBoosts.map((boost) => (
               <span key={boost.id}>
                 {boost.effectType.replace(/_/g, ' ')} {Math.max(0, Math.ceil((boost.expiresAt - Date.now()) / 1000))}s
               </span>
-            ))}
-            {state.ui.recentRewards.slice(0, 2).map((reward) => (
-              <span key={reward.id}>{reward.label}</span>
             ))}
           </div>
         )}
