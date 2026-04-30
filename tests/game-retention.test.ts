@@ -5,8 +5,9 @@ import { useInventoryItem } from '../src/game/inventory';
 import { claimMilestoneReward, syncMilestones } from '../src/game/milestones';
 import { resolveRouteEncounterChoice } from '../src/game/routeEncounters';
 import { importSave } from '../src/game/save';
+import { resolveRandomEvent } from '../src/game/tick';
 import { canEnterWorld } from '../src/game/world';
-import type { RouteEncounterChoice, WalkerBucksMarketplaceOffer } from '../src/game/types';
+import type { RandomEventDefinition, RouteEncounterChoice, WalkerBucksMarketplaceOffer } from '../src/game/types';
 
 describe('retention milestones', () => {
   it('turns the first tap into a claimable milestone reward', () => {
@@ -82,6 +83,28 @@ describe('route encounters', () => {
     expect(resolved.inventory.items.detour_token).toBe(1);
     expect(resolved.activeBoosts[0]?.effectType).toBe('click_multiplier');
     expect(resolved.stats.routeEncountersClaimed).toBe(1);
+  });
+});
+
+describe('random item events', () => {
+  it('grants catalog items through the existing inventory reward path', () => {
+    const state = createInitialGameState(1000);
+    const event: RandomEventDefinition = {
+      id: 'test_item_drop',
+      name: 'Test Item Drop',
+      description: 'Drops an item.',
+      rarity: 'common',
+      durationMs: 0,
+      weight: 1,
+      effectType: 'item_drop',
+      itemId: 'route_marker',
+      quantity: 1
+    };
+    const resolved = resolveRandomEvent(state, event, 2000);
+
+    expect(resolved.inventory.items.route_marker).toBe(1);
+    expect(resolved.stats.randomEventsClaimed).toBe(1);
+    expect(resolved.ui.toast).toContain('Route Marker');
   });
 });
 

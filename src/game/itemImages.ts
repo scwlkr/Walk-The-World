@@ -22,6 +22,12 @@ export type ItemImageCandidate = {
 const itemAssetRoot = '/assets/items/';
 const availableItemAssetFilenames = new Set([
   'retro_sweatband_item.png',
+  'detour_token.png',
+  'energy_drink.png',
+  'loose_walkerbuck.png',
+  'mile_badge.png',
+  'mystery_backpack.png',
+  'route_marker.png',
   'spring_stride_ticket.png',
   'starter_step_counter.png',
   'trail_mix.png',

@@ -23,6 +23,28 @@ export const RANDOM_EVENTS: RandomEventDefinition[] = [
     value: 120
   },
   {
+    id: 'snack_cache',
+    name: 'Snack Cache',
+    description: 'A trail snack is tucked behind the next marker.',
+    rarity: 'common',
+    durationMs: 0,
+    weight: 12,
+    effectType: 'item_drop',
+    itemId: 'trail_mix',
+    quantity: 1
+  },
+  {
+    id: 'lost_postcard',
+    name: 'Lost Postcard',
+    description: 'A Walkertown souvenir flutters onto the route.',
+    rarity: 'common',
+    durationMs: 0,
+    weight: 8,
+    effectType: 'item_drop',
+    itemId: 'walkertown_postcard',
+    quantity: 1
+  },
+  {
     id: 'big_lunge',
     name: 'Big Lunge',
     description: 'Huge stride unlocked.',
@@ -61,6 +83,17 @@ export const RANDOM_EVENTS: RandomEventDefinition[] = [
     weight: 8,
     effectType: 'mystery',
     value: 1
+  },
+  {
+    id: 'route_marker_found',
+    name: 'Route Marker',
+    description: 'A fresh marker drops near the walking line.',
+    rarity: 'rare',
+    durationMs: 0,
+    weight: 6,
+    effectType: 'item_drop',
+    itemId: 'route_marker',
+    quantity: 1
   },
   {
     id: 'fake_shortcut',

@@ -435,15 +435,105 @@ button {
 }
 
 .event-overlay {
-  border: 1px dashed var(--gold);
-  background: rgba(15, 23, 42, 0.8);
+  --event-accent: var(--gold);
+  border: 1px solid color-mix(in srgb, var(--event-accent) 68%, rgba(148, 163, 184, 0.34));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--event-accent) 20%, transparent), transparent 58%),
+    rgba(15, 23, 42, 0.86);
   color: var(--text);
   border-radius: 12px;
-  padding: 0.5rem 0.65rem;
+  padding: 0.55rem 0.65rem;
   width: 100%;
   overflow-wrap: anywhere;
   display: grid;
+  gap: 0.42rem;
   text-align: left;
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.22);
+}
+
+button.event-overlay {
+  cursor: pointer;
+  font: inherit;
+}
+
+.event-overlay-main {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 0.58rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.event-visual {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--event-accent) 46%, rgba(255, 255, 255, 0.08));
+  background:
+    radial-gradient(circle at 50% 36%, color-mix(in srgb, var(--event-accent) 30%, transparent), transparent 64%),
+    rgba(2, 6, 23, 0.52);
+}
+
+.event-item-art.item-art {
+  width: 48px;
+  height: 48px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.event-corner-art.item-art {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: rgba(2, 6, 23, 0.92);
+  border-color: color-mix(in srgb, var(--event-accent) 54%, rgba(255, 255, 255, 0.12));
+}
+
+.encounter-sprite {
+  width: 48px;
+  height: 48px;
+  display: block;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.event-glyph {
+  color: #fde68a;
+  font-weight: 900;
+  font-size: 1rem;
+}
+
+.event-copy {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.event-kicker {
+  color: color-mix(in srgb, var(--event-accent) 75%, #ffffff);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.event-copy strong {
+  font-size: 0.92rem;
+  line-height: 1.08;
+}
+
+.event-copy small {
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  line-height: 1.2;
 }
 
 .overlay-backdrop {
@@ -730,18 +820,57 @@ button {
 }
 
 .route-encounter-overlay {
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .encounter-choice-row {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 0.4rem;
 }
 
 .encounter-choice-row .mini-btn {
-  min-height: 34px;
-  padding: 0.35rem 0.48rem;
+  min-height: 44px;
+  padding: 0.38rem 0.48rem;
+}
+
+.encounter-choice-btn {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.42rem;
+  align-items: center;
+  text-align: left;
+}
+
+.choice-reward-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.18rem;
+  width: 34px;
+}
+
+.choice-preview-art.item-art {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: rgba(2, 6, 23, 0.38);
+}
+
+.choice-copy {
+  display: grid;
+  gap: 0.06rem;
+  min-width: 0;
+}
+
+.choice-copy strong {
+  font-size: 0.74rem;
+  line-height: 1.05;
+}
+
+.choice-copy small {
+  color: #cbd5e1;
+  font-size: 0.62rem;
+  line-height: 1.12;
 }
 
 .event-card {

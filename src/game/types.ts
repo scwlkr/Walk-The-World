@@ -51,6 +51,7 @@ export type RandomEventEffectType =
   | 'temporary_speed_multiplier'
   | 'temporary_click_multiplier'
   | 'temporary_follower_multiplier'
+  | 'item_drop'
   | 'mystery'
   | 'fake';
 
@@ -63,6 +64,8 @@ export type RandomEventDefinition = {
   weight: number;
   effectType: RandomEventEffectType;
   value?: number;
+  itemId?: string;
+  quantity?: number;
 };
 
 export type ActiveBoost = {

@@ -7,6 +7,13 @@ import {
 } from '../game/formulas';
 import { getBackgroundScene } from '../game/backgroundScenes';
 import {
+  getRandomEventPresentation,
+  getRouteEncounterPresentation
+} from '../game/encounterPresentation';
+import { getItemImageSrc } from '../game/itemImages';
+import { RANDOM_EVENTS } from '../game/randomEvents';
+import { getRouteEncounterById } from '../game/routeEncounters';
+import {
   WALKER_ANIMATION_ASSETS,
   type WalkerAnimationState,
   type WalkerSpriteSheet
@@ -32,6 +39,18 @@ type LoadedWalkerSprite = {
 type ParallaxLayerKey = 'back' | 'middle' | 'ground';
 
 const WALKER_ANIMATION_STATES: WalkerAnimationState[] = ['walk', 'idle', 'click', 'reward', 'celebration'];
+const PICKUP_MARKER_IMAGE_SRCS = [
+  '/assets/items/trail_mix.png',
+  '/assets/items/walkertown_postcard.png',
+  '/assets/items/route_marker.png',
+  '/assets/items/mile_badge.png',
+  '/assets/items/detour_token.png',
+  '/assets/items/loose_walkerbuck.png',
+  '/assets/items/energy_drink.png',
+  '/assets/items/mystery_backpack.png',
+  '/assets/items/generated/lucky-laces.png',
+  '/assets/items/generated/golden-wayfarers.png'
+];
 
 const biomePalette: Record<
   string,
@@ -132,9 +151,11 @@ export const GameSceneCanvas = ({
   const rafRef = useRef<number>();
   const backgroundImageRef = useRef<HTMLImageElement | null>(null);
   const parallaxLayerImagesRef = useRef<Partial<Record<ParallaxLayerKey, HTMLImageElement>>>({});
+  const pickupMarkerImagesRef = useRef<Record<string, HTMLImageElement>>({});
   const [walkerSprites, setWalkerSprites] = useState<Partial<Record<WalkerAnimationState, LoadedWalkerSprite>>>({});
   const [backgroundReady, setBackgroundReady] = useState(false);
   const [parallaxReady, setParallaxReady] = useState(false);
+  const [pickupMarkerImageVersion, setPickupMarkerImageVersion] = useState(0);
   const currentLandmark = getCurrentLandmark(state);
   const backgroundScene = getBackgroundScene(sceneOverrideId ?? currentLandmark.sceneId);
   const activeSeasonalEvent = getSeasonalEventById(seasonalEventOverrideId) ?? getActiveSeasonalEventForState(state);
@@ -169,6 +190,27 @@ export const GameSceneCanvas = ({
       };
 
       sprite.src = asset.src;
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    for (const src of PICKUP_MARKER_IMAGE_SRCS) {
+      const image = new Image();
+      image.onload = () => {
+        if (cancelled) return;
+        pickupMarkerImagesRef.current = {
+          ...pickupMarkerImagesRef.current,
+          [src]: image
+        };
+        setPickupMarkerImageVersion((version) => version + 1);
+      };
+      image.src = src;
     }
 
     return () => {
@@ -362,6 +404,33 @@ export const GameSceneCanvas = ({
       if (fallbackState && walkerSprites[fallbackState]) return walkerSprites[fallbackState];
 
       return walkerSprites.walk;
+    };
+
+    const drawPickupMarker = (
+      x: number,
+      y: number,
+      pulse: number,
+      accent: string,
+      image: HTMLImageElement | undefined
+    ) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(pulse, pulse);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+      ctx.fillRect(-18, -18, 36, 36);
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-18, -18, 36, 36);
+
+      if (image) {
+        ctx.drawImage(image, -14, -14, 28, 28);
+      } else {
+        ctx.fillStyle = accent;
+        ctx.fillRect(-8, -8, 16, 16);
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-3, -3, 6, 6);
+      }
+      ctx.restore();
     };
 
     const getActiveAnimationState = (speed: number): WalkerAnimationState => {
@@ -652,30 +721,32 @@ export const GameSceneCanvas = ({
         const pulse = 1 + Math.sin(elapsed * 8) * 0.15;
         const eventX = width * 0.74;
         const eventY = pathY - 42;
-        ctx.save();
-        ctx.translate(eventX, eventY);
-        ctx.scale(pulse, pulse);
-        ctx.fillStyle = '#fde047';
-        ctx.fillRect(-12, -12, 24, 24);
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(-3, -3, 6, 6);
-        ctx.restore();
+        const eventDefinition = RANDOM_EVENTS.find((event) => event.id === state.spawnedEvent?.eventDefId);
+        const eventPresentation = eventDefinition ? getRandomEventPresentation(eventDefinition) : null;
+        const eventItemSrc = eventPresentation?.item ? getItemImageSrc(eventPresentation.item) : null;
+        drawPickupMarker(
+          eventX,
+          eventY,
+          pulse,
+          eventPresentation?.accent ?? '#fde047',
+          eventItemSrc ? pickupMarkerImagesRef.current[eventItemSrc] : undefined
+        );
       }
 
       if (state.spawnedRouteEncounter) {
         const pulse = 1 + Math.sin(elapsed * 6) * 0.1;
         const routeX = width * 0.58;
         const routeY = pathY - 30;
-        ctx.save();
-        ctx.translate(routeX, routeY);
-        ctx.scale(pulse, pulse);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(-16, -10, 32, 20);
-        ctx.fillStyle = '#fef3c7';
-        ctx.fillRect(-8, -4, 16, 8);
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(-3, -1, 6, 3);
-        ctx.restore();
+        const encounter = getRouteEncounterById(state.spawnedRouteEncounter.encounterDefId);
+        const routePresentation = encounter ? getRouteEncounterPresentation(encounter) : null;
+        const routeItemSrc = routePresentation?.item ? getItemImageSrc(routePresentation.item) : null;
+        drawPickupMarker(
+          routeX,
+          routeY,
+          pulse,
+          routePresentation?.accent ?? '#38bdf8',
+          routeItemSrc ? pickupMarkerImagesRef.current[routeItemSrc] : undefined
+        );
       }
 
       drawLocationPlaque(width, height, landmark.name, world.shortName, progress);
@@ -689,7 +760,7 @@ export const GameSceneCanvas = ({
       window.removeEventListener('resize', resize);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [state, tapPulse, walkerSprites, backgroundReady, parallaxReady, backgroundScene, currentLandmark]);
+  }, [state, tapPulse, walkerSprites, backgroundReady, parallaxReady, pickupMarkerImageVersion, backgroundScene, currentLandmark]);
 
   return (
     <canvas

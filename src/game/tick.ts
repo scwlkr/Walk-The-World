@@ -4,6 +4,7 @@ import {
   getIdleMilesPerSecond
 } from './formulas';
 import { evaluateAchievements, markDailyPlay } from './achievements';
+import { getInventoryItemById, grantRewardToState } from './inventory';
 import { syncMilestones } from './milestones';
 import { applyDistanceAndWb } from './progression';
 import { syncDailyQuests } from './quests';
@@ -128,6 +129,20 @@ export const resolveRandomEvent = (state: GameState, eventDef: RandomEventDefini
       ];
       next.ui.toast = `${eventDef.name} fired up your crew!`;
       break;
+    case 'item_drop': {
+      const itemId = eventDef.itemId ?? 'trail_mix';
+      const quantity = Math.max(1, Math.floor((eventDef.quantity ?? 1) * multiplier));
+      const itemName = getInventoryItemById(itemId)?.name ?? itemId.replace(/_/g, ' ');
+      next = grantRewardToState(next, { items: [{ itemId, quantity }] });
+      next = {
+        ...next,
+        ui: {
+          ...next.ui,
+          toast: `${eventDef.name}: found ${quantity > 1 ? `${quantity} ` : ''}${itemName}.`
+        }
+      };
+      break;
+    }
     case 'mystery': {
       if (Math.random() < 0.5) {
         const gain = Math.floor(180 * multiplier);
