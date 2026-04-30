@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../game/types';
-import { getCurrentLandmark, getCurrentWorldProgressPercent, getIdleMilesPerSecond } from '../game/formulas';
+import {
+  getCurrentLandmark,
+  getCurrentWorldProgressPercent,
+  getIdleMilesPerSecond
+} from '../game/formulas';
 import { getBackgroundScene } from '../game/backgroundScenes';
 import {
   WALKER_ANIMATION_ASSETS,
@@ -8,7 +12,7 @@ import {
   type WalkerSpriteSheet
 } from '../game/assets';
 import { getActiveSeasonalEventForState, getSeasonalEventById } from '../game/seasonalEvents';
-import { getCurrentWorldDefinition } from '../game/world';
+import { getCurrentWorldDefinition, getCurrentWorldDistance } from '../game/world';
 
 type GameSceneCanvasProps = {
   state: GameState;
@@ -24,6 +28,8 @@ type LoadedWalkerSprite = {
   asset: WalkerSpriteSheet;
   image: HTMLImageElement;
 };
+
+type ParallaxLayerKey = 'back' | 'middle' | 'ground';
 
 const WALKER_ANIMATION_STATES: WalkerAnimationState[] = ['walk', 'idle', 'click', 'reward', 'celebration'];
 
@@ -125,8 +131,10 @@ export const GameSceneCanvas = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number>();
   const backgroundImageRef = useRef<HTMLImageElement | null>(null);
+  const parallaxLayerImagesRef = useRef<Partial<Record<ParallaxLayerKey, HTMLImageElement>>>({});
   const [walkerSprites, setWalkerSprites] = useState<Partial<Record<WalkerAnimationState, LoadedWalkerSprite>>>({});
   const [backgroundReady, setBackgroundReady] = useState(false);
+  const [parallaxReady, setParallaxReady] = useState(false);
   const currentLandmark = getCurrentLandmark(state);
   const backgroundScene = getBackgroundScene(sceneOverrideId ?? currentLandmark.sceneId);
   const activeSeasonalEvent = getSeasonalEventById(seasonalEventOverrideId) ?? getActiveSeasonalEventForState(state);
@@ -191,6 +199,49 @@ export const GameSceneCanvas = ({
   }, [backgroundScene.src]);
 
   useEffect(() => {
+    let cancelled = false;
+    const layerEntries = Object.entries(backgroundScene.parallaxLayers ?? {}) as Array<[ParallaxLayerKey, string]>;
+
+    parallaxLayerImagesRef.current = {};
+    setParallaxReady(false);
+
+    if (layerEntries.length === 0) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const loadedLayers: Partial<Record<ParallaxLayerKey, HTMLImageElement>> = {};
+    let loadedCount = 0;
+
+    for (const [layerKey, src] of layerEntries) {
+      const image = new Image();
+
+      image.onload = () => {
+        if (cancelled) return;
+        loadedLayers[layerKey] = image;
+        loadedCount += 1;
+        if (loadedCount === layerEntries.length) {
+          parallaxLayerImagesRef.current = loadedLayers;
+          setParallaxReady(true);
+        }
+      };
+
+      image.onerror = () => {
+        if (cancelled) return;
+        parallaxLayerImagesRef.current = {};
+        setParallaxReady(false);
+      };
+
+      image.src = src;
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [backgroundScene.id, backgroundScene.parallaxLayers]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -219,19 +270,88 @@ export const GameSceneCanvas = ({
       }
     };
 
-    const drawFramedBackground = (image: HTMLImageElement, width: number, height: number, elapsed: number, speed: number) => {
+    const positiveModulo = (value: number, modulo: number) => ((value % modulo) + modulo) % modulo;
+
+    const getVisualTravelPixels = (elapsed: number, speed: number) => {
+      const motion = state.settings.reducedMotion ? 0.22 : 1;
+      return elapsed * (18 + Math.min(speed * 2200, 52)) * motion + getCurrentWorldDistance(state) * 34;
+    };
+
+    const drawWrappedImage = (
+      image: HTMLImageElement,
+      width: number,
+      travel: number,
+      y: number,
+      drawWidth: number,
+      drawHeight: number,
+      alpha = 1
+    ) => {
+      const offset = positiveModulo(travel, drawWidth);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      for (let x = -offset - drawWidth; x < width + drawWidth; x += drawWidth) {
+        ctx.drawImage(image, Math.round(x), Math.round(y), Math.ceil(drawWidth), Math.ceil(drawHeight));
+      }
+      ctx.restore();
+    };
+
+    const drawWrappedSceneBackground = (
+      image: HTMLImageElement,
+      width: number,
+      height: number,
+      elapsed: number,
+      speed: number
+    ) => {
       const scale = Math.max(height / image.height, width / image.width);
       const drawWidth = Math.ceil(image.width * scale);
       const drawHeight = Math.ceil(image.height * scale);
-      const panRangeX = Math.max(0, drawWidth - width);
       const panRangeY = Math.max(0, drawHeight - height);
-      const motion = state.settings.reducedMotion ? 0.18 : 1;
-      // Current scene art is a composite. Keep this isolated so split parallax layers can drop in later.
-      const drift = Math.sin(elapsed * (0.035 + Math.min(speed * 2, 0.22)) * motion);
-      const x = -Math.round(((drift + 1) / 2) * panRangeX);
       const y = -Math.round(panRangeY * 0.52);
+      const travel = getVisualTravelPixels(elapsed, speed) * 0.14;
 
-      ctx.drawImage(image, x, y, drawWidth, drawHeight);
+      drawWrappedImage(image, width, travel, y, drawWidth, drawHeight);
+    };
+
+    const drawParallaxBackground = (
+      width: number,
+      height: number,
+      pathY: number,
+      elapsed: number,
+      speed: number
+    ) => {
+      const layers = parallaxLayerImagesRef.current;
+      const back = layers.back;
+      const middle = layers.middle;
+      const ground = layers.ground;
+      if (!back || !middle || !ground) return false;
+
+      const travel = getVisualTravelPixels(elapsed, speed);
+      const sky = ctx.createLinearGradient(0, 0, 0, height);
+      sky.addColorStop(0, '#16220f');
+      sky.addColorStop(0.55, '#d9f99d');
+      sky.addColorStop(1, '#152414');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, width, height);
+
+      const backScale = height / back.height;
+      drawWrappedImage(back, width, travel * 0.16, height - back.height * backScale, back.width * backScale, back.height * backScale);
+
+      const middleScale = height / middle.height;
+      drawWrappedImage(
+        middle,
+        width,
+        travel * 0.42,
+        height - middle.height * middleScale,
+        middle.width * middleScale,
+        middle.height * middleScale
+      );
+
+      const groundScale = Math.max(2.2, Math.min(4.2, (height * 0.32) / ground.height));
+      const groundHeight = ground.height * groundScale;
+      const groundY = Math.min(pathY + 2, height - groundHeight + 8);
+      drawWrappedImage(ground, width, travel * 0.92, groundY, ground.width * groundScale, groundHeight);
+
+      return true;
     };
 
     const getLoadedWalkerSprite = (animationState: WalkerAnimationState): LoadedWalkerSprite | undefined => {
@@ -326,6 +446,46 @@ export const GameSceneCanvas = ({
       }
     };
 
+    const drawLaneMotionDetails = (
+      width: number,
+      pathY: number,
+      laneHeight: number,
+      elapsed: number,
+      speed: number,
+      biome: string
+    ) => {
+      const travel = state.settings.reducedMotion ? 0 : elapsed * (76 + Math.min(speed * 1800, 44));
+      const detailColor =
+        biome === 'city' || biome === 'lunar' || biome === 'space'
+          ? 'rgba(226, 232, 240, 0.32)'
+          : 'rgba(77, 124, 15, 0.38)';
+      const shadowColor =
+        biome === 'city' || biome === 'lunar' || biome === 'space'
+          ? 'rgba(15, 23, 42, 0.28)'
+          : 'rgba(63, 98, 18, 0.3)';
+
+      for (let i = 0; i < 24; i += 1) {
+        const x = positiveModulo(i * 79 - travel, width + 140) - 70;
+        const y = pathY + 9 + ((i * 17) % Math.max(18, laneHeight - 18));
+        const widthSeed = 4 + (i % 4);
+
+        ctx.fillStyle = shadowColor;
+        ctx.fillRect(Math.round(x), Math.round(y + 2), widthSeed + 4, 2);
+        ctx.fillStyle = detailColor;
+        ctx.fillRect(Math.round(x + 1), Math.round(y), widthSeed, 2);
+      }
+
+      if (biome === 'city' || biome === 'lunar' || biome === 'space') return;
+
+      for (let i = 0; i < 18; i += 1) {
+        const x = positiveModulo(i * 113 - travel * 0.82, width + 160) - 80;
+        const y = pathY - 6 + (i % 3) * 2;
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(132, 204, 22, 0.44)' : 'rgba(22, 101, 52, 0.42)';
+        ctx.fillRect(Math.round(x), Math.round(y), 4, 10);
+        ctx.fillRect(Math.round(x + 5), Math.round(y + 3), 3, 7);
+      }
+    };
+
     const drawWalkerShadow = (centerX: number, footY: number, pulse: number) => {
       const widthBoost = pulse * 10;
       ctx.fillStyle = 'rgba(2, 6, 23, 0.26)';
@@ -371,13 +531,14 @@ export const GameSceneCanvas = ({
       const progress = getCurrentWorldProgressPercent(state);
       const world = getCurrentWorldDefinition(state);
       const backgroundImage = backgroundImageRef.current;
-      let pathY = Math.floor(height * 0.74);
+      const pathY = Math.floor(height * backgroundScene.pathYRatio);
 
-      if (backgroundReady && backgroundImage) {
+      if (backgroundScene.parallaxLayers && parallaxReady && drawParallaxBackground(width, height, pathY, elapsed, speed)) {
+        // Layered scenes render directly from seamless source layers.
+      } else if (backgroundReady && backgroundImage) {
         ctx.fillStyle = '#020617';
         ctx.fillRect(0, 0, width, height);
-        drawFramedBackground(backgroundImage, width, height, elapsed, speed);
-        pathY = Math.floor(height * backgroundScene.pathYRatio);
+        drawWrappedSceneBackground(backgroundImage, width, height, elapsed, speed);
       } else {
         const sky = ctx.createLinearGradient(0, 0, 0, height);
         sky.addColorStop(0, palette.skyTop);
@@ -435,6 +596,7 @@ export const GameSceneCanvas = ({
       const laneHeight = Math.min(58, Math.max(42, Math.round(height * 0.07)));
       const footY = pathY + Math.round(laneHeight * 0.58);
       drawWalkingLane(width, pathY, laneHeight, elapsed, speed, landmark.biome);
+      drawLaneMotionDetails(width, pathY, laneHeight, elapsed, speed, landmark.biome);
 
       const cadence = 4 + Math.min(12, speed * 22);
       const strideSwing = Math.sin(elapsed * cadence) * 5;
@@ -527,7 +689,7 @@ export const GameSceneCanvas = ({
       window.removeEventListener('resize', resize);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [state, tapPulse, walkerSprites, backgroundReady, backgroundScene, currentLandmark]);
+  }, [state, tapPulse, walkerSprites, backgroundReady, parallaxReady, backgroundScene, currentLandmark]);
 
   return (
     <canvas

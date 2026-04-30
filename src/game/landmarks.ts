@@ -4,7 +4,7 @@ export const EARTH_LANDMARKS: Landmark[] = [
   { name: 'Walkertown', distanceMiles: 0, biome: 'plains', sceneId: 'walkertown' },
   { name: 'Corner Marker', distanceMiles: 0.04, biome: 'plains', sceneId: 'walkertown' },
   { name: 'Corner Store', distanceMiles: 0.16, biome: 'city', sceneId: 'suburb' },
-  { name: 'Trailhead Sign', distanceMiles: 0.42, biome: 'plains', sceneId: 'suburb' },
+  { name: 'Trailhead Sign', distanceMiles: 0.42, biome: 'plains', sceneId: 'forest_illusion' },
   { name: 'Dallas', distanceMiles: 250, biome: 'city', sceneId: 'dallas' },
   { name: 'Grand Canyon', distanceMiles: 1100, biome: 'desert', sceneId: 'grand_canyon' },
   { name: 'Las Vegas', distanceMiles: 1500, biome: 'city', sceneId: 'desert' },

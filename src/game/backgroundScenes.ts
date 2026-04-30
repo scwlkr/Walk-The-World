@@ -2,6 +2,11 @@ export type BackgroundScene = {
   id: string;
   name: string;
   src: string;
+  parallaxLayers?: {
+    back: string;
+    middle: string;
+    ground: string;
+  };
   pathTint: string;
   pathLine: string;
   pathYRatio: number;
@@ -28,6 +33,20 @@ export const BACKGROUND_SCENES: Record<string, BackgroundScene> = {
     pathLine: 'rgba(255, 237, 175, 0.34)',
     pathYRatio: 0.82,
     vibeTags: ['neighborhood', 'warm']
+  },
+  forest_illusion: {
+    id: 'forest_illusion',
+    name: 'Forest Trail',
+    src: '/assets/backgrounds/forest_of_illusion/preview.png',
+    parallaxLayers: {
+      back: '/assets/backgrounds/forest_of_illusion/back.png',
+      middle: '/assets/backgrounds/forest_of_illusion/middle.png',
+      ground: '/assets/backgrounds/forest_of_illusion/tiles.png'
+    },
+    pathTint: 'rgba(62, 72, 28, 0.7)',
+    pathLine: 'rgba(217, 249, 157, 0.28)',
+    pathYRatio: 0.78,
+    vibeTags: ['forest', 'pixel-art', 'parallax', 'cc0']
   },
   dallas: {
     id: 'dallas',
