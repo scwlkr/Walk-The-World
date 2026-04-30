@@ -40,10 +40,10 @@ export const LeaderboardPanel = ({
 
       <article className="panel shop-card">
         <div className="card-row">
-          <h4>Shared WB Balance</h4>
+          <h4>WalkerBucks Balance</h4>
           <span className="pill">{leaderboard ? `${leaderboard.entries.length} rows` : 'Not loaded'}</span>
         </div>
-        <p className="muted">Server-owned WalkerBucks balances only. Local guest WB is excluded.</p>
+        <p className="muted">Balances come from the WalkerBucks ledger.</p>
         <p className="muted">Last checked: {formatDateTime(leaderboard?.updatedAt ?? null)}</p>
         {state.walkerBucksBridge.lastError && <p className="muted">Last error: {state.walkerBucksBridge.lastError}</p>}
         <button type="button" className="mini-btn" disabled={!canUseBridge} onClick={onRefreshLeaderboard}>

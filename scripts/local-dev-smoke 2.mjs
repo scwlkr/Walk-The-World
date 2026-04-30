@@ -170,6 +170,14 @@ const clickByText = (selector, text) => `
 })()
 `;
 
+const hasDisabledButton = (text) => `
+(() => {
+  const needle = ${JSON.stringify(text)};
+  return Array.from(document.querySelectorAll('button'))
+    .some((candidate) => candidate.textContent?.includes(needle) && candidate.disabled);
+})()
+`;
+
 const readSave = (client) =>
   evaluate(
     client,
@@ -253,7 +261,7 @@ const run = async () => {
     assert(firstScreen.hasBottomControls, 'Bottom controls did not render.');
     assert(!firstScreen.bodyOverflows, `Mobile viewport has horizontal overflow at ${firstScreen.viewportWidth}x${firstScreen.viewportHeight}.`);
 
-    logStep('walking, claiming first journey reward, and using starter item');
+    logStep('walking, claiming first journey reward, using starter item, and checking WB spend gating');
     for (let i = 0; i < 4; i += 1) {
       assert(await evaluate(client, click('.walk-btn')), 'Walk button click failed.');
       await delay(50);
@@ -267,21 +275,39 @@ const run = async () => {
     assert(await evaluate(client, clickByText('button', 'items')), 'Items tab did not open.');
     await waitFor('starter item use button', () => evaluate(client, 'document.body.textContent.includes("Use")'));
     assert(await evaluate(client, clickByText('button', 'Use')), 'Starter item use button did not click.');
-    await waitFor('local catalog buy button', () => evaluate(client, 'document.body.textContent.includes("Buy local item")'));
-    assert(await evaluate(client, clickByText('button', 'Buy local item')), 'Local catalog purchase did not click.');
+    await waitFor('catalog spend blocked without WalkerBucks balance', () => evaluate(client, hasDisabledButton('Need WB')));
 
     const inventorySave = await readSave(client);
-    assert(inventorySave?.saveVersion === 8, 'Save did not persist as version 8.');
+    assert(inventorySave?.saveVersion === 9, 'Save did not persist as version 9.');
     assert(inventorySave?.stats?.totalClicks >= 4, 'Walking did not update click stats.');
     assert(inventorySave?.stats?.milestonesClaimed >= 1, 'Milestone claim did not persist.');
-    assert(Object.values(inventorySave?.inventory?.items ?? {}).some((quantity) => quantity > 0), 'Inventory did not persist an item.');
+    assert(inventorySave?.stats?.itemsUsed >= 1, 'Starter item use did not persist.');
+    assert(inventorySave?.walkerBucks === 0, 'Guest save created a spendable client-side WB balance.');
+    assert(inventorySave?.walkerBucksBridge?.pendingGrantAmount >= 20, 'Earned WB was not queued for WalkerBucks sync.');
 
     logStep('forcing a route encounter through save state and resolving it');
     const routeSave = await readSave(client);
     routeSave.ui = {
       ...routeSave.ui,
       activeTab: 'walk',
-      showShop: false
+      showShop: false,
+      offlineSummary: {
+        distance: 1.23,
+        wb: 45
+      },
+      toast: 'Quest reminder: Warm-Up Walk ready.',
+      recentRewards: [
+        { id: 'smoke_reward_item', label: '1 item', createdAt: Date.now() },
+        { id: 'smoke_reward_wb', label: '+45 WB', createdAt: Date.now() },
+        { id: 'smoke_reward_extra', label: 'queued reward', createdAt: Date.now() }
+      ]
+    };
+    routeSave.spawnedEvent = {
+      id: 'event_smoke_loose_walkerbuck',
+      eventDefId: 'loose_walkerbuck',
+      spawnedAt: Date.now(),
+      expiresAt: Date.now() + 60000,
+      label: 'Loose WalkerBuck'
     };
     routeSave.spawnedRouteEncounter = {
       id: 'route_smoke_split_path',
@@ -296,6 +322,46 @@ const run = async () => {
     await navigateToApp(client, 'route encounter reload');
     await client.call('Page.removeScriptToEvaluateOnNewDocument', { identifier: routeInjection.identifier });
     await waitFor('route encounter overlay', () => evaluate(client, 'document.body.textContent.includes("Split Path")'));
+    const notificationLayout = await evaluate(
+      client,
+      `(() => {
+        const getRect = (selector) => {
+          const element = document.querySelector(selector);
+          if (!element) return null;
+          const rect = element.getBoundingClientRect();
+          return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
+        };
+        const overlaps = (a, b) => Boolean(a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top);
+        const notificationItems = Array.from(document.querySelectorAll('.notification-large-slot > *, .notification-toast'))
+          .map((element) => {
+            const rect = element.getBoundingClientRect();
+            return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
+          });
+        const hud = getRect('.game-hud');
+        const rail = getRect('.bottom-controls');
+        const walk = getRect('.walk-btn');
+        return {
+          largeCount: document.querySelectorAll('.notification-large-slot > *').length,
+          toastCount: document.querySelectorAll('.notification-toast').length,
+          hasRouteCard: Boolean(document.querySelector('.notification-large-slot')?.textContent?.includes('Split Path')),
+          hasRandomCard: Boolean(document.querySelector('.notification-large-slot')?.textContent?.includes('Loose WalkerBuck')),
+          hasOfflineCard: Boolean(document.querySelector('.notification-large-slot')?.textContent?.includes('while away')),
+          overlapsHud: notificationItems.some((item) => overlaps(item, hud)),
+          overlapsRail: notificationItems.some((item) => overlaps(item, rail)),
+          overlapsWalk: notificationItems.some((item) => overlaps(item, walk)),
+          unsafeEdges: [hud, rail, walk, ...notificationItems].some((item) => item && (item.left < 12 || item.right > window.innerWidth - 12 || item.top < 12 || item.bottom > window.innerHeight - 12))
+        };
+      })()`
+    );
+    assert(notificationLayout.largeCount === 1, 'Notification center rendered more than one large card.');
+    assert(notificationLayout.toastCount <= 2, 'Notification center rendered more than two toasts.');
+    assert(notificationLayout.hasRouteCard, 'Route encounter was not the visible priority notification.');
+    assert(!notificationLayout.hasRandomCard, 'Random event card overlapped instead of queueing behind route encounter.');
+    assert(!notificationLayout.hasOfflineCard, 'Offline summary overlapped instead of queueing behind route encounter.');
+    assert(!notificationLayout.overlapsHud, 'Notification overlapped the HUD.');
+    assert(!notificationLayout.overlapsRail, 'Notification overlapped the right action rail.');
+    assert(!notificationLayout.overlapsWalk, 'Notification overlapped the WALK button.');
+    assert(!notificationLayout.unsafeEdges, 'A fixed UI element is too close to the mobile viewport edge.');
     assert(await evaluate(client, clickByText('button', 'Sprint line')), 'Route encounter choice did not click.');
     const encounterSave = await readSave(client);
     assert(encounterSave?.stats?.routeEncountersClaimed >= 1, 'Route encounter did not persist as claimed.');
@@ -308,12 +374,14 @@ const run = async () => {
       `(() => ({
         presets: Array.from(document.querySelectorAll('select option')).some((option) => option.textContent?.includes('Mars prototype')),
         scenes: Array.from(document.querySelectorAll('select option')).some((option) => option.textContent?.includes('Walkertown')),
-        hasSpeed: Boolean(document.querySelector('input[type="number"]'))
+        hasSpeed: Boolean(document.querySelector('input[type="number"]')),
+        hasBankLink: Boolean(document.querySelector('input[placeholder="LINK-0000"]')) && document.body.textContent.includes('Bank Link')
       }))()`
     );
     assert(devLab.presets, 'Dev lab preset options did not render.');
     assert(devLab.scenes, 'Dev lab scene options did not render.');
     assert(devLab.hasSpeed, 'Dev lab speed multiplier did not render.');
+    assert(devLab.hasBankLink, 'WalkerBucks Bank link form did not render.');
 
     logStep('reloading and verifying local save continuity');
     await navigateToApp(client, 'reloaded game');

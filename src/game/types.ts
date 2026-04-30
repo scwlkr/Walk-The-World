@@ -84,7 +84,7 @@ export type SpawnedRandomEvent = {
   label: string;
 };
 
-export type RouteEncounterChoiceEffectType = 'local_wb' | 'distance' | 'item_drop' | 'temporary_boost';
+export type RouteEncounterChoiceEffectType = 'walkerbucks_grant' | 'distance' | 'item_drop' | 'temporary_boost';
 
 export type RouteEncounterChoiceEffect = {
   type: RouteEncounterChoiceEffectType;
@@ -436,7 +436,17 @@ export type WalkerBucksBalanceSnapshot = {
   updatedAt: number;
 };
 
-export type ServerRewardSourceType = 'achievement';
+export type ServerRewardSourceType =
+  | 'achievement'
+  | 'quest'
+  | 'milestone'
+  | 'random_event'
+  | 'route_encounter'
+  | 'walking'
+  | 'inventory'
+  | 'legacy_migration';
+
+export type ServerSpendSourceType = 'upgrade' | 'follower' | 'catalog_offer';
 
 export type WalkerBucksRewardGrantStatus = 'pending' | 'granted' | 'failed';
 
@@ -449,6 +459,24 @@ export type WalkerBucksRewardGrant = {
   idempotencyKey: string;
   reasonCode: string;
   status: WalkerBucksRewardGrantStatus;
+  attempts: number;
+  transactionId: string | null;
+  lastError: string | null;
+  createdAt: number;
+  updatedAt: number;
+  settledAt: number | null;
+};
+
+export type WalkerBucksSpendStatus = 'pending' | 'spent' | 'failed';
+
+export type WalkerBucksSpend = {
+  id: string;
+  sourceType: ServerSpendSourceType;
+  sourceId: string;
+  label: string;
+  amount: number;
+  idempotencyKey: string;
+  status: WalkerBucksSpendStatus;
   attempts: number;
   transactionId: string | null;
   lastError: string | null;
@@ -533,9 +561,12 @@ export type WalkerBucksBridgeState = {
   accountId: string | null;
   balance: WalkerBucksBalanceSnapshot | null;
   rewardGrants: Record<string, WalkerBucksRewardGrant>;
+  pendingGrantAmount: number;
+  pendingGrantSequence: number;
   leaderboard: WalkerBucksLeaderboardSnapshot | null;
   marketplaceOffers: WalkerBucksMarketplaceOffer[];
   marketplacePurchases: Record<string, WalkerBucksMarketplacePurchase>;
+  spends: Record<string, WalkerBucksSpend>;
   inventory: WalkerBucksInventoryItem[];
   lastCheckedAt: number | null;
   lastError: string | null;

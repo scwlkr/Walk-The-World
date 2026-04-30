@@ -23,7 +23,7 @@ const getStatusLabel = (state: GameState, isBridgeConfigured: boolean, isSignedI
 
 const getActionLabel = (state: GameState, offer: WalkerBucksMarketplaceOffer): string => {
   const purchase = state.walkerBucksBridge.marketplacePurchases[getMarketplacePurchaseStateId(offer.id)];
-  if (!purchase) return 'Buy with shared WB';
+  if (!purchase) return 'Buy with WB';
   if (purchase.status === 'pending') return 'Pending';
   if (purchase.status === 'purchased') return 'Purchased';
   return 'Retry purchase';
@@ -72,7 +72,7 @@ export const MarketplacePanel = ({
           <h4>Shared Offers</h4>
           <span className="pill">{balance ? `${balance.availableBalance.toLocaleString()} WB` : 'No balance'}</span>
         </div>
-        <p className="muted">Purchases use the shared WalkerBucks bridge. Local guest WB is never spent here.</p>
+        <p className="muted">Purchases settle through the WalkerBucks bridge.</p>
         {state.walkerBucksBridge.lastError && <p className="muted">Last error: {state.walkerBucksBridge.lastError}</p>}
         <button type="button" className="mini-btn" disabled={!canUseBridge} onClick={onRefreshMarketplace}>
           {isBusy ? 'Checking' : 'Refresh offers'}

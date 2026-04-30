@@ -5,7 +5,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
   {
     id: 'day_one_check_in',
     name: 'Day One Walker',
-    description: 'Open the game for a local daily check-in.',
+    description: 'Open the game for a daily check-in.',
     condition: { type: 'daily_play', target: 1 },
     reward: { walkerBucks: 20 }
   },
@@ -59,8 +59,8 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
   },
   {
     id: 'local_wallet',
-    name: 'Local Wallet',
-    description: 'Earn 100 total local WB.',
+    name: 'WalkerBucks Earner',
+    description: 'Earn 100 WB through Walk The World.',
     condition: { type: 'total_wb_earned', target: 100 },
     reward: {
       walkerBucks: 50

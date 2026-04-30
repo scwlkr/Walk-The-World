@@ -1,5 +1,6 @@
 import type {
   ServerRewardSourceType,
+  ServerSpendSourceType,
   WalkerBucksBalanceSnapshot,
   WalkerBucksInventoryItem,
   WalkerBucksLeaderboardSnapshot,
@@ -19,7 +20,9 @@ type BridgeErrorBody = {
 export type WalkerBucksRewardGrantRequest = {
   sourceType: ServerRewardSourceType;
   sourceId: string;
+  amount: number;
   idempotencyKey: string;
+  reasonCode?: string;
 };
 
 export type WalkerBucksRewardGrantResponse = {
@@ -44,6 +47,24 @@ export type WalkerBucksMarketplaceSnapshot = {
 export type WalkerBucksMarketplacePurchaseRequest = {
   shopOfferId: number;
   idempotencyKey: string;
+};
+
+export type WalkerBucksSpendRequest = {
+  sourceType: ServerSpendSourceType;
+  sourceId: string;
+  amount: number;
+  idempotencyKey: string;
+};
+
+export type WalkerBucksSpendResponse = {
+  status: 'spent';
+  accountId: string;
+  transactionId: string;
+  sourceType: ServerSpendSourceType;
+  sourceId: string;
+  amount: number;
+  idempotencyKey: string;
+  balance: WalkerBucksBalanceSnapshot;
 };
 
 export type WalkerBucksMarketplacePurchaseResponse = {
@@ -124,6 +145,15 @@ export const grantWalkerBucksReward = async (
   requestBridge<WalkerBucksRewardGrantResponse>('/rewards/grants', accessToken, {
     method: 'POST',
     body: JSON.stringify(grant)
+  });
+
+export const spendWalkerBucksForGame = async (
+  accessToken: string,
+  spend: WalkerBucksSpendRequest
+): Promise<WalkerBucksSpendResponse> =>
+  requestBridge<WalkerBucksSpendResponse>('/spends', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(spend)
   });
 
 export const completeWalkerBucksBankLink = async (

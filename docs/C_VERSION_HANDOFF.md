@@ -234,11 +234,11 @@ Phase 4 from `docs/C_VERSION_PLAN.md` has been implemented.
 
 Implemented:
 
-- Added data-driven local daily quests with stable IDs, local-only rewards, and progress targets for walking, clicking, upgrade purchases, follower hires, random event claims, achievement claims, and world route progress.
+- Added data-driven daily quests with stable IDs, WalkerBucks-backed rewards, and progress targets for walking, clicking, upgrade purchases, follower hires, random event claims, achievement claims, and world route progress.
 - Added date-based daily quest generation that uses the local date, active seasonal event, current world, and save progress eligibility.
 - Added save version 4 quest state with active date, quest IDs, progress, claimed status, and baseline counters while keeping the existing `walk_the_world_save_v1` localStorage key.
-- Added local quest reward claiming through the existing inventory/reward helper.
-- Added Spring Stride Festival as the first seasonal event with active date window, HUD/canvas visual treatment, seasonal quest variation, Spring Stride Ticket reward, and local-only reward labels.
+- Added quest reward claiming through the existing inventory/reward helper and WalkerBucks grant queue.
+- Added Spring Stride Festival as the first seasonal event with active date window, HUD/canvas visual treatment, seasonal quest variation, Spring Stride Ticket reward, and WalkerBucks reward labels.
 - Added a Quests bottom-nav affordance and `QuestPanel` overlay.
 - Updated README C-version roadmap status for Daily quests and Seasonal events.
 
@@ -267,7 +267,7 @@ Verification completed:
 - `npm run build` passes.
 - Live preview opened on `http://127.0.0.1:5174/`.
 - Existing local guest save migrated to save version 4 without reset.
-- Quests overlay showed active daily quests, local-only reward labels, and the Spring Stride seasonal event card.
+- Quests overlay showed active daily quests, WalkerBucks reward labels, and the Spring Stride seasonal event card.
 - Gameplay tapping advanced Tap Pace from in progress to ready.
 - Claimed Warm-Up Walk, Tap Pace, and Spring Route Push rewards; HUD WB and toast feedback updated.
 - Reload confirmed quest progress and claimed reward state persisted.
@@ -337,10 +337,10 @@ Implemented:
 - Added `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` before bridge code.
 - Added `src/services/walkerbucksClient.ts` for optional bridge balance/grant calls through the trusted bridge URL.
 - Added `supabase/functions/walkerbucks-bridge/index.ts` to verify Supabase users, resolve WalkerBucks accounts, read balances, and grant the first server-owned reward source.
-- Added `src/game/economy.ts` for shared-WB balance state, pending/failed/granted reward grants, and stable idempotency key helpers.
+- Added `src/game/economy.ts` for WalkerBucks balance state, pending/failed/granted reward grants, spend state, and stable idempotency key helpers.
 - Added save version 6 WalkerBucks bridge state while keeping `walk_the_world_save_v1`.
-- Added `src/components/WalkerBucksPanel.tsx` in Settings for read-only shared balance and retryable grant visibility.
-- Updated achievement claiming so signed-in configured bridge mode skips local WB for Day One Walker and records a pending shared-WB grant; guest/unconfigured mode keeps the local fallback reward.
+- Added `src/components/WalkerBucksPanel.tsx` in Settings for read-only WalkerBucks balance, pending grant amount, spend state, and retryable grant visibility.
+- Updated achievement claiming so signed-in configured bridge mode records a pending WalkerBucks grant; guest/unconfigured mode queues WB until bridge settlement.
 - Updated README and `.env.example` for the bridge URL and server-only secret boundary.
 
 Touched files:
@@ -391,7 +391,7 @@ Implemented:
 - Added `src/components/LeaderboardPanel.tsx` under Stats for the shared WalkerBucks balance leaderboard.
 - Added `src/components/MarketplacePanel.tsx` under Shop for shared offers and purchase proof.
 - Added `src/components/SocialBridgePanel.tsx` under Settings for Discord-first and Telegram-future bridge status.
-- Kept local guest mode and local shop/inventory behavior available when Supabase, WalkerBucks, or Discord social bridge configuration is missing.
+- Kept guest route progress and app-layer inventory behavior available when Supabase, WalkerBucks, or Discord social bridge configuration is missing, without a separate spendable WB balance.
 
 Touched files:
 
@@ -495,7 +495,7 @@ Implemented:
 - Added save version 8 with Journey milestone state, profile/title unlocks, route encounter schedule/spawn state, and recent reward feedback.
 - Added first-session Journey milestones for quick rewards, first route stop, first upgrade, first follower, first event, first item set, and first collection/title moment.
 - Tuned early pacing constants and added close Earth micro-landmarks so fresh play shows visible route progress quickly.
-- Added route encounters with short choices, item drops, local WB, distance rewards, and temporary boost effects through the existing reward/boost model.
+- Added route encounters with short choices, item drops, WalkerBucks grant queue rewards, distance rewards, and temporary boost effects through the existing reward/boost model.
 - Added generated catalog runtime adapter for `items.generated.json` and `shop_offers.generated.json`.
 - Promoted safe generated catalog items into local inventory, catalog shop, equipment, cosmetics, titles, and inert collectibles for planned effects.
 - Added read-only shared WalkerBucks inventory entitlements, mapping only known shared offer metadata to generated catalog item IDs.
@@ -554,12 +554,12 @@ Verification completed:
 
 - `npm run build` passes with the existing Vite large-chunk warning.
 - `npm run items:validate` passes for 31 items, 14 effect rows, and 31 offers.
-- `npm run test` passes 8 pure game tests.
-- `npm run smoke:local` passes: fresh mobile viewport, Journey milestone claim, starter item use, local catalog purchase, forced route encounter resolution, dev lab render, and reload continuity.
+- `npm run test` passes 9 pure game tests.
+- `npm run smoke:local` passes: fresh mobile viewport, Journey milestone claim, starter item use, catalog spend gating, forced route encounter resolution, dev lab render, and reload continuity.
 - Production deployment is Ready and aliased to `https://walk-the-world.vercel.app/`.
-- `npm run smoke:production-browser` passes against production with save version 8, 12 leaderboard rows, 13 marketplace offers, runtimeErrors 0, and screenshot artifacts under ignored `qa-artifacts/`.
+- `npm run smoke:production-browser` passes against production with save version 9, 15 leaderboard entries, 13 marketplace offers, runtimeErrors 0, and screenshot artifacts under ignored `qa-artifacts/`.
 - In-app browser visual QA confirms the live production guest surface renders with the pixel scene, WALK control, Journey HUD, route label, and mobile controls.
-- `npm run smoke:private-beta-live` passes with bridge required, purchase enabled, offer id `13`, cloudSaveRunId `f1ae971c-5102-4d06-b125-25bcf61cfa0e`, WalkerBucks account `1a08c59a-143a-4231-b90f-209db7cbcf2f`, reward transaction `b6290de6-a442-41ca-8bce-1c7c14b09242`, 13 leaderboard entries, 13 marketplace offers, and `purchaseStatus` `purchased`.
+- `npm run smoke:private-beta-live` passes with bridge required, purchase enabled, offer id `13`, WalkerBucks reward grant, leaderboard, 13 marketplace offers, and `purchaseStatus` `purchased`.
 
 Release decision:
 

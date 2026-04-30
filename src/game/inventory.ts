@@ -1,4 +1,5 @@
 import { COSMETICS, formatPercentBonus } from './cosmetics';
+import { queueWalkerBucksGrantAmount } from './economy';
 import { INVENTORY_CATALOG_ITEMS } from './items';
 import type { GameState, InventoryEffectType, InventoryItemDefinition, RewardDefinition } from './types';
 
@@ -35,11 +36,7 @@ export const grantRewardToState = (state: GameState, reward: RewardDefinition): 
 
   if (reward.walkerBucks && reward.walkerBucks > 0) {
     const gain = Math.floor(reward.walkerBucks);
-    next = {
-      ...next,
-      walkerBucks: next.walkerBucks + gain,
-      totalWalkerBucksEarned: next.totalWalkerBucksEarned + gain
-    };
+    next = queueWalkerBucksGrantAmount(next, gain);
     rewardLabels.push(`+${gain.toLocaleString()} WB`);
   }
 
@@ -125,13 +122,12 @@ export const useInventoryItem = (state: GameState, itemId: string): GameState =>
 
   if (item.effect.type === 'instant_wb' || item.effect.type === 'currency_grant') {
     const gain = Math.floor(item.effect.value);
+    const queued = queueWalkerBucksGrantAmount(next, gain);
     next = {
-      ...next,
-      walkerBucks: next.walkerBucks + gain,
-      totalWalkerBucksEarned: next.totalWalkerBucksEarned + gain,
+      ...queued,
       ui: {
-        ...next.ui,
-        toast: `${item.name} used. +${gain} WB.`
+        ...queued.ui,
+        toast: `${item.name} used. +${gain} WB queued for WalkerBucks sync.`
       }
     };
   }

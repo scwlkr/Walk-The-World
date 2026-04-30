@@ -5,7 +5,7 @@ export const SEASONAL_EVENTS: SeasonalEventDefinition[] = [
     id: 'spring_stride_festival',
     name: 'Spring Stride Festival',
     shortName: 'Spring Stride',
-    description: 'A local-first route festival that adds brighter trail visuals and a seasonal daily quest.',
+    description: 'A route festival that adds brighter trail visuals and a seasonal daily quest.',
     startsOn: { month: 3, day: 20 },
     endsOn: { month: 5, day: 31 },
     visualTreatment: {
@@ -18,7 +18,7 @@ export const SEASONAL_EVENTS: SeasonalEventDefinition[] = [
       walkerBucks: 60,
       items: [{ itemId: 'spring_stride_ticket', quantity: 1 }]
     },
-    localOnly: true
+    localOnly: false
   }
 ];
 
@@ -37,7 +37,7 @@ export const SEASONAL_QUEST_DEFINITIONS: QuestDefinition[] = [
       walkerBucks: 60,
       items: [{ itemId: 'spring_stride_ticket', quantity: 1 }]
     },
-    localOnly: true
+    localOnly: false
   }
 ];
 

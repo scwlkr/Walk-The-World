@@ -59,7 +59,9 @@ type LegacyItemHistoryRow = {
 type RewardGrantRequest = {
   sourceType?: string;
   sourceId?: string;
+  amount?: number;
   idempotencyKey?: string;
+  reasonCode?: string;
 };
 
 type BankLinkRequest = {
@@ -71,8 +73,15 @@ type MarketplacePurchaseRequest = {
   idempotencyKey?: string;
 };
 
+type GameSpendRequest = {
+  sourceType?: string;
+  sourceId?: string;
+  amount?: number;
+  idempotencyKey?: string;
+};
+
 type RewardDefinition = {
-  sourceType: 'achievement';
+  sourceType: string;
   sourceId: string;
   amount: number;
   reasonCode: string;
@@ -81,6 +90,19 @@ type RewardDefinition = {
 
 const WTW_PLATFORM = 'wtw';
 const WTW_SOURCE_APP = 'walk-the-world';
+const MAX_DYNAMIC_GRANT_WB = 50000;
+const MAX_GAME_SPEND_WB = 1000000;
+const dynamicRewardSourceTypes = new Set([
+  'achievement',
+  'quest',
+  'milestone',
+  'random_event',
+  'route_encounter',
+  'walking',
+  'inventory',
+  'legacy_migration'
+]);
+const gameSpendSourceTypes = new Set(['upgrade', 'follower', 'catalog_offer']);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -221,6 +243,44 @@ const deriveIdempotencyKey = (userId: string, reward: RewardDefinition): string 
 
 const deriveMarketplaceIdempotencyKey = (userId: string, shopOfferId: number): string =>
   `wtw:supabase:${userId}:marketplace:offer:${shopOfferId}`;
+
+const deriveSpendIdempotencyKey = (userId: string, sourceType: string, sourceId: string): string =>
+  `wtw:supabase:${userId}:spend:${sourceType}:${sourceId}`;
+
+const requireSafeSource = (value: string | undefined, field: string): string => {
+  const source = value?.trim();
+  if (!source || !/^[a-z0-9_.:-]{1,80}$/.test(source)) {
+    throw new BridgeError(400, `${field} is invalid.`);
+  }
+  return source;
+};
+
+const requirePositiveInteger = (value: number | undefined, field: string, max: number): number => {
+  if (!Number.isInteger(value) || !value || value <= 0 || value > max) {
+    throw new BridgeError(400, `${field} must be a positive integer no greater than ${max}.`);
+  }
+  return value;
+};
+
+const resolveRewardDefinition = (payload: RewardGrantRequest): RewardDefinition => {
+  const sourceType = requireSafeSource(payload.sourceType, 'sourceType');
+  const sourceId = requireSafeSource(payload.sourceId, 'sourceId');
+  const catalogReward = rewardCatalog[rewardKey(sourceType, sourceId)];
+  if (catalogReward) return catalogReward;
+
+  if (!dynamicRewardSourceTypes.has(sourceType)) {
+    throw new BridgeError(400, 'Unknown WalkerBucks reward source.');
+  }
+
+  const amount = requirePositiveInteger(payload.amount, 'amount', MAX_DYNAMIC_GRANT_WB);
+  return {
+    sourceType,
+    sourceId,
+    amount,
+    reasonCode: `webgame.reward.${sourceType}`,
+    description: `Walk The World ${sourceType.replace(/_/g, ' ')} reward`
+  };
+};
 
 const loadAccountByPlatform = async (platform: string, platformUserId: string): Promise<AccountOut | null> => {
   const response = await walkerBucksResponse(
@@ -429,14 +489,10 @@ const handleGrant = async (request: Request): Promise<Response> => {
   const user = await getSupabaseUser(request);
   const payload = (await request.json()) as RewardGrantRequest;
   if (!payload.sourceType || !payload.sourceId || !payload.idempotencyKey) {
-    throw new BridgeError(400, 'sourceType, sourceId, and idempotencyKey are required.');
+    throw new BridgeError(400, 'sourceType, sourceId, amount, and idempotencyKey are required.');
   }
 
-  const reward = rewardCatalog[rewardKey(payload.sourceType, payload.sourceId)];
-  if (!reward) {
-    throw new BridgeError(400, 'Unknown WalkerBucks reward source.');
-  }
-
+  const reward = resolveRewardDefinition(payload);
   const expectedKey = deriveIdempotencyKey(user.id, reward);
   if (payload.idempotencyKey !== expectedKey) {
     throw new BridgeError(400, 'Idempotency key does not match the authenticated user and reward source.');
@@ -642,6 +698,60 @@ const handleMarketplacePurchase = async (request: Request): Promise<Response> =>
   });
 };
 
+const handleGameSpend = async (request: Request): Promise<Response> => {
+  const user = await getSupabaseUser(request);
+  const payload = (await request.json()) as GameSpendRequest;
+  const sourceType = requireSafeSource(payload.sourceType, 'sourceType');
+  const sourceId = requireSafeSource(payload.sourceId, 'sourceId');
+  if (!gameSpendSourceTypes.has(sourceType)) {
+    throw new BridgeError(400, 'Unknown WalkerBucks spend source.');
+  }
+  if (!payload.idempotencyKey) {
+    throw new BridgeError(400, 'idempotencyKey is required.');
+  }
+
+  const amount = requirePositiveInteger(payload.amount, 'amount', MAX_GAME_SPEND_WB);
+  const expectedKey = deriveSpendIdempotencyKey(user.id, sourceType, sourceId);
+  if (payload.idempotencyKey !== expectedKey) {
+    throw new BridgeError(400, 'Idempotency key does not match the authenticated user and spend source.');
+  }
+
+  const account = await resolveAccount(user);
+  const settlementAccount = await ensurePurchaseSettlementAccount();
+  const spend = await walkerBucksFetch<{ transaction_id: string }>('/v1/transfers/walkerbucks', {
+    method: 'POST',
+    body: JSON.stringify({
+      from_account_id: account.id,
+      to_account_id: settlementAccount.id,
+      amount,
+      idempotency_key: expectedKey,
+      reason_code: `webgame.spend.${sourceType}`,
+      description: `Walk The World ${sourceType.replace(/_/g, ' ')} spend`,
+      actor_account_id: account.id,
+      source_app: WTW_SOURCE_APP,
+      platform: WTW_PLATFORM,
+      platform_event_id: sourceId,
+      metadata_json: {
+        supabase_user_id: user.id,
+        source_type: sourceType,
+        source_id: sourceId
+      }
+    })
+  });
+  const wallet = await loadWallet(account.id);
+
+  return jsonResponse({
+    status: 'spent',
+    accountId: account.id,
+    transactionId: spend.transaction_id,
+    sourceType,
+    sourceId,
+    amount,
+    idempotencyKey: expectedKey,
+    balance: toBalanceResponse(wallet, Date.now())
+  });
+};
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -670,6 +780,10 @@ Deno.serve(async (request) => {
 
     if (request.method === 'POST' && path.endsWith('/marketplace/purchases')) {
       return await handleMarketplacePurchase(request);
+    }
+
+    if (request.method === 'POST' && path.endsWith('/spends')) {
+      return await handleGameSpend(request);
     }
 
     return jsonResponse({ detail: 'Not found.' }, 404);

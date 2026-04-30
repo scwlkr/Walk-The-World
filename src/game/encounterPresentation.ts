@@ -158,7 +158,7 @@ export const getRouteEncounterPresentation = (encounter: RouteEncounterDefinitio
 export const getRouteChoiceItems = (choice: RouteEncounterChoice): ItemImageCandidate[] =>
   choice.effects.flatMap((effect) => {
     if (effect.type === 'item_drop' && effect.itemId) return [getItemPresentation(effect.itemId)];
-    if (effect.type === 'local_wb') return [looseWalkerBuck];
+    if (effect.type === 'walkerbucks_grant') return [looseWalkerBuck];
     if (effect.type === 'distance') return [getItemPresentation('route_marker')];
     if (effect.type === 'temporary_boost') {
       if (effect.boostType === 'event_reward_multiplier') return [getItemPresentation('detour_token')];

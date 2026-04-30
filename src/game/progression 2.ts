@@ -1,4 +1,5 @@
 import { EARTH_LOOP_REWARD_WB, MOON_LOOP_REWARD_WB } from './constants';
+import { queueWalkerBucksGrantAmount } from './economy';
 import { getWbPerMile } from './formulas';
 import type { GameState } from './types';
 import { getWorldDefinition, getWorldProgress } from './world';
@@ -28,12 +29,10 @@ export const applyDistanceAndWb = (state: GameState, distanceDelta: number): Gam
     }
   };
 
-  return {
+  return queueWalkerBucksGrantAmount({
     ...state,
     distanceMiles: nextDistance,
     worlds: nextWorlds,
-    walkerBucks: state.walkerBucks + wbGain + loopBonus,
-    totalWalkerBucksEarned: state.totalWalkerBucksEarned + wbGain + loopBonus,
     earthLoopsCompleted:
       state.currentWorldId === 'earth' ? state.earthLoopsCompleted + loopsCompletedNow : state.earthLoopsCompleted,
     wbBankedRemainder: wbRemainder,
@@ -45,5 +44,5 @@ export const applyDistanceAndWb = (state: GameState, distanceDelta: number): Gam
       ...state.ui,
       moonTeaseUnlocked: state.ui.moonTeaseUnlocked || (state.currentWorldId === 'earth' && loopsCompletedNow > 0)
     }
-  };
+  }, wbGain + loopBonus);
 };

@@ -72,7 +72,7 @@ Cons:
 
 Use Supabase for C-version game auth, profile identity, and cloud save persistence.
 
-WalkerBucks remains the shared economy ledger and will be integrated through a trusted backend bridge in Phase 6. Phase 5 will store and recover the local guest `GameState` payload for authenticated users, but all WB and reward values remain local-only until the WalkerBucks bridge exists.
+WalkerBucks remains the economy ledger and is integrated through a trusted backend bridge. Phase 5 stores and recovers the game `GameState` payload for authenticated users, but spendable WB must come from WalkerBucks, not from client save state.
 
 ## Auth Scope
 
@@ -206,4 +206,4 @@ Revisit this decision if:
 - WalkerBucks ships stable user auth and a game-save API.
 - Discord identity becomes a hard launch blocker.
 - Cloud save conflicts require field-level merges instead of whole-save choice.
-- Server-authoritative rewards require separating local WB from shared WB in the save model.
+- Server-authoritative rewards require queued WTW earnings to settle through WalkerBucks before becoming spendable WB.

@@ -34,7 +34,7 @@ export const QuestPanel = ({ state, onClaim }: QuestPanelProps) => {
             <span className="pill">Seasonal</span>
           </div>
           <p>{activeEvent.description}</p>
-          <p className="muted">Rewards are local-only until the WalkerBucks bridge exists.</p>
+          <p className="muted">WB rewards sync through the WalkerBucks bridge.</p>
         </article>
       )}
 
@@ -61,7 +61,7 @@ export const QuestPanel = ({ state, onClaim }: QuestPanelProps) => {
               </div>
               <p className="muted">Progress: {getQuestProgressText(quest, progress)}</p>
               <p className="muted">Reward: {getQuestRewardSummary(quest.reward)}</p>
-              <p className="muted">Local-only reward</p>
+              <p className="muted">WB reward uses WalkerBucks sync</p>
               <button type="button" className="mini-btn" disabled={!complete || claimed} onClick={() => onClaim(quest)}>
                 {claimed ? 'Claimed' : complete ? 'Claim reward' : 'In progress'}
               </button>

@@ -1,3 +1,4 @@
+import { getSpendableWalkerBucks } from '../game/economy';
 import { getLocalCatalogShopOffers, type LocalCatalogShopOffer } from '../game/items';
 import type { GameState } from '../game/types';
 import { ItemArtwork } from './ItemArtwork';
@@ -11,7 +12,7 @@ export const CatalogShopPanel = ({ state, onBuyOffer }: CatalogShopPanelProps) =
   const offers = getLocalCatalogShopOffers(state).slice(0, 12);
 
   return (
-    <section className="collection-panel" aria-label="Local item catalog shop">
+    <section className="collection-panel" aria-label="WalkerBucks item catalog shop">
       <div className="section-head">
         <h4>Catalog Shop</h4>
         <span>{offers.length} offers</span>
@@ -21,7 +22,7 @@ export const CatalogShopPanel = ({ state, onBuyOffer }: CatalogShopPanelProps) =
           const limitReached = Boolean(
             offer.purchaseLimitPerAccount && offer.ownedQuantity >= offer.purchaseLimitPerAccount
           );
-          const affordable = state.walkerBucks >= offer.priceWb;
+          const affordable = getSpendableWalkerBucks(state) >= offer.priceWb;
           const disabled = !offer.unlocked || !affordable || limitReached;
           return (
             <article key={offer.offerId} className="panel shop-card">
@@ -38,7 +39,7 @@ export const CatalogShopPanel = ({ state, onBuyOffer }: CatalogShopPanelProps) =
                   </p>
                   {offer.lockedReason && <p className="muted">{offer.lockedReason}</p>}
                   <button type="button" className="mini-btn" disabled={disabled} onClick={() => onBuyOffer(offer)}>
-                    {limitReached ? 'Limit reached' : offer.unlocked ? (affordable ? 'Buy local item' : 'Need WB') : 'Locked'}
+                    {limitReached ? 'Limit reached' : offer.unlocked ? (affordable ? 'Buy item' : 'Need WB') : 'Locked'}
                   </button>
                 </div>
               </div>

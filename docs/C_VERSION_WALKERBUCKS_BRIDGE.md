@@ -349,35 +349,36 @@ Rules:
 - Marketplace purchases use `wtw:supabase:{supabase_user_id}:marketplace:offer:{shop_offer_id}`.
 - Marketplace purchase retries must not create duplicate retained legacy item rows when the WalkerBucks transfer idempotency key returns the existing transaction.
 
-## Local Versus Server-Backed Rewards
+## WalkerBucks-Ledger Rewards
 
 C-version state must distinguish:
 
-- local-only WB: existing guest/local game currency used for upgrades and local play
-- shared WalkerBucks: canonical balance read from WalkerBucks through the bridge
+- spendable WalkerBucks: canonical balance read from WalkerBucks through the bridge
+- pending WalkerBucks grant amount: unsubmitted WTW earnings that are not spendable until the bridge settles them
 - pending server grant: a bridge-backed reward request that has not settled yet
 - failed server grant: a bridge-backed reward request that can be retried with the same idempotency key
+- legacy WTW save balance: old client-side WB that must migrate once through the bridge, then be zeroed locally
 
 Behavior:
 
-- Guest mode and missing bridge config keep using local-only rewards.
-- Signed-in bridge mode skips local WB for the first server-backed achievement and records a pending WalkerBucks grant instead.
-- Local route items and equipment remain local.
+- Guest mode and missing bridge config may continue route progress, items, and pending grant accrual, but WB is not spendable without a WalkerBucks bridge balance.
+- Signed-in bridge mode sends WTW earnings and legacy save migration through WalkerBucks reward grants.
+- Upgrade, follower, catalog, marketplace, and item purchases settle WB through WalkerBucks before local game state changes.
+- Route items and equipment remain WTW app-layer content, but WB movement remains WalkerBucks-ledger-owned.
 - Shared WalkerBucks inventory is read-only app-layer entitlement data returned by the bridge.
-- Shared marketplace purchases settle shared WB through WalkerBucks core and record the item in retained legacy app-layer rows.
-- Local WB remains available for game upgrades even when shared WalkerBucks exists.
+- Marketplace purchases settle WB through WalkerBucks core and record the item in retained legacy app-layer rows.
 
 ## Failure Behavior
 
 Missing `VITE_WALKERBUCKS_BRIDGE_URL`:
 
 - Bridge UI reports unavailable.
-- Guest/local play and local rewards continue.
+- Route progress and item-only rewards can continue, but WB remains pending or unavailable for spend.
 
 Missing Supabase session:
 
 - Bridge UI reports sign-in required.
-- Guest/local rewards continue.
+- WB grants and spends wait for sign-in; the browser must not maintain a separate spendable WB balance.
 
 Bridge request fails:
 
@@ -409,8 +410,8 @@ WalkerBucks request fails:
 - No WalkerBucks privileged secret goes in `VITE_*` env vars.
 - Browser code never calls WalkerBucks API endpoints directly.
 - Browser code never calls retained legacy Supabase item/shop tables directly.
-- Browser reward requests never include an amount trusted by the server.
-- The bridge maps reward source IDs to server-owned reward definitions.
+- Browser reward requests may include WTW-earned amounts for bridge settlement; the bridge verifies auth, source type, idempotency key, and per-request caps before calling WalkerBucks.
+- The bridge maps fixed reward source IDs to server-owned reward definitions and accepts dynamic WTW grant categories only through the trusted bridge.
 - The bridge verifies the Supabase token before resolving a WalkerBucks account.
 - The bridge rejects idempotency keys that do not match the authenticated user and reward source.
 - The browser sends only the bank link code; the bridge derives the WTW platform user from the verified Supabase user.
@@ -423,7 +424,7 @@ WalkerBucks request fails:
 - Linked accounts show retained legacy WTW inventory by reading both linked and old WTW account item rows.
 - Marketplace purchases use WalkerBucks core transfers for WB movement and app-layer retained rows for item ownership.
 - Failed bridge calls are visible and retryable: persist pending/failed grant state in local save.
-- Guest/local mode works if WalkerBucks is unavailable: fall back to local reward behavior when bridge or session is missing.
+- Guest/local mode works if WalkerBucks is unavailable: route progress continues, but WB is not separately spendable.
 - `npm run build` passes after code changes.
 
 ## Deferred

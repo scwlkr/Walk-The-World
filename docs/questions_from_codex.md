@@ -31,8 +31,8 @@
 
 13. Is WalkerBucks still “no real-money value,” or is the shared economy expected to connect to anything user-owned or exchange-like later?
 - ultimately your walkerbucks would hopefully be connected to your account 'google account' then you can use them on discord and in the game
-14. Should local WB and server WB be separate currencies, or should C migrate all WB to server-authoritative rewards?
-- whatever makes the most sense
+14. Should client-side WB and server WB be separate currencies, or should C migrate all WB to server-authoritative rewards?
+- WalkerBucks must not be separate. WTW can queue earned WB, but spendable WB must settle through WalkerBucks.
 15. Do you already have a WalkerBucks API repo/spec, or do we need to design the first API contract here?
 - all of the walkerbucks api and internal management follows this repo https://github.com/scwlkr/WalkerBucks.git walkerbucks will always be routed through this hopefully. 
 16. Should Supabase own auth, profiles, saves, leaderboards, inventory, and daily quest state?

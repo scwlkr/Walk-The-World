@@ -1,4 +1,5 @@
 import { AUTO_SAVE_INTERVAL_MS, RANDOM_EVENT_MAX_INTERVAL_MS, RANDOM_EVENT_MIN_INTERVAL_MS } from './constants';
+import { queueWalkerBucksGrantAmount } from './economy';
 import {
   getEventRewardMultiplier,
   getIdleMilesPerSecond
@@ -79,9 +80,8 @@ export const resolveRandomEvent = (state: GameState, eventDef: RandomEventDefini
   switch (eventDef.effectType) {
     case 'instant_wb': {
       const gain = Math.floor((eventDef.value ?? 100) * multiplier);
-      next.walkerBucks += gain;
-      next.totalWalkerBucksEarned += gain;
-      next.ui.toast = `+${gain} WB from ${eventDef.name}!`;
+      next = queueWalkerBucksGrantAmount(next, gain);
+      next.ui.toast = `+${gain} WB from ${eventDef.name} queued for WalkerBucks sync.`;
       break;
     }
     case 'instant_distance': {
@@ -146,9 +146,8 @@ export const resolveRandomEvent = (state: GameState, eventDef: RandomEventDefini
     case 'mystery': {
       if (Math.random() < 0.5) {
         const gain = Math.floor(180 * multiplier);
-        next.walkerBucks += gain;
-        next.totalWalkerBucksEarned += gain;
-        next.ui.toast = `Mystery stash! +${gain} WB.`;
+        next = queueWalkerBucksGrantAmount(next, gain);
+        next.ui.toast = `Mystery stash! +${gain} WB queued.`;
       } else {
         next = applyDistanceAndWb(next, 1.2 * multiplier);
         next.ui.toast = 'Mystery rocket shoes! +distance.';
@@ -157,9 +156,8 @@ export const resolveRandomEvent = (state: GameState, eventDef: RandomEventDefini
     }
     case 'fake': {
       const consolation = Math.floor(20 * multiplier);
-      next.walkerBucks += consolation;
-      next.totalWalkerBucksEarned += consolation;
-      next.ui.toast = `Fake shortcut. Real ${consolation} WB though.`;
+      next = queueWalkerBucksGrantAmount(next, consolation);
+      next.ui.toast = `Fake shortcut. ${consolation} real WB queued.`;
       break;
     }
   }

@@ -1,4 +1,5 @@
 import type { GameState } from '../game/types';
+import { getSpendableWalkerBucks } from '../game/economy';
 import { getCurrentWorldLoopDistance, getIdleMilesPerSecond } from '../game/formulas';
 import { getCurrentWorldDefinition } from '../game/world';
 
@@ -11,7 +12,7 @@ export const TopStatsBar = ({ state }: TopStatsBarProps) => {
     <header className="panel top-stats">
       <div>
         <p className="label">WB</p>
-        <strong>{Math.floor(state.walkerBucks).toLocaleString()}</strong>
+        <strong>{getSpendableWalkerBucks(state).toLocaleString()}</strong>
       </div>
       <div>
         <p className="label">Distance</p>

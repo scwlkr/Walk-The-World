@@ -7,6 +7,7 @@ import {
   getIdleMilesPerSecond,
   getNextLandmark
 } from '../game/formulas';
+import { getSpendableWalkerBucks } from '../game/economy';
 import { getQuestCompletionSummary } from '../game/quests';
 import { getActiveSeasonalEventForState, getSeasonalEventById } from '../game/seasonalEvents';
 import { getCurrentWorldDefinition, getWorldProgress } from '../game/world';
@@ -31,6 +32,7 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
   const activeEvent = getSeasonalEventById(seasonalEventOverrideId) ?? getActiveSeasonalEventForState(state);
   const journeyMilestones = getJourneyMilestones(state, 2);
   const activeBoosts = state.activeBoosts.filter((boost) => boost.expiresAt > Date.now()).slice(0, 3);
+  const walletBalance = getSpendableWalkerBucks(state);
   const routeDistance = Math.max(0, next.distanceMiles - current.distanceMiles);
   const routeWalked = Math.max(0, currentLoopDistance - current.distanceMiles);
   const routePercent = routeDistance > 0 ? Math.min(100, (routeWalked / routeDistance) * 100) : 100;
@@ -46,7 +48,7 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
       >
         <div className="hud-meter-row" aria-label="Wallet, distance, and speed">
           <span>
-            WB <strong>{Math.floor(state.walkerBucks).toLocaleString()}</strong>
+            WB <strong>{walletBalance.toLocaleString()}</strong>
           </span>
           <span>
             <strong>{currentLoopDistance.toFixed(1)}</strong> mi

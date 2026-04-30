@@ -82,15 +82,15 @@ export const ROUTE_ENCOUNTERS: RouteEncounterDefinition[] = [
   {
     id: 'tiny_stash',
     name: 'Tiny Stash',
-    description: 'A small WalkerBucks stash appears beside the route.',
+    description: 'A small WalkerBucks grant marker appears beside the route.',
     rarity: 'rare',
     weight: 8,
     choices: [
       {
         id: 'claim_stash',
         label: 'Claim stash',
-        description: 'Gain local WalkerBucks now.',
-        effects: [{ type: 'local_wb', value: 90 }]
+        description: 'Queue a real WalkerBucks grant.',
+        effects: [{ type: 'walkerbucks_grant', value: 90 }]
       },
       {
         id: 'trade_for_token',
@@ -150,12 +150,12 @@ export const resolveRouteEncounterChoice = (
 ): GameState => {
   let next: GameState = state;
   const rewardItems: Array<{ itemId: string; quantity: number }> = [];
-  let localWb = 0;
+  let walkerBucksGrant = 0;
   const labels: string[] = [];
 
   for (const effect of choice.effects) {
-    if (effect.type === 'local_wb') {
-      localWb += Math.floor(effect.value ?? 0);
+    if (effect.type === 'walkerbucks_grant') {
+      walkerBucksGrant += Math.floor(effect.value ?? 0);
       labels.push(`+${Math.floor(effect.value ?? 0)} WB`);
     }
 
@@ -189,7 +189,7 @@ export const resolveRouteEncounterChoice = (
   }
 
   next = grantRewardToState(next, {
-    walkerBucks: localWb || undefined,
+    walkerBucks: walkerBucksGrant || undefined,
     items: rewardItems.length ? rewardItems : undefined
   });
 

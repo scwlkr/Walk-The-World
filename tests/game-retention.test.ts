@@ -24,14 +24,14 @@ describe('retention milestones', () => {
     expect(first.completedAt).toBe(2000);
 
     const claimed = claimMilestoneReward(synced, 'first_30_seconds', 3000);
-    expect(claimed.walkerBucks).toBeGreaterThanOrEqual(20);
+    expect(claimed.walkerBucksBridge.pendingGrantAmount).toBeGreaterThanOrEqual(20);
     expect(claimed.inventory.items.trail_mix).toBe(1);
     expect(claimed.stats.milestonesClaimed).toBe(1);
   });
 });
 
 describe('catalog runtime adapter', () => {
-  it('loads the generated catalog into local shop offers', () => {
+  it('loads the generated catalog into catalog offers', () => {
     const state = createInitialGameState(1000);
     const offers = getLocalCatalogShopOffers({ ...state, walkerBucks: 500 });
 
@@ -39,11 +39,11 @@ describe('catalog runtime adapter', () => {
     expect(offers.some((offer) => offer.item.id === 'trail_mix')).toBe(true);
   });
 
-  it('buys a local generated catalog item with local WB only', () => {
+  it('applies a generated catalog item after a WalkerBucks spend settles', () => {
     const state = createInitialGameState(1000);
-    const bought = purchaseLocalCatalogOffer({ ...state, walkerBucks: 100 }, 'offer_trail_mix_main');
+    const bought = purchaseLocalCatalogOffer(state, 'offer_trail_mix_main');
 
-    expect(bought.walkerBucks).toBe(60);
+    expect(bought.walkerBucks).toBe(0);
     expect(bought.inventory.items.trail_mix).toBe(1);
   });
 
@@ -72,14 +72,14 @@ describe('route encounters', () => {
       label: 'Test boost',
       description: 'Test boost choice.',
       effects: [
-        { type: 'local_wb', value: 50 },
+        { type: 'walkerbucks_grant', value: 50 },
         { type: 'item_drop', itemId: 'detour_token', quantity: 1 },
         { type: 'temporary_boost', boostType: 'click_multiplier', multiplier: 1.5, durationMs: 10000 }
       ]
     };
     const resolved = resolveRouteEncounterChoice(state, choice, 2000);
 
-    expect(resolved.walkerBucks).toBe(50);
+    expect(resolved.walkerBucksBridge.pendingGrantAmount).toBe(50);
     expect(resolved.inventory.items.detour_token).toBe(1);
     expect(resolved.activeBoosts[0]?.effectType).toBe('click_multiplier');
     expect(resolved.stats.routeEncountersClaimed).toBe(1);
@@ -155,7 +155,7 @@ describe('worlds and save migration', () => {
     expect(canEnterWorld(moonLooped, 'mars')).toBe(true);
   });
 
-  it('migrates legacy saves into save version 8 retention state', () => {
+  it('migrates legacy saves into save version 9 retention state', () => {
     const migrated = importSave(
       JSON.stringify({
         saveVersion: 1,
@@ -165,7 +165,7 @@ describe('worlds and save migration', () => {
       })
     );
 
-    expect(migrated.saveVersion).toBe(8);
+    expect(migrated.saveVersion).toBe(9);
     expect(migrated.currentWorldId).toBe('earth');
     expect(migrated.profile).toBeDefined();
     expect(migrated.milestones.progress.first_30_seconds).toBeDefined();

@@ -1,4 +1,5 @@
 import { getLocalDateKey } from './achievements';
+import { getSpendableWalkerBucks } from './economy';
 import { grantRewardToState } from './inventory';
 import {
   getActiveSeasonalEvent,
@@ -38,7 +39,7 @@ export const DAILY_QUEST_DEFINITIONS: QuestDefinition[] = [
       walkerBucks: 20,
       items: [{ itemId: 'trail_mix', quantity: 1 }]
     },
-    localOnly: true
+    localOnly: false
   },
   {
     id: 'daily_tap_pace',
@@ -47,16 +48,16 @@ export const DAILY_QUEST_DEFINITIONS: QuestDefinition[] = [
     category: 'daily',
     progress: { type: 'clicks', target: 12 },
     reward: { walkerBucks: 18 },
-    localOnly: true
+    localOnly: false
   },
   {
     id: 'daily_shop_stop',
     name: 'Shop Stop',
-    description: 'Buy one upgrade from the local shop.',
+    description: 'Buy one upgrade with WalkerBucks.',
     category: 'daily',
     progress: { type: 'upgrade_purchases', target: 1 },
     reward: { walkerBucks: 35 },
-    localOnly: true
+    localOnly: false
   },
   {
     id: 'daily_crew_check',
@@ -65,7 +66,7 @@ export const DAILY_QUEST_DEFINITIONS: QuestDefinition[] = [
     category: 'daily',
     progress: { type: 'follower_hires', target: 1 },
     reward: { walkerBucks: 45 },
-    localOnly: true
+    localOnly: false
   },
   {
     id: 'daily_event_chaser',
@@ -74,7 +75,7 @@ export const DAILY_QUEST_DEFINITIONS: QuestDefinition[] = [
     category: 'daily',
     progress: { type: 'event_claims', target: 1 },
     reward: { walkerBucks: 40 },
-    localOnly: true
+    localOnly: false
   },
   {
     id: 'daily_badge_claim',
@@ -83,7 +84,7 @@ export const DAILY_QUEST_DEFINITIONS: QuestDefinition[] = [
     category: 'daily',
     progress: { type: 'achievement_claims', target: 1 },
     reward: { walkerBucks: 30 },
-    localOnly: true
+    localOnly: false
   },
   {
     id: 'daily_route_push',
@@ -92,7 +93,7 @@ export const DAILY_QUEST_DEFINITIONS: QuestDefinition[] = [
     category: 'daily',
     progress: { type: 'world_progress', target: 0.05 },
     reward: { walkerBucks: 25 },
-    localOnly: true
+    localOnly: false
   }
 ];
 
@@ -171,7 +172,7 @@ const isQuestEligible = (state: GameState | undefined, quest: QuestDefinition): 
   if (!state) return true;
 
   if (quest.progress.type === 'follower_hires') {
-    return state.walkerBucks >= 50 || Object.values(state.followers).some((count) => count > 0);
+    return getSpendableWalkerBucks(state) >= 50 || Object.values(state.followers).some((count) => count > 0);
   }
 
   if (quest.progress.type === 'achievement_claims') {
@@ -334,7 +335,7 @@ export const claimQuestReward = (state: GameState, questId: string, now = Date.n
     },
     ui: {
       ...rewarded.ui,
-      toast: `${quest.name} local reward claimed.`
+      toast: `${quest.name} reward queued for WalkerBucks sync.`
     }
   };
 };
@@ -343,18 +344,18 @@ export const getQuestRewardSummary = (reward: RewardDefinition): string => {
   const parts: string[] = [];
 
   if (reward.walkerBucks) {
-    parts.push(`${reward.walkerBucks.toLocaleString()} local WB`);
+    parts.push(`${reward.walkerBucks.toLocaleString()} WB`);
   }
 
   for (const item of reward.items ?? []) {
-    parts.push(`${item.quantity} local item`);
+    parts.push(`${item.quantity} item`);
   }
 
   for (const cosmetic of reward.cosmetics ?? []) {
     parts.push(cosmetic);
   }
 
-  return parts.join(', ') || 'Local badge only';
+  return parts.join(', ') || 'Badge only';
 };
 
 export const getQuestProgressText = (quest: QuestDefinition, progress: QuestProgress): string => {

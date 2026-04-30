@@ -179,6 +179,14 @@ const hasEnabledButton = (text) => `
 })()
 `;
 
+const hasDisabledButton = (text) => `
+(() => {
+  const needle = ${JSON.stringify(text)};
+  return Array.from(document.querySelectorAll('button'))
+    .some((candidate) => candidate.textContent?.includes(needle) && candidate.disabled);
+})()
+`;
+
 const fillInput = (selector, value) => `
 (() => {
   const element = document.querySelector(${JSON.stringify(selector)});
@@ -288,7 +296,7 @@ const run = async () => {
     assert(!firstScreen.hasDevLab, 'Dev Lab rendered in production.');
     assert(!firstScreen.bodyOverflows, `Mobile viewport has horizontal overflow at ${firstScreen.viewportWidth}x${firstScreen.viewportHeight}.`);
 
-    logStep('checking Journey reward, local item use, and catalog purchase');
+    logStep('checking Journey reward, item use, and catalog spend gating');
     for (let i = 0; i < 4; i += 1) {
       assert(await evaluate(client, click('.walk-btn')), 'Walk button click failed.');
       await delay(50);
@@ -301,14 +309,15 @@ const run = async () => {
     assert(await evaluate(client, clickByText('button', 'items')), 'Items tab did not open.');
     await waitFor('starter item use button', () => evaluate(client, 'document.body.textContent.includes("Use")'));
     assert(await evaluate(client, clickByText('button', 'Use')), 'Starter item use button did not click.');
-    await waitFor('local catalog buy button', () => evaluate(client, 'document.body.textContent.includes("Buy local item")'));
-    assert(await evaluate(client, clickByText('button', 'Buy local item')), 'Local catalog purchase did not click.');
+    await waitFor('catalog spend blocked without WalkerBucks balance', () => evaluate(client, hasDisabledButton('Need WB')));
     await captureScreenshot(client, '02-shop-catalog');
 
     let save = await readSave(client);
-    assert(save?.saveVersion === 8, 'Production save did not persist as version 8.');
+    assert(save?.saveVersion === 9, 'Production save did not persist as version 9.');
     assert(save?.stats?.milestonesClaimed >= 1, 'Journey milestone claim did not persist.');
-    assert(Object.values(save?.inventory?.items ?? {}).some((quantity) => quantity > 0), 'Inventory did not persist an item.');
+    assert(save?.stats?.itemsUsed >= 1, 'Starter item use did not persist.');
+    assert(save?.walkerBucks === 0, 'Guest save created a spendable client-side WB balance.');
+    assert(save?.walkerBucksBridge?.pendingGrantAmount >= 20, 'Earned WB was not queued for WalkerBucks sync.');
 
     logStep('checking route encounter overlay');
     save = {
@@ -432,7 +441,7 @@ const run = async () => {
     await waitFor('Mars prototype labels', () => evaluate(client, 'document.body.textContent.includes("Mars") && document.body.textContent.includes("Mars Base Camp")'));
     await captureScreenshot(client, '07-mars-prototype');
 
-    logStep('checking sign-out preserves guest/local fallback');
+    logStep('checking sign-out preserves guest fallback');
     assert(await evaluate(client, click('[aria-label="Settings"]')), 'Settings control did not open for sign-out.');
     await waitFor('enabled sign out button', () => evaluate(client, hasEnabledButton('Sign Out')));
     assert(await evaluate(client, clickByText('button', 'Sign Out')), 'Sign Out button did not click.');

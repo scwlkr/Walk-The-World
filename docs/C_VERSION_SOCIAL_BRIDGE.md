@@ -60,7 +60,7 @@ Rules:
 - The browser sends only `shopOfferId` and an idempotency key for purchases.
 - The bridge resolves the authenticated Supabase user to a WalkerBucks account.
 - The bridge calls `POST /v1/shop/purchases` with the resolved `account_id`.
-- Local-only WB can never be used as shared WB.
+- Client-side pending WB can never be used as spendable WB.
 - Purchased shared inventory remains a WalkerBucks item instance for Phase 7; it is not merged into local game inventory yet.
 
 ### Discord Identity-Linking Contract
@@ -288,7 +288,7 @@ Rules:
 Missing `VITE_WALKERBUCKS_BRIDGE_URL`:
 
 - Leaderboard and marketplace UI reports unavailable.
-- Local guest play, local shop, local inventory, and local rewards continue.
+- Guest route progress and app-layer inventory continue, but spendable WB still requires WalkerBucks bridge settlement.
 
 Missing Supabase session:
 
@@ -302,7 +302,7 @@ WalkerBucks leaderboard failure:
 WalkerBucks offer or purchase failure:
 
 - Marketplace panel shows the error.
-- No local WB is spent.
+- No client-side WB balance is spent.
 - No local inventory is granted.
 - Existing local save remains intact.
 
@@ -328,7 +328,7 @@ Telegram unavailable:
 ## Phase 7 Acceptance Mapping
 
 - Logged-in beta player can see at least one leaderboard: shared WalkerBucks balance leaderboard through the trusted bridge.
-- Marketplace proof cannot spend local-only WB as shared WB: purchases route through WalkerBucks and only use shared balance.
+- Marketplace proof cannot spend client-side WB: purchases route through WalkerBucks and only use ledger balance.
 - Discord bridge has an explicit identity-linking contract before cross-platform rewards ship: this document defines it and defers rewards.
 - Telegram has a clear future plan or blocker note: Telegram is future-planned after Discord linking stability.
 - `npm run build` passes after code changes.

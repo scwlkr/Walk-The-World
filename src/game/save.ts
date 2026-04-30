@@ -123,11 +123,17 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
         ...base.walkerBucksBridge.rewardGrants,
         ...rawSave.walkerBucksBridge?.rewardGrants
       },
+      pendingGrantAmount: Math.max(0, rawSave.walkerBucksBridge?.pendingGrantAmount ?? base.walkerBucksBridge.pendingGrantAmount),
+      pendingGrantSequence: Math.max(0, rawSave.walkerBucksBridge?.pendingGrantSequence ?? base.walkerBucksBridge.pendingGrantSequence),
       leaderboard: rawSave.walkerBucksBridge?.leaderboard ?? base.walkerBucksBridge.leaderboard,
       marketplaceOffers: rawSave.walkerBucksBridge?.marketplaceOffers ?? base.walkerBucksBridge.marketplaceOffers,
       marketplacePurchases: {
         ...base.walkerBucksBridge.marketplacePurchases,
         ...rawSave.walkerBucksBridge?.marketplacePurchases
+      },
+      spends: {
+        ...base.walkerBucksBridge.spends,
+        ...rawSave.walkerBucksBridge?.spends
       },
       inventory: rawSave.walkerBucksBridge?.inventory ?? base.walkerBucksBridge.inventory
     },

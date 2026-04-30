@@ -39,6 +39,24 @@ const setWorld = (state: GameState, worldId: WorldId, distanceMiles: number, loo
   }
 });
 
+const withDevWallet = (state: GameState, amount: number, now = Date.now()): GameState => ({
+  ...state,
+  walkerBucks: 0,
+  walkerBucksBridge: {
+    ...state.walkerBucksBridge,
+    status: 'ready',
+    accountId: 'dev:walkerbucks',
+    balance: {
+      assetCode: 'WB',
+      balance: amount,
+      lockedBalance: 0,
+      availableBalance: amount,
+      updatedAt: now
+    },
+    lastCheckedAt: now
+  }
+});
+
 export const createDevPresetState = (presetId: DevPresetId, now = Date.now()): GameState => {
   const base = createInitialGameState(now);
 
@@ -47,15 +65,12 @@ export const createDevPresetState = (presetId: DevPresetId, now = Date.now()): G
       return base;
     case 'first_purchase':
       return {
-        ...grantRewardToState(base, { walkerBucks: 90, items: [{ itemId: 'trail_mix', quantity: 1 }] }),
+        ...grantRewardToState(withDevWallet(base, 90, now), { items: [{ itemId: 'trail_mix', quantity: 1 }] }),
         ui: { ...base.ui, toast: 'Dev preset: first purchase.' }
       };
     case 'item_rich':
       return grantRewardToState(
-        {
-          ...base,
-          walkerBucks: 1200
-        },
+        withDevWallet(base, 1200, now),
         {
           items: [
             { itemId: 'trail_mix', quantity: 3 },
@@ -69,16 +84,14 @@ export const createDevPresetState = (presetId: DevPresetId, now = Date.now()): G
       );
     case 'event_heavy':
       return {
-        ...base,
-        walkerBucks: 300,
+        ...withDevWallet(base, 300, now),
         nextRandomEventAt: now,
         nextRouteEncounterAt: now,
         ui: { ...base.ui, toast: 'Dev preset: event-heavy route.' }
       };
     case 'prestige_ready':
       return {
-        ...applyDistanceAndWb(base, 24902),
-        walkerBucks: 15000,
+        ...withDevWallet(applyDistanceAndWb(base, 24902), 15000, now),
         ui: { ...base.ui, toast: 'Dev preset: prestige ready.' }
       };
     case 'moon':
@@ -96,7 +109,7 @@ export const createDevPresetState = (presetId: DevPresetId, now = Date.now()): G
             ...base.worlds,
             moon: { ...base.worlds.moon, unlockedAt: now }
           },
-          walkerBucks: 16000
+          walkerBucksBridge: withDevWallet(base, 16000, now).walkerBucksBridge
         },
         'moon',
         850
@@ -117,7 +130,7 @@ export const createDevPresetState = (presetId: DevPresetId, now = Date.now()): G
             moon: { ...base.worlds.moon, distanceMiles: 7000, loopsCompleted: 1, unlockedAt: now },
             mars: { ...base.worlds.mars, unlockedAt: now }
           },
-          walkerBucks: 24000
+          walkerBucksBridge: withDevWallet(base, 24000, now).walkerBucksBridge
         },
         'mars',
         80

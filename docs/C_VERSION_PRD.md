@@ -134,7 +134,7 @@ No roadmap item should remain an unchecked vague promise.
 - Client code must not directly call privileged reward/admin endpoints.
 - The web game needs a server-side adapter or trusted function to grant rewards, purchase items, and sync balances.
 - Rewards should become server-authoritative before shared economy launch.
-- For C private beta, local WB can remain playable while the bridge is developed, but the plan must clearly mark what is local-only versus server-backed.
+- For C private beta, route progress can remain playable while the bridge is unavailable, but spendable WB must always come from WalkerBucks.
 
 ### Leaderboards
 
@@ -193,7 +193,7 @@ Recommended service ownership, pending approval:
 - Cosmetic gameplay effects can destabilize progression if they duplicate upgrade/follower math without limits.
 - "All leaderboards" can expand quickly; C needs one verified leaderboard before adding categories.
 - Strict pixel art requires either asset production time or acceptance of first-pass reference quality.
-- Daily quests generated locally can be exploited if they grant shared WB before server validation exists.
+- Daily quests generated locally can be exploited if dynamic WB grants are not capped and audited through the bridge.
 - Private beta still needs basic account recovery and reset behavior.
 
 ## Open Decisions
@@ -203,7 +203,7 @@ Recommended service ownership, pending approval:
 - Moon canonical distance value.
 - Which inventory item types ship first.
 - Which leaderboard category ships first.
-- Which rewards are local-only versus WalkerBucks-backed in the first online beta.
+- Which WTW rewards are bridge-settled immediately versus queued until sign-in.
 - Whether existing Discord economy catalog should seed the game inventory or stay Discord-only for now.
 
 ## Launch Intent

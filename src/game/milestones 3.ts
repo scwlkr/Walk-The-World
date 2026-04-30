@@ -27,7 +27,7 @@ export const MILESTONE_DEFINITIONS: MilestoneDefinition[] = [
   {
     id: 'first_upgrade',
     name: 'First Upgrade',
-    description: 'Buy any local upgrade.',
+    description: 'Buy any WalkerBucks-backed upgrade.',
     condition: { type: 'upgrades_purchased', target: 1 },
     reward: {
       walkerBucks: 45,
@@ -71,7 +71,7 @@ export const MILESTONE_DEFINITIONS: MilestoneDefinition[] = [
   {
     id: 'first_collection_set',
     name: 'Tiny Collection Flex',
-    description: 'Own six different local items.',
+    description: 'Own six different route items.',
     condition: { type: 'distinct_items_owned', target: 6 },
     reward: {
       walkerBucks: 120,

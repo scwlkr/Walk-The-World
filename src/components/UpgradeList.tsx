@@ -1,4 +1,5 @@
 import { getUpgradeCost } from '../game/formulas';
+import { getSpendableWalkerBucks } from '../game/economy';
 import { UPGRADES } from '../game/upgrades';
 import type { GameState, Upgrade } from '../game/types';
 
@@ -15,7 +16,7 @@ export const UpgradeList = ({ state, onBuyUpgrade, isUnlocked }: UpgradeListProp
       const maxed = level >= upgrade.maxLevel;
       const unlocked = isUnlocked(upgrade.unlockRequirement);
       const cost = getUpgradeCost(upgrade, level);
-      const affordable = state.walkerBucks >= cost;
+      const affordable = getSpendableWalkerBucks(state) >= cost;
 
       return (
         <article key={upgrade.id} className="panel shop-card">
@@ -29,7 +30,7 @@ export const UpgradeList = ({ state, onBuyUpgrade, isUnlocked }: UpgradeListProp
             disabled={!unlocked || !affordable || maxed}
             onClick={() => onBuyUpgrade(upgrade)}
           >
-            {maxed ? 'Maxed' : unlocked ? 'Buy' : 'Locked'}
+            {maxed ? 'Maxed' : unlocked ? (affordable ? 'Buy' : 'Need WB') : 'Locked'}
           </button>
         </article>
       );

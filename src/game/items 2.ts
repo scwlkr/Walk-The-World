@@ -11,6 +11,7 @@ import type {
 
 type GeneratedItem = {
   itemId: string;
+  slug?: string;
   name: string;
   category: string;
   itemType: string;
@@ -89,6 +90,7 @@ export const mapCatalogItemToInventoryItem = (item: GeneratedItem): InventoryIte
 
   return {
     id: item.itemId,
+    slug: item.slug,
     name: item.name,
     description: item.description,
     type: normalizeItemType(item.itemType),
@@ -174,16 +176,15 @@ export const getLocalCatalogShopOffers = (state: GameState): LocalCatalogShopOff
     .filter((offer): offer is LocalCatalogShopOffer => Boolean(offer))
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
-export const purchaseLocalCatalogOffer = (state: GameState, offerId: string): GameState => {
+export const applyCatalogOfferPurchase = (state: GameState, offerId: string): GameState => {
   const offer = getLocalCatalogShopOffers(state).find((entry) => entry.offerId === offerId);
-  if (!offer || !offer.unlocked || state.walkerBucks < offer.priceWb) return state;
+  if (!offer || !offer.unlocked) return state;
 
   const purchases = getLocalPurchaseCount(state, offer);
   if (offer.purchaseLimitPerAccount && purchases >= offer.purchaseLimitPerAccount) return state;
 
   return {
     ...state,
-    walkerBucks: state.walkerBucks - offer.priceWb,
     inventory: {
       ...state.inventory,
       items: {
@@ -212,6 +213,8 @@ export const purchaseLocalCatalogOffer = (state: GameState, offerId: string): Ga
   };
 };
 
+export const purchaseLocalCatalogOffer = applyCatalogOfferPurchase;
+
 export const getSharedInventoryEntitlements = (state: GameState): SharedInventoryEntitlement[] =>
   state.walkerBucksBridge.inventory.map((entry) => {
     const purchasedOffer = Object.values(state.walkerBucksBridge.marketplacePurchases).find(
@@ -231,6 +234,7 @@ export const getSharedInventoryEntitlements = (state: GameState): SharedInventor
       itemDefinitionId: entry.itemDefinitionId,
       status: entry.status,
       itemId: catalogItem?.id ?? null,
+      slug: catalogItem?.slug ?? null,
       name: catalogItem?.name ?? fallbackName,
       description: catalogItem?.description ?? 'Shared WalkerBucks inventory item.',
       assetPath: catalogItem?.assetPath ?? offer?.assetPath ?? offer?.asset_path,

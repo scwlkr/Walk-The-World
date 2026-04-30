@@ -1,5 +1,6 @@
 import { getFollowerCost } from '../game/formulas';
 import { FOLLOWERS } from '../game/followers';
+import { getSpendableWalkerBucks } from '../game/economy';
 import type { Follower, GameState } from '../game/types';
 
 type FollowerListProps = {
@@ -15,7 +16,7 @@ export const FollowerList = ({ state, onBuyFollower, isUnlocked }: FollowerListP
       const maxed = count >= follower.maxCount;
       const unlocked = isUnlocked(follower.unlockRequirement);
       const cost = getFollowerCost(follower, count);
-      const affordable = state.walkerBucks >= cost;
+      const affordable = getSpendableWalkerBucks(state) >= cost;
 
       return (
         <article key={follower.id} className="panel shop-card">
@@ -30,7 +31,7 @@ export const FollowerList = ({ state, onBuyFollower, isUnlocked }: FollowerListP
             disabled={!unlocked || !affordable || maxed}
             onClick={() => onBuyFollower(follower)}
           >
-            {maxed ? 'Maxed' : unlocked ? 'Hire' : 'Locked'}
+            {maxed ? 'Maxed' : unlocked ? (affordable ? 'Hire' : 'Need WB') : 'Locked'}
           </button>
         </article>
       );

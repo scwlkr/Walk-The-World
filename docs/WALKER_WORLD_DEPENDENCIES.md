@@ -22,8 +22,9 @@ This project may:
 This project may not:
 - directly mutate balances
 - create separate local WalkerBucks tables as the source of truth
+- treat client-save WB as spendable WalkerBucks
 - invent incompatible item schemas
-- calculate final economy rewards client-side
+- treat client-calculated rewards as final without WalkerBucks bridge settlement, caps, and ledger audit
 - bypass the WalkerBucks ledger
 
 ## Correct Architecture

@@ -6,7 +6,7 @@
     "category": "consumable",
     "itemType": "consumable",
     "rarity": "common",
-    "description": "A pocket snack that converts instantly into local WalkerBucks.",
+    "description": "A pocket snack that converts instantly into WalkerBucks.",
     "flavorText": "Suspiciously crunchy but dependable.",
     "effectKey": "instant_wb",
     "effectType": "instant_wb",

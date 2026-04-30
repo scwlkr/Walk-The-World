@@ -49,7 +49,7 @@ tap the scene or WALK → gain distance → hit quick Journey milestones → ear
 - Pixel/block-inspired animated canvas scene
 - Landmark route across a full Earth loop
 - Random clickable events (rewarding, no brutal negatives)
-- Route encounters with short choices, pickups, local WB, item drops, and temporary boosts
+- Route encounters with short choices, pickups, WalkerBucks grant queue rewards, item drops, and temporary boosts
 - Journey milestone strip for early first-session goals and claimable rewards
 - Upgrade shop (data-driven)
 - Follower shop (data-driven)
@@ -211,7 +211,7 @@ Production browser smoke command:
 npm run smoke:production-browser
 ```
 
-`smoke:production-browser` opens `https://walk-the-world.vercel.app/` in a clean mobile browser profile, verifies guest play, Journey milestones, route encounters, local catalog items, account creation, cloud upload, shared WalkerBucks balance, leaderboard, marketplace offers, shared inventory, Mars prototype entry, sign-out fallback, and screenshot capture under ignored `qa-artifacts/`.
+`smoke:production-browser` opens `https://walk-the-world.vercel.app/` in a clean mobile browser profile, verifies guest play, Journey milestones, route encounters, catalog spend gating, account creation, cloud upload, WalkerBucks balance, leaderboard, marketplace offers, shared inventory, Mars prototype entry, sign-out fallback, and screenshot capture under ignored `qa-artifacts/`.
 
 Required smoke env vars:
 
@@ -226,15 +226,15 @@ Set `WTW_BETA_SMOKE_REQUIRE_BRIDGE=true` and `WTW_BETA_SMOKE_ALLOW_PURCHASE=true
 
 ## WalkerBucks API Readiness
 
-Local WB remains the guest-play currency for upgrades and offline play. Shared WalkerBucks now has a trusted bridge contract, optional Supabase Edge Function scaffold, shared-balance read, first server-backed reward path, leaderboard read, and marketplace purchase proof.
+WalkerBucks is ledger-owned. WTW can queue earned WB while offline or unsigned, but spendable WB comes from the trusted bridge balance, and upgrades, followers, catalog items, marketplace offers, and migration grants settle through WalkerBucks.
 
 - Browser code only uses `VITE_WALKERBUCKS_BRIDGE_URL`.
 - WalkerBucks API URL and service token belong in server-side function secrets.
-- The first server-backed reward source is `achievement:day_one_check_in`.
-- Failed shared-WB grants persist in the local save and can be retried with the same idempotency key.
+- Fixed and dynamic WTW reward sources settle through the bridge with stable idempotency keys.
+- Failed WalkerBucks grants and spends persist in the save and can be retried with the same idempotency key.
 - Live shared-economy QA passes through the deployed Supabase bridge and hosted WalkerBucks API.
-- Shared WalkerBucks marketplace inventory is mapped into read-only local entitlements when the shared offer matches a generated catalog item.
-- Unknown shared inventory remains visible as shared-only and does not mint local WB or local gameplay items.
+- WalkerBucks marketplace inventory is mapped into read-only app-layer entitlements when the offer matches a generated catalog item.
+- Unknown shared inventory remains visible as shared-only and does not mint WB or gameplay items.
 
 No real-money value, no crypto, no paid loot boxes.
 
@@ -301,7 +301,7 @@ public/assets/audio/sfx/random_event.ogg
 | Mars/Solar System tiers | Partial | Mars prototype is playable after Moon loop completion; Solar System remains future data scaffolding. |
 | Supabase account sync | Shipped | Client UI, cloud-save code, Supabase config, `walk_the_world.game_saves`, RLS, and live upload/load smoke are implemented. |
 | Shared WalkerBucks economy API | Shipped | Hosted WalkerBucks API, server-only bridge secrets, and bridge live smoke are complete. |
-| Server-authoritative rewards | Shipped | Day One Walker has the first idempotent shared-WB reward path and live grant smoke passes. |
+| Server-authoritative rewards | Shipped | WTW reward grants queue locally, then settle through the WalkerBucks bridge before becoming spendable. |
 | Leaderboards | Shipped | Shared WalkerBucks balance leaderboard is implemented through the bridge and live smoke passes. |
 | Daily quests | Shipped | Local daily quest generation, progress, rewards, and persistence are in place. |
 | Seasonal events | Shipped | Spring Stride Festival framework, visual treatment, quest variation, and rewards are in place. |

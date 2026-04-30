@@ -170,6 +170,14 @@ const clickByText = (selector, text) => `
 })()
 `;
 
+const hasDisabledButton = (text) => `
+(() => {
+  const needle = ${JSON.stringify(text)};
+  return Array.from(document.querySelectorAll('button'))
+    .some((candidate) => candidate.textContent?.includes(needle) && candidate.disabled);
+})()
+`;
+
 const readSave = (client) =>
   evaluate(
     client,
@@ -253,7 +261,7 @@ const run = async () => {
     assert(firstScreen.hasBottomControls, 'Bottom controls did not render.');
     assert(!firstScreen.bodyOverflows, `Mobile viewport has horizontal overflow at ${firstScreen.viewportWidth}x${firstScreen.viewportHeight}.`);
 
-    logStep('walking, claiming first journey reward, and using starter item');
+    logStep('walking, claiming first journey reward, using starter item, and checking WB spend gating');
     for (let i = 0; i < 4; i += 1) {
       assert(await evaluate(client, click('.walk-btn')), 'Walk button click failed.');
       await delay(50);
@@ -267,14 +275,15 @@ const run = async () => {
     assert(await evaluate(client, clickByText('button', 'items')), 'Items tab did not open.');
     await waitFor('starter item use button', () => evaluate(client, 'document.body.textContent.includes("Use")'));
     assert(await evaluate(client, clickByText('button', 'Use')), 'Starter item use button did not click.');
-    await waitFor('local catalog buy button', () => evaluate(client, 'document.body.textContent.includes("Buy local item")'));
-    assert(await evaluate(client, clickByText('button', 'Buy local item')), 'Local catalog purchase did not click.');
+    await waitFor('catalog spend blocked without WalkerBucks balance', () => evaluate(client, hasDisabledButton('Need WB')));
 
     const inventorySave = await readSave(client);
-    assert(inventorySave?.saveVersion === 8, 'Save did not persist as version 8.');
+    assert(inventorySave?.saveVersion === 9, 'Save did not persist as version 9.');
     assert(inventorySave?.stats?.totalClicks >= 4, 'Walking did not update click stats.');
     assert(inventorySave?.stats?.milestonesClaimed >= 1, 'Milestone claim did not persist.');
-    assert(Object.values(inventorySave?.inventory?.items ?? {}).some((quantity) => quantity > 0), 'Inventory did not persist an item.');
+    assert(inventorySave?.stats?.itemsUsed >= 1, 'Starter item use did not persist.');
+    assert(inventorySave?.walkerBucks === 0, 'Guest save created a spendable client-side WB balance.');
+    assert(inventorySave?.walkerBucksBridge?.pendingGrantAmount >= 20, 'Earned WB was not queued for WalkerBucks sync.');
 
     logStep('forcing a route encounter through save state and resolving it');
     const routeSave = await readSave(client);

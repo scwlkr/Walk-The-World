@@ -176,16 +176,15 @@ export const getLocalCatalogShopOffers = (state: GameState): LocalCatalogShopOff
     .filter((offer): offer is LocalCatalogShopOffer => Boolean(offer))
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
-export const purchaseLocalCatalogOffer = (state: GameState, offerId: string): GameState => {
+export const applyCatalogOfferPurchase = (state: GameState, offerId: string): GameState => {
   const offer = getLocalCatalogShopOffers(state).find((entry) => entry.offerId === offerId);
-  if (!offer || !offer.unlocked || state.walkerBucks < offer.priceWb) return state;
+  if (!offer || !offer.unlocked) return state;
 
   const purchases = getLocalPurchaseCount(state, offer);
   if (offer.purchaseLimitPerAccount && purchases >= offer.purchaseLimitPerAccount) return state;
 
   return {
     ...state,
-    walkerBucks: state.walkerBucks - offer.priceWb,
     inventory: {
       ...state.inventory,
       items: {
@@ -213,6 +212,8 @@ export const purchaseLocalCatalogOffer = (state: GameState, offerId: string): Ga
     }
   };
 };
+
+export const purchaseLocalCatalogOffer = applyCatalogOfferPurchase;
 
 export const getSharedInventoryEntitlements = (state: GameState): SharedInventoryEntitlement[] =>
   state.walkerBucksBridge.inventory.map((entry) => {
