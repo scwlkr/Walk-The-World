@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 type SupabaseUser = {
   id: string;
+  email: string | null;
 };
 
 type AccountOut = {
@@ -49,6 +50,10 @@ type RewardGrantRequest = {
   idempotencyKey?: string;
 };
 
+type BankLinkRequest = {
+  linkCode?: string;
+};
+
 type MarketplacePurchaseRequest = {
   shopOfferId?: number;
   idempotencyKey?: string;
@@ -61,6 +66,9 @@ type RewardDefinition = {
   reasonCode: string;
   description: string;
 };
+
+const WTW_PLATFORM = 'wtw';
+const WTW_SOURCE_APP = 'walk-the-world';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -121,13 +129,13 @@ const getSupabaseUser = async (request: Request): Promise<SupabaseUser> => {
     throw new BridgeError(401, error?.message ?? 'Supabase user not authenticated.');
   }
 
-  return { id: data.user.id };
+  return { id: data.user.id, email: data.user.email ?? null };
 };
 
-const walkerBucksFetch = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
+const walkerBucksResponse = async (path: string, init: RequestInit = {}): Promise<Response> => {
   const apiUrl = getRequiredEnv('WALKERBUCKS_API_URL').replace(/\/+$/, '');
   const serviceToken = Deno.env.get('WALKERBUCKS_SERVICE_TOKEN')?.trim();
-  const response = await fetch(`${apiUrl}${path}`, {
+  return fetch(`${apiUrl}${path}`, {
     ...init,
     headers: {
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
@@ -135,16 +143,23 @@ const walkerBucksFetch = async <T>(path: string, init: RequestInit = {}): Promis
       ...init.headers
     }
   });
+};
 
+const throwWalkerBucksError = async (response: Response): Promise<never> => {
+  let detail = `WalkerBucks API request failed with ${response.status}.`;
+  try {
+    const body = await response.json();
+    if (typeof body?.detail === 'string') detail = body.detail;
+  } catch {
+    // keep the generic message
+  }
+  throw new BridgeError(response.status >= 500 ? 502 : response.status, detail);
+};
+
+const walkerBucksFetch = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
+  const response = await walkerBucksResponse(path, init);
   if (!response.ok) {
-    let detail = `WalkerBucks API request failed with ${response.status}.`;
-    try {
-      const body = await response.json();
-      if (typeof body?.detail === 'string') detail = body.detail;
-    } catch {
-      // keep the generic message
-    }
-    throw new BridgeError(response.status >= 500 ? 502 : response.status, detail);
+    await throwWalkerBucksError(response);
   }
 
   return (await response.json()) as T;
@@ -158,7 +173,21 @@ const deriveIdempotencyKey = (userId: string, reward: RewardDefinition): string 
 const deriveMarketplaceIdempotencyKey = (userId: string, shopOfferId: number): string =>
   `wtw:supabase:${userId}:marketplace:offer:${shopOfferId}`;
 
+const loadAccountByPlatform = async (platform: string, platformUserId: string): Promise<AccountOut | null> => {
+  const response = await walkerBucksResponse(
+    `/v1/accounts/by-platform/${encodeURIComponent(platform)}/${encodeURIComponent(platformUserId)}`
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    await throwWalkerBucksError(response);
+  }
+  return (await response.json()) as AccountOut;
+};
+
 const resolveAccount = async (user: SupabaseUser): Promise<AccountOut> => {
+  const linkedAccount = await loadAccountByPlatform(WTW_PLATFORM, user.id);
+  if (linkedAccount) return linkedAccount;
+
   const account = await walkerBucksFetch<AccountOut>('/v1/accounts', {
     method: 'POST',
     body: JSON.stringify({
@@ -172,15 +201,50 @@ const resolveAccount = async (user: SupabaseUser): Promise<AccountOut> => {
       body: JSON.stringify({
         account_id: account.id,
         platform: 'supabase',
+        platform_user_id: user.id,
+        platform_username: user.email ?? undefined,
         external_id: user.id
       })
     });
   } catch {
-    // The current WalkerBucks API has no platform lookup endpoint, so duplicate
-    // link attempts are ignored while deterministic username mapping remains.
+    // Duplicate legacy Supabase links are harmless; the canonical WTW platform
+    // identity is created by WalkerBucks Bank link completion.
   }
 
   return account;
+};
+
+const transferLegacyBalance = async (
+  fromAccountId: string,
+  toAccountId: string,
+  user: SupabaseUser
+): Promise<string | null> => {
+  if (fromAccountId === toAccountId) return null;
+  const legacyWallet = await loadWallet(fromAccountId);
+  if (legacyWallet.available_balance <= 0) return null;
+
+  const transfer = await walkerBucksFetch<{ transaction_id: string }>('/v1/transfers/walkerbucks', {
+    method: 'POST',
+    body: JSON.stringify({
+      from_account_id: fromAccountId,
+      to_account_id: toAccountId,
+      amount: legacyWallet.available_balance,
+      idempotency_key: `wtw:bank-link:migrate:${user.id}:${toAccountId}`,
+      reason_code: 'account.link.legacy_wtw_migration',
+      description: 'Move legacy Walk The World WalkerBucks into linked bank account',
+      actor_account_id: toAccountId,
+      source_app: WTW_SOURCE_APP,
+      platform: WTW_PLATFORM,
+      platform_event_id: user.id,
+      metadata_json: {
+        supabase_user_id: user.id,
+        legacy_account_id: fromAccountId,
+        target_account_id: toAccountId
+      }
+    })
+  });
+
+  return transfer.transaction_id;
 };
 
 const loadWallet = async (accountId: string): Promise<WalletOut> =>
@@ -309,6 +373,52 @@ const handleGrant = async (request: Request): Promise<Response> => {
   });
 };
 
+const handleBankLink = async (request: Request): Promise<Response> => {
+  const user = await getSupabaseUser(request);
+  const payload = (await request.json()) as BankLinkRequest;
+  const linkCode = payload.linkCode?.trim().toUpperCase();
+  if (!linkCode) {
+    throw new BridgeError(400, 'linkCode is required.');
+  }
+
+  const legacyAccount = await walkerBucksFetch<AccountOut>('/v1/accounts', {
+    method: 'POST',
+    body: JSON.stringify({
+      username: `wtw:${user.id}`,
+      display_name: user.email ?? `WTW ${user.id.slice(0, 8)}`
+    })
+  });
+
+  const linked = await walkerBucksFetch<{ id: string; account_id: string }>('/v1/accounts/link-complete', {
+    method: 'POST',
+    body: JSON.stringify({
+      platform: WTW_PLATFORM,
+      platform_user_id: user.id,
+      platform_username: user.email ?? undefined,
+      link_code: linkCode,
+      actor_account_id: legacyAccount.id,
+      metadata_json: {
+        source_app: WTW_SOURCE_APP,
+        supabase_user_id: user.id
+      }
+    })
+  });
+
+  const migrationTransactionId = await transferLegacyBalance(legacyAccount.id, linked.account_id, user);
+  const wallet = await loadWallet(linked.account_id);
+  const updatedAt = Date.now();
+
+  return jsonResponse({
+    status: 'linked',
+    accountId: linked.account_id,
+    platform: WTW_PLATFORM,
+    platformUserId: user.id,
+    migrationTransactionId,
+    balance: toBalanceResponse(wallet, updatedAt),
+    updatedAt
+  });
+};
+
 const handleMarketplacePurchase = async (request: Request): Promise<Response> => {
   const user = await getSupabaseUser(request);
   const payload = (await request.json()) as MarketplacePurchaseRequest;
@@ -373,6 +483,10 @@ Deno.serve(async (request) => {
 
     if (request.method === 'POST' && path.endsWith('/rewards/grants')) {
       return await handleGrant(request);
+    }
+
+    if (request.method === 'POST' && path.endsWith('/bank/link')) {
+      return await handleBankLink(request);
     }
 
     if (request.method === 'POST' && path.endsWith('/marketplace/purchases')) {

@@ -1,6 +1,6 @@
 # Walk The World C Version WalkerBucks Bridge
 
-Last updated: 2026-04-28
+Last updated: 2026-04-30
 
 ## Status
 
@@ -8,13 +8,13 @@ Accepted for Phase 6 implementation.
 
 ## Decision Boundary
 
-This document defines the C-version bridge between the web game and the WalkerBucks economy. It covers balance reads, the first server-authoritative reward source, idempotency, retry behavior, failure behavior, and auth assumptions.
+This document defines the C-version bridge between the web game and the WalkerBucks economy. It covers balance reads, WalkerBucks Bank linking, the first server-authoritative reward source, idempotency, retry behavior, failure behavior, and auth assumptions.
 
-It does not ship leaderboards, marketplace spending, Discord linking, Telegram linking, shared inventory purchases, or a full anti-cheat program.
+It does not move WalkerBucks wallet, ledger, bank, or account-linking ownership into the game. The game remains a browser client plus trusted bridge.
 
 ## Source Evidence
 
-WalkerBucks was inspected from `git@github-scwlkr:scwlkr/WalkerBucks.git` at commit `2090e62a1854f4724e5ea56e08d1e577932464d1`.
+WalkerBucks was inspected from `/Users/shanewalker/Desktop/dev/WalkerBucks` at `origin/main` commit `66f25a5be41a6652f407ea1303e013aa6ced0622`.
 
 Current WalkerBucks facts:
 
@@ -23,8 +23,10 @@ Current WalkerBucks facts:
 - WB amounts are integer values.
 - Ledger transactions have unique `idempotency_key` values.
 - Repeated reward grants with the same idempotency key return the existing transaction.
-- `GET /v1/accounts/me` returns `501 Auth not implemented yet`.
-- Admin/reward endpoints exist but do not yet have production auth middleware.
+- `/v1` endpoints use service-token auth when `WALKERBUCKS_REQUIRE_SERVICE_TOKEN=true`.
+- `GET /v1/accounts/me` reads the trusted current account from `X-WalkerBucks-Account-Id`.
+- `POST /v1/accounts/link-intent` and `POST /v1/accounts/link-complete` are the current bank-code linking contract.
+- `GET /v1/accounts/by-platform/{platform}/{platform_user_id}` is the bridge-safe account lookup added for linked app identity resolution.
 
 ## Bridge Shape
 
@@ -66,23 +68,25 @@ WALKERBUCKS_SERVICE_TOKEN=
 
 ## Identity Mapping
 
-Until WalkerBucks implements `/v1/accounts/me`, the bridge creates or resolves a WalkerBucks account from the authenticated Supabase user.
+The bridge resolves a WalkerBucks account from the authenticated Supabase user without trusting browser-supplied account IDs.
 
 Mapping:
 
 ```text
-WalkerBucks username = wtw:{supabase_user_id}
-platform identity = platform "supabase", external_id {supabase_user_id}
+WTW platform identity = platform "wtw", platform_user_id {supabase_user_id}
+legacy deterministic username = wtw:{supabase_user_id}
 ```
 
 Bridge steps:
 
 1. Verify the Supabase access token.
-2. Resolve or create the WalkerBucks account with `POST /v1/accounts`.
-3. Best-effort link the platform identity with `POST /v1/accounts/link-platform`.
-4. Use the returned WalkerBucks `account_id` for wallet reads and reward grants.
+2. Resolve an existing bank-linked account through `GET /v1/accounts/by-platform/wtw/{supabase_user_id}`.
+3. If no WTW platform identity exists yet, use the legacy deterministic account `wtw:{supabase_user_id}` for pre-link balance and reward behavior.
+4. When the player enters a WalkerBucks Bank WTW code, complete it through `POST /v1/accounts/link-complete`.
+5. If a legacy deterministic account has available WB, move it to the linked bank account with an idempotent `POST /v1/transfers/walkerbucks`.
+6. Use the bank-linked WalkerBucks `account_id` for future wallet reads and reward grants.
 
-The platform-link call is best-effort because the current WalkerBucks implementation does not expose a lookup-by-platform endpoint and duplicate platform links can fail. The deterministic username is the C-version source of truth until WalkerBucks auth matures.
+The bridge stores no privileged account mapping in browser state. WalkerBucks platform identity is the source of truth after link completion.
 
 ## Endpoint Mapping
 
@@ -98,6 +102,7 @@ Authorization: Bearer {supabase_access_token}
 Bridge:
 
 ```text
+GET /v1/accounts/by-platform/wtw/{supabase_user_id}
 POST /v1/accounts
 GET /v1/wallets/{account_id}
 ```
@@ -111,6 +116,54 @@ Bridge response:
   "balance": 0,
   "lockedBalance": 0,
   "availableBalance": 0,
+  "updatedAt": 1710000000000
+}
+```
+
+### WalkerBucks Bank Link
+
+Browser:
+
+```http
+POST {VITE_WALKERBUCKS_BRIDGE_URL}/bank/link
+Authorization: Bearer {supabase_access_token}
+Content-Type: application/json
+```
+
+```json
+{
+  "linkCode": "LINK-1234"
+}
+```
+
+Bridge:
+
+```text
+POST /v1/accounts
+POST /v1/accounts/link-complete
+GET /v1/wallets/{legacy_account_id}
+POST /v1/transfers/walkerbucks
+GET /v1/wallets/{linked_account_id}
+```
+
+`POST /v1/transfers/walkerbucks` runs only when the legacy deterministic WTW account has available WB and differs from the bank-linked account.
+
+Bridge response:
+
+```json
+{
+  "status": "linked",
+  "accountId": "uuid",
+  "platform": "wtw",
+  "platformUserId": "supabase-user-id",
+  "migrationTransactionId": "uuid-or-null",
+  "balance": {
+    "assetCode": "WB",
+    "balance": 20,
+    "lockedBalance": 0,
+    "availableBalance": 20,
+    "updatedAt": 1710000000000
+  },
   "updatedAt": 1710000000000
 }
 ```
@@ -149,6 +202,7 @@ Content-Type: application/json
 Bridge:
 
 ```text
+GET /v1/accounts/by-platform/wtw/{supabase_user_id}
 POST /v1/accounts
 POST /v1/rewards/grants
 GET /v1/wallets/{account_id}
@@ -244,6 +298,12 @@ Bridge request fails:
 - Retry sends the same idempotency key.
 - The local save is not reset or overwritten.
 
+Bank link fails:
+
+- Invalid, expired, consumed, or wrong-platform link codes return a bridge error.
+- The local game save is not replaced or reset.
+- The player can generate a fresh WTW link code in WalkerBucks Bank and retry.
+
 WalkerBucks request fails:
 
 - The bridge returns a retryable error for 5xx or network failures.
@@ -258,21 +318,19 @@ WalkerBucks request fails:
 - The bridge maps reward source IDs to server-owned reward definitions.
 - The bridge verifies the Supabase token before resolving a WalkerBucks account.
 - The bridge rejects idempotency keys that do not match the authenticated user and reward source.
+- The browser sends only the bank link code; the bridge derives the WTW platform user from the verified Supabase user.
 
 ## Phase 6 Acceptance Mapping
 
 - Browser never stores privileged WalkerBucks admin/reward secrets: use only `VITE_WALKERBUCKS_BRIDGE_URL` in browser.
 - Reward grants use stable idempotency keys: derive `wtw:supabase:{user_id}:achievement:day_one_check_in`.
+- Bank linking uses WalkerBucks Bank link intents and completes them only through the trusted bridge.
 - Failed bridge calls are visible and retryable: persist pending/failed grant state in local save.
 - Guest/local mode works if WalkerBucks is unavailable: fall back to local reward behavior when bridge or session is missing.
 - `npm run build` passes after code changes.
 
 ## Deferred
 
-- WalkerBucks `/v1/accounts/me` replacement for deterministic username mapping.
-- Production WalkerBucks auth middleware.
+- Public-launch auth hardening beyond the current scoped service-token model.
 - Server validation for distance, quest, prestige, seasonal, and random-event rewards.
-- Marketplace purchases.
-- Shared inventory grants.
-- Leaderboards.
 - Discord and Telegram identity linking.

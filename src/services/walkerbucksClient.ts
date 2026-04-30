@@ -57,6 +57,16 @@ export type WalkerBucksMarketplacePurchaseResponse = {
   inventory: WalkerBucksInventoryItem[];
 };
 
+export type WalkerBucksBankLinkResponse = {
+  status: 'linked';
+  accountId: string;
+  platform: 'wtw';
+  platformUserId: string;
+  migrationTransactionId: string | null;
+  balance: WalkerBucksBalanceSnapshot;
+  updatedAt: number;
+};
+
 const getErrorMessage = async (response: Response): Promise<string> => {
   try {
     const body = (await response.json()) as BridgeErrorBody;
@@ -109,6 +119,15 @@ export const grantWalkerBucksReward = async (
   requestBridge<WalkerBucksRewardGrantResponse>('/rewards/grants', accessToken, {
     method: 'POST',
     body: JSON.stringify(grant)
+  });
+
+export const completeWalkerBucksBankLink = async (
+  accessToken: string,
+  linkCode: string
+): Promise<WalkerBucksBankLinkResponse> =>
+  requestBridge<WalkerBucksBankLinkResponse>('/bank/link', accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ linkCode })
   });
 
 export const purchaseWalkerBucksMarketplaceOffer = async (

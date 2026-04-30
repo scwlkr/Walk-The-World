@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from 'react';
 import type { GameState, WalkerBucksRewardGrant } from '../game/types';
 
 type WalkerBucksPanelProps = {
@@ -6,6 +7,7 @@ type WalkerBucksPanelProps = {
   isSignedIn: boolean;
   isBusy: boolean;
   onRefreshBalance: () => void;
+  onCompleteBankLink: (linkCode: string) => Promise<void>;
   onRetryGrant: (grant: WalkerBucksRewardGrant) => void;
 };
 
@@ -28,11 +30,29 @@ export const WalkerBucksPanel = ({
   isSignedIn,
   isBusy,
   onRefreshBalance,
+  onCompleteBankLink,
   onRetryGrant
 }: WalkerBucksPanelProps) => {
+  const [bankLinkCode, setBankLinkCode] = useState('');
+  const [bankLinkMessage, setBankLinkMessage] = useState<string | null>(null);
   const balance = state.walkerBucksBridge.balance;
   const grants = Object.values(state.walkerBucksBridge.rewardGrants).sort((a, b) => b.updatedAt - a.updatedAt);
   const canUseBridge = isBridgeConfigured && isSignedIn && !isBusy;
+  const normalizedBankLinkCode = bankLinkCode.trim().toUpperCase();
+
+  const submitBankLink = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!normalizedBankLinkCode || !canUseBridge) return;
+
+    setBankLinkMessage(null);
+    try {
+      await onCompleteBankLink(normalizedBankLinkCode);
+      setBankLinkCode('');
+      setBankLinkMessage('WalkerBucks Bank linked.');
+    } catch (error) {
+      setBankLinkMessage(error instanceof Error ? error.message : 'WalkerBucks Bank link failed.');
+    }
+  };
 
   return (
     <section className="collection-panel" aria-label="WalkerBucks bridge">
@@ -54,6 +74,32 @@ export const WalkerBucksPanel = ({
         <button type="button" className="mini-btn" disabled={!canUseBridge} onClick={onRefreshBalance}>
           {isBusy ? 'Checking' : 'Refresh balance'}
         </button>
+      </article>
+
+      <article className="panel shop-card">
+        <div className="card-row">
+          <h4>Bank Link</h4>
+          <span className="pill">WTW</span>
+        </div>
+        <form className="account-card" onSubmit={(event) => void submitBankLink(event)}>
+          <label className="settings-field">
+            <span>Link Code</span>
+            <input
+              className="text-control"
+              value={bankLinkCode}
+              inputMode="text"
+              autoCapitalize="characters"
+              autoComplete="off"
+              placeholder="LINK-0000"
+              onChange={(event) => setBankLinkCode(event.currentTarget.value)}
+            />
+          </label>
+          <button type="submit" className="mini-btn" disabled={!canUseBridge || !normalizedBankLinkCode}>
+            {isBusy ? 'Linking' : 'Link Bank'}
+          </button>
+        </form>
+        <p className="muted">Generate a WTW code in WalkerBucks Bank. Codes expire in 15 minutes.</p>
+        {bankLinkMessage && <p className="muted">{bankLinkMessage}</p>}
       </article>
 
       {grants.length > 0 && (

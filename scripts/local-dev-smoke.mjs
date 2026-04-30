@@ -397,12 +397,14 @@ const run = async () => {
       `(() => ({
         presets: Array.from(document.querySelectorAll('select option')).some((option) => option.textContent?.includes('Mars prototype')),
         scenes: Array.from(document.querySelectorAll('select option')).some((option) => option.textContent?.includes('Walkertown')),
-        hasSpeed: Boolean(document.querySelector('input[type="number"]'))
+        hasSpeed: Boolean(document.querySelector('input[type="number"]')),
+        hasBankLink: Boolean(document.querySelector('input[placeholder="LINK-0000"]')) && document.body.textContent.includes('Bank Link')
       }))()`
     );
     assert(devLab.presets, 'Dev lab preset options did not render.');
     assert(devLab.scenes, 'Dev lab scene options did not render.');
     assert(devLab.hasSpeed, 'Dev lab speed multiplier did not render.');
+    assert(devLab.hasBankLink, 'WalkerBucks Bank link form did not render.');
 
     logStep('reloading and verifying local save continuity');
     await navigateToApp(client, 'reloaded game');

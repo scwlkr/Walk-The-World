@@ -29,6 +29,7 @@ const smokeEmail = process.env.WTW_BETA_SMOKE_EMAIL.trim();
 const smokePassword = process.env.WTW_BETA_SMOKE_PASSWORD;
 const allowPurchase = process.env.WTW_BETA_SMOKE_ALLOW_PURCHASE === 'true';
 const requireBridge = process.env.WTW_BETA_SMOKE_REQUIRE_BRIDGE === 'true';
+const bankLinkCode = process.env.WTW_BETA_SMOKE_BANK_LINK_CODE?.trim() ?? '';
 const requestedOfferId = process.env.WTW_BETA_SMOKE_PURCHASE_OFFER_ID
   ? Number(process.env.WTW_BETA_SMOKE_PURCHASE_OFFER_ID)
   : null;
@@ -160,6 +161,17 @@ const runBridgeSmoke = async (session) => {
   assert(grant.status === 'granted', 'Reward grant did not return granted status.');
   assert(grant.idempotencyKey === rewardKey, 'Reward grant returned the wrong idempotency key.');
 
+  let bankLink = null;
+  if (bankLinkCode) {
+    bankLink = await bridgeRequest('/bank/link', accessToken, {
+      method: 'POST',
+      body: JSON.stringify({ linkCode: bankLinkCode })
+    });
+    assert(bankLink.status === 'linked', 'Bank link did not return linked status.');
+    assert(bankLink.platform === 'wtw', 'Bank link returned the wrong platform.');
+    assert(bankLink.accountId, 'Bank link response did not include accountId.');
+  }
+
   const leaderboard = await bridgeRequest('/leaderboards/walkerbucks', accessToken);
   assert(Array.isArray(leaderboard.entries), 'Leaderboard response did not include entries.');
 
@@ -191,6 +203,7 @@ const runBridgeSmoke = async (session) => {
   return {
     status: 'checked',
     accountId: balance.accountId,
+    bankLinkStatus: bankLink?.status ?? 'skipped',
     rewardTransactionId: grant.transactionId,
     leaderboardEntries: leaderboard.entries.length,
     marketplaceOffers: marketplace.offers.length,

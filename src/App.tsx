@@ -81,6 +81,7 @@ import {
 } from './services/authClient';
 import { loadCloudSave, uploadCloudSave, type CloudSaveSnapshot } from './services/cloudSaveClient';
 import {
+  completeWalkerBucksBankLink,
   grantWalkerBucksReward,
   isWalkerBucksBridgeConfigured,
   loadWalkerBucksBalance,
@@ -278,6 +279,41 @@ const App = () => {
         status: 'error',
         lastError: toErrorMessage(error)
       });
+    } finally {
+      setWalkerBucksBusy(false);
+    }
+  };
+
+  const completeBankLink = async (linkCode: string) => {
+    if (!isWalkerBucksBridgeConfigured) {
+      updateWalkerBucksBridgeState({ status: 'unavailable', lastError: null });
+      throw new Error('WalkerBucks bridge is not configured.');
+    }
+
+    const accessToken = authSession?.access_token;
+    if (!authSession?.user || !accessToken) {
+      updateWalkerBucksBridgeState({ status: 'guest', lastError: null });
+      throw new Error('Sign in before linking WalkerBucks Bank.');
+    }
+
+    setWalkerBucksBusy(true);
+    updateWalkerBucksBridgeState({ status: 'checking', lastError: null });
+    try {
+      const result = await completeWalkerBucksBankLink(accessToken, linkCode);
+      updateWalkerBucksBridgeState({
+        status: 'ready',
+        accountId: result.accountId,
+        balance: result.balance,
+        lastCheckedAt: result.updatedAt,
+        lastError: null
+      });
+    } catch (error) {
+      const message = toErrorMessage(error);
+      updateWalkerBucksBridgeState({
+        status: 'error',
+        lastError: message
+      });
+      throw new Error(message);
     } finally {
       setWalkerBucksBusy(false);
     }
@@ -1250,6 +1286,7 @@ const App = () => {
           isSignedIn={Boolean(authSession?.user)}
           isBusy={walkerBucksBusy}
           onRefreshBalance={refreshWalkerBucksBalance}
+          onCompleteBankLink={completeBankLink}
           onRetryGrant={(grant) => void submitWalkerBucksGrant(grant)}
         />
         <SocialBridgePanel
