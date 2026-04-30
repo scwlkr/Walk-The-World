@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../game/types';
-import {
-  getCurrentLandmark,
-  getCurrentWorldProgressPercent,
-  getIdleMilesPerSecond
-} from '../game/formulas';
+import { getCurrentLandmark, getIdleMilesPerSecond } from '../game/formulas';
 import { getBackgroundScene } from '../game/backgroundScenes';
 import {
   getRandomEventPresentation,
@@ -19,7 +15,7 @@ import {
   type WalkerSpriteSheet
 } from '../game/assets';
 import { getActiveSeasonalEventForState, getSeasonalEventById } from '../game/seasonalEvents';
-import { getCurrentWorldDefinition, getCurrentWorldDistance } from '../game/world';
+import { getCurrentWorldDistance } from '../game/world';
 
 type GameSceneCanvasProps = {
   state: GameState;
@@ -563,37 +559,6 @@ export const GameSceneCanvas = ({
       ctx.fillRect(Math.round(centerX - 30), Math.round(footY + 1), 60, 4);
     };
 
-    const drawLocationPlaque = (width: number, height: number, landmarkName: string, worldLabel: string, progress: number) => {
-      const plaqueWidth = Math.min(228, Math.max(174, width - 142));
-      const plaqueHeight = 42;
-      const x = 16;
-      const bottomReserved =
-        width <= 520
-          ? Math.min(154, Math.max(128, Math.round(height * 0.15)))
-          : Math.min(92, Math.max(64, Math.round(height * 0.1)));
-      const y = height - plaqueHeight - bottomReserved;
-
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.68)';
-      ctx.fillRect(x, y, plaqueWidth, plaqueHeight);
-      ctx.fillStyle = 'rgba(250, 204, 21, 0.72)';
-      ctx.fillRect(x, y, plaqueWidth, 2);
-      ctx.fillRect(x, y + plaqueHeight - 2, plaqueWidth, 2);
-      ctx.fillRect(x, y, 2, plaqueHeight);
-      ctx.fillRect(x + plaqueWidth - 2, y, 2, plaqueHeight);
-      ctx.fillStyle = 'rgba(254, 240, 138, 0.16)';
-      ctx.fillRect(x + 4, y + 4, plaqueWidth - 8, 5);
-
-      ctx.fillStyle = '#fde68a';
-      ctx.font = 'bold 9px monospace';
-      ctx.fillText('NOW WALKING', x + 10, y + 15);
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = 'bold 13px monospace';
-      ctx.fillText(landmarkName.slice(0, 20), x + 10, y + 30);
-      ctx.fillStyle = '#bfdbfe';
-      ctx.font = 'bold 9px monospace';
-      ctx.fillText(`${worldLabel} ${progress.toFixed(2)}%`, x + plaqueWidth - 84, y + 30);
-    };
-
     const draw = (time: number) => {
       const elapsed = time / 1000;
       const width = canvas.clientWidth;
@@ -601,8 +566,6 @@ export const GameSceneCanvas = ({
       const landmark = currentLandmark;
       const palette = biomePalette[landmark.biome] ?? biomePalette.plains;
       const speed = getIdleMilesPerSecond(state);
-      const progress = getCurrentWorldProgressPercent(state);
-      const world = getCurrentWorldDefinition(state);
       const backgroundImage = backgroundImageRef.current;
       const pathY = Math.floor(height * backgroundScene.pathYRatio);
 
@@ -752,8 +715,6 @@ export const GameSceneCanvas = ({
           routeItemSrc ? pickupMarkerImagesRef.current[routeItemSrc] : undefined
         );
       }
-
-      drawLocationPlaque(width, height, landmark.name, world.shortName, progress);
 
       rafRef.current = requestAnimationFrame(draw);
     };

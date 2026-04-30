@@ -253,38 +253,6 @@ const run = async () => {
     assert(firstScreen.hasBottomControls, 'Bottom controls did not render.');
     assert(!firstScreen.bodyOverflows, `Mobile viewport has horizontal overflow at ${firstScreen.viewportWidth}x${firstScreen.viewportHeight}.`);
 
-    const bottomSafeAreaLayout = await evaluate(
-      client,
-      `(() => {
-        document.documentElement.style.setProperty('--bottom-controls-offset', '50px');
-        const canvas = document.querySelector('.game-canvas');
-        const walk = document.querySelector('.walk-btn');
-        if (!canvas || !walk) return null;
-        const canvasRect = canvas.getBoundingClientRect();
-        const walkRect = walk.getBoundingClientRect();
-        const width = canvas.clientWidth;
-        const height = canvas.clientHeight;
-        const plaqueHeight = 42;
-        const plaqueWidth = Math.min(228, Math.max(174, width - 142));
-        const bottomReserved =
-          width <= 520
-            ? Math.min(154, Math.max(128, Math.round(height * 0.15)))
-            : Math.min(92, Math.max(64, Math.round(height * 0.1)));
-        const plaque = {
-          left: canvasRect.left + 16,
-          top: canvasRect.top + height - plaqueHeight - bottomReserved,
-          right: canvasRect.left + 16 + plaqueWidth,
-          bottom: canvasRect.top + height - bottomReserved
-        };
-        document.documentElement.style.removeProperty('--bottom-controls-offset');
-        const overlaps = plaque.left < walkRect.right && plaque.right > walkRect.left && plaque.top < walkRect.bottom && plaque.bottom > walkRect.top;
-        return { overlaps, gap: walkRect.top - plaque.bottom };
-      })()`
-    );
-    assert(bottomSafeAreaLayout, 'Mobile safe-area layout check did not run.');
-    assert(!bottomSafeAreaLayout.overlaps, 'Canvas location plaque overlapped the WALK button with bottom safe-area padding.');
-    assert(bottomSafeAreaLayout.gap >= 12, `Canvas location plaque is too close to the WALK button (${bottomSafeAreaLayout.gap}px gap).`);
-
     logStep('walking, claiming first journey reward, and using starter item');
     for (let i = 0; i < 4; i += 1) {
       assert(await evaluate(client, click('.walk-btn')), 'Walk button click failed.');
