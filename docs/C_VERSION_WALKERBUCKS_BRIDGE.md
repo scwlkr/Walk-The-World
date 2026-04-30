@@ -14,7 +14,7 @@ It does not move WalkerBucks wallet, ledger, bank, or account-linking ownership 
 
 ## Source Evidence
 
-WalkerBucks was inspected from `/Users/shanewalker/Desktop/dev/WalkerBucks` at `origin/main` commit `66f25a5be41a6652f407ea1303e013aa6ced0622`.
+WalkerBucks was inspected from `/Users/shanewalker/Desktop/dev/WalkerBucks` at commit `aa67559`.
 
 Current WalkerBucks facts:
 
@@ -27,6 +27,9 @@ Current WalkerBucks facts:
 - `GET /v1/accounts/me` reads the trusted current account from `X-WalkerBucks-Account-Id`.
 - `POST /v1/accounts/link-intent` and `POST /v1/accounts/link-complete` are the current bank-code linking contract.
 - `GET /v1/accounts/by-platform/{platform}/{platform_user_id}` is the bridge-safe account lookup added for linked app identity resolution.
+- `POST /v1/transfers/walkerbucks` is the supported currency movement endpoint for app purchase settlement.
+- WalkerBucks core does not expose item, shop, inventory, or marketplace routes.
+- Live production retains old item/shop rows, but WalkerBucks treats them as application-layer data outside core behavior.
 
 ## Bridge Shape
 
@@ -60,11 +63,14 @@ VITE_WALKERBUCKS_BRIDGE_URL=
 Server-only bridge secrets:
 
 ```text
+SUPABASE_DB_URL=
 WALKERBUCKS_API_URL=
 WALKERBUCKS_SERVICE_TOKEN=
 ```
 
-`WALKERBUCKS_SERVICE_TOKEN` is reserved for the future WalkerBucks auth middleware. If WalkerBucks is running in the current unauthenticated local/beta shape, the bridge can omit that header, but the browser must still never call WalkerBucks directly.
+`WALKERBUCKS_SERVICE_TOKEN` is the scoped service token used when WalkerBucks has service-token auth enabled. If a local-only WalkerBucks instance is running without that auth layer, the bridge can omit that header, but the browser must still never call WalkerBucks directly.
+
+`SUPABASE_DB_URL` is needed only for the transitional app-layer compatibility path that reads retained legacy WalkerBucks item/shop rows and writes legacy item instances after marketplace purchases. It must never be exposed to the browser. The bridge uses the database connection instead of Supabase REST because the `walkerbucks` schema is intentionally not exposed through the public project API.
 
 ## Identity Mapping
 
@@ -85,8 +91,23 @@ Bridge steps:
 4. When the player enters a WalkerBucks Bank WTW code, complete it through `POST /v1/accounts/link-complete`.
 5. If a legacy deterministic account has available WB, move it to the linked bank account with an idempotent `POST /v1/transfers/walkerbucks`.
 6. Use the bank-linked WalkerBucks `account_id` for future wallet reads and reward grants.
+7. For shared inventory display, read retained legacy item instances from both the linked bank account and the old Supabase-linked WTW account.
 
 The bridge stores no privileged account mapping in browser state. WalkerBucks platform identity is the source of truth after link completion.
+
+## App-Layer Inventory Compatibility
+
+WalkerBucks core is the source of truth for accounts, wallets, ledger transactions, transfers, rewards, and bank linking.
+
+The old item, shop, inventory, and marketplace tables are not WalkerBucks core APIs anymore. While those retained rows still exist in the live WalkerBucks Supabase schema, WTW treats them as app-layer compatibility data:
+
+- The bridge reads active `shop_offers` and `item_definitions` directly through the server-side database connection.
+- The bridge reads `item_instances` from the linked bank account and the old WTW/Supabase account, then returns one combined inventory list to the browser.
+- Bank linking migrates old WB balance only. It does not rewrite old item ownership rows or ledger history.
+- Marketplace purchases settle money through `POST /v1/transfers/walkerbucks`, then the bridge writes the retained legacy `item_instances` and `item_history` rows.
+- Repeated marketplace purchase retries reuse the WalkerBucks transfer idempotency key and return the existing legacy item instance when the history row already records that transaction.
+
+This keeps WalkerBucks from re-owning marketplace logic while making already-purchased WTW items visible after the bank account link.
 
 ## Endpoint Mapping
 
@@ -105,6 +126,7 @@ Bridge:
 GET /v1/accounts/by-platform/wtw/{supabase_user_id}
 POST /v1/accounts
 GET /v1/wallets/{account_id}
+Server-side database read of retained item_instances for linked and legacy account IDs
 ```
 
 Bridge response:
@@ -116,6 +138,13 @@ Bridge response:
   "balance": 0,
   "lockedBalance": 0,
   "availableBalance": 0,
+  "inventory": [
+    {
+      "itemInstanceId": "uuid",
+      "itemDefinitionId": 13,
+      "status": "owned"
+    }
+  ],
   "updatedAt": 1710000000000
 }
 ```
@@ -144,6 +173,7 @@ POST /v1/accounts/link-complete
 GET /v1/wallets/{legacy_account_id}
 POST /v1/transfers/walkerbucks
 GET /v1/wallets/{linked_account_id}
+Server-side database read of retained item_instances for linked and legacy account IDs
 ```
 
 `POST /v1/transfers/walkerbucks` runs only when the legacy deterministic WTW account has available WB and differs from the bank-linked account.
@@ -154,9 +184,17 @@ Bridge response:
 {
   "status": "linked",
   "accountId": "uuid",
+  "legacyAccountId": "uuid-or-null",
   "platform": "wtw",
   "platformUserId": "supabase-user-id",
   "migrationTransactionId": "uuid-or-null",
+  "inventory": [
+    {
+      "itemInstanceId": "uuid",
+      "itemDefinitionId": 13,
+      "status": "owned"
+    }
+  ],
   "balance": {
     "assetCode": "WB",
     "balance": 20,
@@ -167,6 +205,52 @@ Bridge response:
   "updatedAt": 1710000000000
 }
 ```
+
+### Marketplace Offers And Purchases
+
+Browser:
+
+```http
+GET {VITE_WALKERBUCKS_BRIDGE_URL}/marketplace/offers
+Authorization: Bearer {supabase_access_token}
+```
+
+Bridge:
+
+```text
+GET /v1/accounts/by-platform/wtw/{supabase_user_id}
+GET /v1/wallets/{account_id}
+Server-side database read of retained shop_offers, item_definitions, and item_instances
+```
+
+Purchase browser call:
+
+```http
+POST {VITE_WALKERBUCKS_BRIDGE_URL}/marketplace/purchases
+Authorization: Bearer {supabase_access_token}
+Content-Type: application/json
+```
+
+```json
+{
+  "shopOfferId": 13,
+  "idempotencyKey": "wtw:supabase:{user_id}:marketplace:offer:13"
+}
+```
+
+Purchase bridge flow:
+
+```text
+GET /v1/accounts/by-platform/wtw/{supabase_user_id}
+Server-side database read of retained shop_offers
+POST /v1/accounts for the settlement account
+POST /v1/transfers/walkerbucks
+Server-side database write to retained item_instances and item_history
+GET /v1/wallets/{account_id}
+Server-side database read of retained item_instances for linked and legacy account IDs
+```
+
+The transfer reason code is `transfer.walk_the_world_marketplace_purchase`. App-layer reason prefixes such as `shop.` and `marketplace.` are intentionally not used for WalkerBucks core ledger writes.
 
 ### Server-Authoritative Reward Grant
 
@@ -243,7 +327,7 @@ Bridge response:
 
 ## Idempotency Rules
 
-Stable key format:
+Reward stable key format:
 
 ```text
 wtw:supabase:{supabase_user_id}:{source_type}:{source_id}
@@ -262,6 +346,8 @@ Rules:
 - The browser stores the same key in local pending-grant state for retry visibility.
 - A retry uses the exact same idempotency key.
 - A WalkerBucks duplicate response is treated as success because the ledger returns the original transaction.
+- Marketplace purchases use `wtw:supabase:{supabase_user_id}:marketplace:offer:{shop_offer_id}`.
+- Marketplace purchase retries must not create duplicate retained legacy item rows when the WalkerBucks transfer idempotency key returns the existing transaction.
 
 ## Local Versus Server-Backed Rewards
 
@@ -276,7 +362,9 @@ Behavior:
 
 - Guest mode and missing bridge config keep using local-only rewards.
 - Signed-in bridge mode skips local WB for the first server-backed achievement and records a pending WalkerBucks grant instead.
-- Items/cosmetics remain local unless a later phase maps them to WalkerBucks inventory.
+- Local route items and equipment remain local.
+- Shared WalkerBucks inventory is read-only app-layer entitlement data returned by the bridge.
+- Shared marketplace purchases settle shared WB through WalkerBucks core and record the item in retained legacy app-layer rows.
 - Local WB remains available for game upgrades even when shared WalkerBucks exists.
 
 ## Failure Behavior
@@ -304,6 +392,12 @@ Bank link fails:
 - The local game save is not replaced or reset.
 - The player can generate a fresh WTW link code in WalkerBucks Bank and retry.
 
+Legacy app-layer inventory read fails:
+
+- The bridge returns a bridge error for unexpected Supabase errors.
+- If the retained legacy tables are absent in a future environment, inventory and marketplace rows fall back to empty arrays instead of failing wallet reads.
+- Balance reads still come from WalkerBucks core.
+
 WalkerBucks request fails:
 
 - The bridge returns a retryable error for 5xx or network failures.
@@ -314,6 +408,7 @@ WalkerBucks request fails:
 
 - No WalkerBucks privileged secret goes in `VITE_*` env vars.
 - Browser code never calls WalkerBucks API endpoints directly.
+- Browser code never calls retained legacy Supabase item/shop tables directly.
 - Browser reward requests never include an amount trusted by the server.
 - The bridge maps reward source IDs to server-owned reward definitions.
 - The bridge verifies the Supabase token before resolving a WalkerBucks account.
@@ -325,6 +420,8 @@ WalkerBucks request fails:
 - Browser never stores privileged WalkerBucks admin/reward secrets: use only `VITE_WALKERBUCKS_BRIDGE_URL` in browser.
 - Reward grants use stable idempotency keys: derive `wtw:supabase:{user_id}:achievement:day_one_check_in`.
 - Bank linking uses WalkerBucks Bank link intents and completes them only through the trusted bridge.
+- Linked accounts show retained legacy WTW inventory by reading both linked and old WTW account item rows.
+- Marketplace purchases use WalkerBucks core transfers for WB movement and app-layer retained rows for item ownership.
 - Failed bridge calls are visible and retryable: persist pending/failed grant state in local save.
 - Guest/local mode works if WalkerBucks is unavailable: fall back to local reward behavior when bridge or session is missing.
 - `npm run build` passes after code changes.
@@ -333,4 +430,5 @@ WalkerBucks request fails:
 
 - Public-launch auth hardening beyond the current scoped service-token model.
 - Server validation for distance, quest, prestige, seasonal, and random-event rewards.
+- A permanent WTW-owned item/shop/inventory service after retained legacy rows are exported or moved out of the WalkerBucks schema.
 - Discord and Telegram identity linking.

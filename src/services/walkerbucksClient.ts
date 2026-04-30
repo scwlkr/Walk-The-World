@@ -37,6 +37,7 @@ export type WalkerBucksMarketplaceSnapshot = {
   accountId: string;
   balance: WalkerBucksBalanceSnapshot;
   offers: WalkerBucksMarketplaceOffer[];
+  inventory: WalkerBucksInventoryItem[];
   updatedAt: number;
 };
 
@@ -60,9 +61,11 @@ export type WalkerBucksMarketplacePurchaseResponse = {
 export type WalkerBucksBankLinkResponse = {
   status: 'linked';
   accountId: string;
+  legacyAccountId: string | null;
   platform: 'wtw';
   platformUserId: string;
   migrationTransactionId: string | null;
+  inventory: WalkerBucksInventoryItem[];
   balance: WalkerBucksBalanceSnapshot;
   updatedAt: number;
 };
@@ -97,8 +100,10 @@ const requestBridge = async <T>(path: string, accessToken: string, init: Request
   return (await response.json()) as T;
 };
 
-export const loadWalkerBucksBalance = async (accessToken: string): Promise<WalkerBucksBalanceSnapshot & { accountId: string }> =>
-  requestBridge<WalkerBucksBalanceSnapshot & { accountId: string }>('/balance', accessToken, {
+export const loadWalkerBucksBalance = async (
+  accessToken: string
+): Promise<WalkerBucksBalanceSnapshot & { accountId: string; inventory: WalkerBucksInventoryItem[] }> =>
+  requestBridge<WalkerBucksBalanceSnapshot & { accountId: string; inventory: WalkerBucksInventoryItem[] }>('/balance', accessToken, {
     method: 'GET'
   });
 

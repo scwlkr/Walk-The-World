@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { Client } from 'https://deno.land/x/postgres@v0.19.3/mod.ts';
 
 type SupabaseUser = {
   id: string;
@@ -42,6 +43,17 @@ type InventoryItemOut = {
   item_instance_id: string;
   item_definition_id: number;
   status: string;
+};
+
+type LegacyInventoryRow = {
+  id: string;
+  account_id: string;
+  item_definition_id: number;
+  status: string;
+};
+
+type LegacyItemHistoryRow = {
+  item_instance_id: string;
 };
 
 type RewardGrantRequest = {
@@ -108,6 +120,43 @@ const getRequiredEnv = (name: string): string => {
   const value = Deno.env.get(name)?.trim();
   if (!value) throw new BridgeError(500, `${name} is not configured.`);
   return value;
+};
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  return String(error);
+};
+
+const getLegacyDbUrl = (): string => {
+  const value = Deno.env.get('SUPABASE_DB_URL')?.trim();
+  if (!value) throw new BridgeError(500, 'SUPABASE_DB_URL is not configured for WalkerBucks app-layer data.');
+  return value;
+};
+
+const isMissingLegacyTable = (error: unknown): boolean => {
+  const candidate = error as { code?: string; fields?: { code?: string }; message?: string };
+  const code = candidate.code ?? candidate.fields?.code;
+  return code === '42P01' || candidate.message?.includes('does not exist') === true;
+};
+
+const withLegacyDb = async <T>(query: (client: Client) => Promise<T>): Promise<T> => {
+  const client = new Client(getLegacyDbUrl());
+  await client.connect();
+  try {
+    return await query(client);
+  } finally {
+    await client.end();
+  }
+};
+
+const loadLegacyRows = async <T>(query: (client: Client) => Promise<T[]>): Promise<T[]> => {
+  try {
+    return await withLegacyDb(query);
+  } catch (error) {
+    if (error instanceof BridgeError) throw error;
+    if (isMissingLegacyTable(error)) return [];
+    throw new BridgeError(502, `WalkerBucks legacy app-layer data failed: ${getErrorMessage(error)}`);
+  }
 };
 
 const getSupabaseUser = async (request: Request): Promise<SupabaseUser> => {
@@ -250,13 +299,49 @@ const transferLegacyBalance = async (
 const loadWallet = async (accountId: string): Promise<WalletOut> =>
   walkerBucksFetch<WalletOut>(`/v1/wallets/${accountId}`);
 
-const loadShopOffers = async (): Promise<ShopOfferOut[]> => walkerBucksFetch<ShopOfferOut[]>('/v1/shop/offers');
+const loadShopOffers = async (): Promise<ShopOfferOut[]> =>
+  loadLegacyRows<ShopOfferOut>(async (client) => {
+    const result = await client.queryObject<ShopOfferOut>(
+      'select id, shop_id, item_definition_id, price_wb from walkerbucks.shop_offers where active = true order by id'
+    );
+    return result.rows;
+  });
 
 const loadItemDefinitions = async (): Promise<ItemDefinitionOut[]> =>
-  walkerBucksFetch<ItemDefinitionOut[]>('/v1/items/definitions');
+  loadLegacyRows<ItemDefinitionOut>(async (client) => {
+    const result = await client.queryObject<ItemDefinitionOut>(
+      'select id, name, description, consumable from walkerbucks.item_definitions order by id'
+    );
+    return result.rows;
+  });
 
-const loadInventory = async (accountId: string): Promise<InventoryItemOut[]> =>
-  walkerBucksFetch<InventoryItemOut[]>(`/v1/inventory/${accountId}`);
+const loadInventory = async (accountIds: string[]): Promise<InventoryItemOut[]> => {
+  const ids = Array.from(new Set(accountIds.filter(Boolean)));
+  if (ids.length === 0) return [];
+  const placeholders = ids.map((_, index) => `$${index + 1}::uuid`).join(', ');
+  const rows = await loadLegacyRows<LegacyInventoryRow>(async (client) => {
+    const result = await client.queryObject<LegacyInventoryRow>({
+      text: `select id::text as id, account_id::text as account_id, item_definition_id, status from walkerbucks.item_instances where account_id in (${placeholders}) order by created_at`,
+      args: ids
+    });
+    return result.rows;
+  });
+  const seen = new Set<string>();
+  return rows.flatMap((row) => {
+    if (seen.has(row.id)) return [];
+    seen.add(row.id);
+    return {
+      item_instance_id: row.id,
+      item_definition_id: row.item_definition_id,
+      status: row.status
+    };
+  });
+};
+
+const getInventoryAccountIds = async (user: SupabaseUser, accountId: string): Promise<string[]> => {
+  const legacyAccount = await loadAccountByPlatform('supabase', user.id);
+  return legacyAccount?.id && legacyAccount.id !== accountId ? [accountId, legacyAccount.id] : [accountId];
+};
 
 const toBalanceResponse = (wallet: WalletOut, updatedAt: number) => ({
   assetCode: wallet.asset_code,
@@ -291,9 +376,11 @@ const toMarketplaceOfferResponse = (offers: ShopOfferOut[], definitions: ItemDef
 const handleBalance = async (request: Request): Promise<Response> => {
   const user = await getSupabaseUser(request);
   const account = await resolveAccount(user);
-  const wallet = await loadWallet(account.id);
+  const [wallet, inventoryAccountIds] = await Promise.all([loadWallet(account.id), getInventoryAccountIds(user, account.id)]);
+  const inventory = await loadInventory(inventoryAccountIds);
   return jsonResponse({
     accountId: account.id,
+    inventory: toInventoryResponse(inventory),
     ...toBalanceResponse(wallet, Date.now())
   });
 };
@@ -320,13 +407,20 @@ const handleLeaderboard = async (request: Request): Promise<Response> => {
 const handleMarketplaceOffers = async (request: Request): Promise<Response> => {
   const user = await getSupabaseUser(request);
   const account = await resolveAccount(user);
-  const [wallet, offers, definitions] = await Promise.all([loadWallet(account.id), loadShopOffers(), loadItemDefinitions()]);
+  const inventoryAccountIds = await getInventoryAccountIds(user, account.id);
+  const [wallet, offers, definitions, inventory] = await Promise.all([
+    loadWallet(account.id),
+    loadShopOffers(),
+    loadItemDefinitions(),
+    loadInventory(inventoryAccountIds)
+  ]);
   const updatedAt = Date.now();
 
   return jsonResponse({
     accountId: account.id,
     balance: toBalanceResponse(wallet, updatedAt),
     offers: toMarketplaceOfferResponse(offers, definitions),
+    inventory: toInventoryResponse(inventory),
     updatedAt
   });
 };
@@ -405,18 +499,89 @@ const handleBankLink = async (request: Request): Promise<Response> => {
   });
 
   const migrationTransactionId = await transferLegacyBalance(legacyAccount.id, linked.account_id, user);
-  const wallet = await loadWallet(linked.account_id);
+  const [wallet, inventory] = await Promise.all([
+    loadWallet(linked.account_id),
+    loadInventory([legacyAccount.id, linked.account_id])
+  ]);
   const updatedAt = Date.now();
 
   return jsonResponse({
     status: 'linked',
     accountId: linked.account_id,
+    legacyAccountId: legacyAccount.id === linked.account_id ? null : legacyAccount.id,
     platform: WTW_PLATFORM,
     platformUserId: user.id,
     migrationTransactionId,
+    inventory: toInventoryResponse(inventory),
     balance: toBalanceResponse(wallet, updatedAt),
     updatedAt
   });
+};
+
+const ensurePurchaseSettlementAccount = async (): Promise<AccountOut> =>
+  walkerBucksFetch<AccountOut>('/v1/accounts', {
+    method: 'POST',
+    body: JSON.stringify({
+      username: 'system:treasury',
+      display_name: 'System Treasury'
+    })
+  });
+
+const findLegacyInventoryItemByTransaction = async (transactionId: string): Promise<string | null> => {
+  const rows = await loadLegacyRows<LegacyItemHistoryRow>(async (client) => {
+    const result = await client.queryObject<LegacyItemHistoryRow>({
+      text: "select item_instance_id::text as item_instance_id from walkerbucks.item_history where action = 'purchase' and note = $1 limit 1",
+      args: [transactionId]
+    });
+    return result.rows;
+  });
+
+  return rows[0]?.item_instance_id ?? null;
+};
+
+const createLegacyInventoryItem = async (accountId: string, itemDefinitionId: number, transactionId: string): Promise<string> => {
+  const existingItemInstanceId = await findLegacyInventoryItemByTransaction(transactionId);
+  if (existingItemInstanceId) return existingItemInstanceId;
+
+  try {
+    return await withLegacyDb(async (client) => {
+      const now = new Date().toISOString();
+      const itemInstanceId = crypto.randomUUID();
+
+      await client.queryArray('begin');
+      try {
+        const item = await client.queryObject<{ id: string }>({
+          text: `
+            insert into walkerbucks.item_instances (id, account_id, item_definition_id, status, created_at, updated_at)
+            values ($1::uuid, $2::uuid, $3, 'owned', $4, $4)
+            returning id::text as id
+          `,
+          args: [itemInstanceId, accountId, itemDefinitionId, now]
+        });
+
+        const createdItemInstanceId = item.rows[0]?.id;
+        if (!createdItemInstanceId) {
+          throw new BridgeError(502, 'WalkerBucks legacy inventory insert returned no item id.');
+        }
+
+        await client.queryObject({
+          text: `
+            insert into walkerbucks.item_history (item_instance_id, action, note, created_at)
+            values ($1::uuid, 'purchase', $2, $3)
+          `,
+          args: [createdItemInstanceId, transactionId, now]
+        });
+        await client.queryArray('commit');
+        return createdItemInstanceId;
+      } catch (error) {
+        await client.queryArray('rollback');
+        throw error;
+      }
+    });
+  } catch (error) {
+    if (error instanceof BridgeError) throw error;
+    throw new BridgeError(502, `WalkerBucks legacy inventory purchase write failed: ${getErrorMessage(error)}`);
+  }
 };
 
 const handleMarketplacePurchase = async (request: Request): Promise<Response> => {
@@ -439,22 +604,36 @@ const handleMarketplacePurchase = async (request: Request): Promise<Response> =>
     throw new BridgeError(400, 'Unknown WalkerBucks shop offer.');
   }
 
-  const purchase = await walkerBucksFetch<{ item_instance_id: string }>('/v1/shop/purchases', {
+  const settlementAccount = await ensurePurchaseSettlementAccount();
+  const purchase = await walkerBucksFetch<{ transaction_id: string }>('/v1/transfers/walkerbucks', {
     method: 'POST',
     body: JSON.stringify({
-      account_id: account.id,
-      shop_offer_id: shopOfferId,
+      from_account_id: account.id,
+      to_account_id: settlementAccount.id,
+      amount: offer.price_wb,
       idempotency_key: expectedKey,
-      reason_code: 'shop.purchase.walk_the_world_marketplace'
+      reason_code: 'transfer.walk_the_world_marketplace_purchase',
+      description: `Walk The World marketplace offer ${shopOfferId}`,
+      actor_account_id: account.id,
+      source_app: WTW_SOURCE_APP,
+      platform: WTW_PLATFORM,
+      platform_event_id: String(shopOfferId),
+      metadata_json: {
+        supabase_user_id: user.id,
+        shop_offer_id: shopOfferId,
+        item_definition_id: offer.item_definition_id
+      }
     })
   });
-  const [wallet, inventory] = await Promise.all([loadWallet(account.id), loadInventory(account.id)]);
+  const itemInstanceId = await createLegacyInventoryItem(account.id, offer.item_definition_id, purchase.transaction_id);
+  const [wallet, inventoryAccountIds] = await Promise.all([loadWallet(account.id), getInventoryAccountIds(user, account.id)]);
+  const inventory = await loadInventory(inventoryAccountIds);
 
   return jsonResponse({
     status: 'purchased',
     accountId: account.id,
     shopOfferId,
-    itemInstanceId: purchase.item_instance_id,
+    itemInstanceId,
     itemDefinitionId: offer.item_definition_id,
     priceWb: offer.price_wb,
     idempotencyKey: expectedKey,

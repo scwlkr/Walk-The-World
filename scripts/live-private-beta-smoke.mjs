@@ -148,6 +148,7 @@ const runBridgeSmoke = async (session) => {
   const balance = await bridgeRequest('/balance', accessToken);
   assert(balance.accountId, 'Balance response did not include accountId.');
   assert(typeof balance.balance === 'number', 'Balance response did not include a numeric balance.');
+  assert(Array.isArray(balance.inventory), 'Balance response did not include inventory.');
 
   const rewardKey = `wtw:supabase:${userId}:achievement:day_one_check_in`;
   const grant = await bridgeRequest('/rewards/grants', accessToken, {
@@ -170,6 +171,7 @@ const runBridgeSmoke = async (session) => {
     assert(bankLink.status === 'linked', 'Bank link did not return linked status.');
     assert(bankLink.platform === 'wtw', 'Bank link returned the wrong platform.');
     assert(bankLink.accountId, 'Bank link response did not include accountId.');
+    assert(Array.isArray(bankLink.inventory), 'Bank link response did not include inventory.');
   }
 
   const leaderboard = await bridgeRequest('/leaderboards/walkerbucks', accessToken);
@@ -177,6 +179,7 @@ const runBridgeSmoke = async (session) => {
 
   const marketplace = await bridgeRequest('/marketplace/offers', accessToken);
   assert(Array.isArray(marketplace.offers), 'Marketplace response did not include offers.');
+  assert(Array.isArray(marketplace.inventory), 'Marketplace response did not include inventory.');
   assert(marketplace.offers.length > 0, 'Marketplace smoke requires at least one seeded WalkerBucks shop offer.');
 
   let purchase = null;
@@ -198,6 +201,7 @@ const runBridgeSmoke = async (session) => {
 
     assert(purchase.status === 'purchased', 'Marketplace purchase did not return purchased status.');
     assert(purchase.idempotencyKey === purchaseKey, 'Marketplace purchase returned the wrong idempotency key.');
+    assert(Array.isArray(purchase.inventory), 'Marketplace purchase response did not include inventory.');
   }
 
   return {

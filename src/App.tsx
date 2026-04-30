@@ -199,11 +199,12 @@ const App = () => {
     setWalkerBucksBusy(true);
     updateWalkerBucksBridgeState({ status: 'checking', lastError: null });
     try {
-      const { accountId, ...balance } = await loadWalkerBucksBalance(accessToken);
+      const { accountId, inventory, ...balance } = await loadWalkerBucksBalance(accessToken);
       updateWalkerBucksBridgeState({
         status: 'ready',
         accountId,
         balance,
+        inventory,
         lastCheckedAt: Date.now(),
         lastError: null
       });
@@ -271,6 +272,7 @@ const App = () => {
         accountId: marketplace.accountId,
         balance: marketplace.balance,
         marketplaceOffers: marketplace.offers,
+        inventory: marketplace.inventory,
         lastCheckedAt: marketplace.updatedAt,
         lastError: null
       });
@@ -304,6 +306,7 @@ const App = () => {
         status: 'ready',
         accountId: result.accountId,
         balance: result.balance,
+        inventory: result.inventory,
         lastCheckedAt: result.updatedAt,
         lastError: null
       });
