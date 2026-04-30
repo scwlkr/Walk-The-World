@@ -567,7 +567,10 @@ export const GameSceneCanvas = ({
       const plaqueWidth = Math.min(228, Math.max(174, width - 142));
       const plaqueHeight = 42;
       const x = 16;
-      const bottomReserved = Math.min(92, Math.max(64, Math.round(height * 0.1)));
+      const bottomReserved =
+        width <= 520
+          ? Math.min(154, Math.max(128, Math.round(height * 0.15)))
+          : Math.min(92, Math.max(64, Math.round(height * 0.1)));
       const y = height - plaqueHeight - bottomReserved;
 
       ctx.fillStyle = 'rgba(15, 23, 42, 0.68)';
