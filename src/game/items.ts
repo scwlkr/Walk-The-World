@@ -1,6 +1,7 @@
 import generatedItems from '../data/generated/items.generated.json';
 import generatedShopOffers from '../data/generated/shop_offers.generated.json';
 import { getUnlockedRegions, isRegionUnlocked } from './regions';
+import { V05_CATALOG_SHOP_OFFERS, V05_RUNTIME_CATALOG_ITEMS } from './v05Content';
 import type {
   GameState,
   InventoryEffectType,
@@ -52,7 +53,10 @@ export type LocalCatalogShopOffer = CatalogShopOffer & {
 };
 
 const CATALOG_ITEMS = generatedItems as GeneratedItem[];
-const CATALOG_SHOP_OFFERS = generatedShopOffers as CatalogShopOffer[];
+const CATALOG_SHOP_OFFERS = [
+  ...(generatedShopOffers as CatalogShopOffer[]),
+  ...(V05_CATALOG_SHOP_OFFERS as CatalogShopOffer[])
+];
 
 const ITEM_TYPES = new Set<InventoryItemType>(['consumable', 'collectible', 'equipment', 'cosmetic']);
 const RARITIES = new Set<ItemRarity>(['common', 'uncommon', 'rare', 'epic', 'legendary']);
@@ -61,9 +65,12 @@ const EFFECT_TYPES = new Set<InventoryEffectType>([
   'instant_wb',
   'currency_grant',
   'wb_multiplier',
+  'speed_multiplier_temp',
   'tap_multiplier_temp',
   'event_reward_multiplier',
   'drop_rate_boost_temp',
+  'follower_stability_temp',
+  'follower_recruit_temp',
   'souvenir_collectible',
   'cosmetic_equip',
   'title_unlock',
@@ -115,7 +122,10 @@ export const mapCatalogItemToInventoryItem = (item: GeneratedItem): InventoryIte
   };
 };
 
-export const INVENTORY_CATALOG_ITEMS: InventoryItemDefinition[] = CATALOG_ITEMS.map(mapCatalogItemToInventoryItem);
+export const INVENTORY_CATALOG_ITEMS: InventoryItemDefinition[] = [
+  ...CATALOG_ITEMS.map(mapCatalogItemToInventoryItem),
+  ...V05_RUNTIME_CATALOG_ITEMS
+];
 
 export const getCatalogInventoryItemById = (itemId: string): InventoryItemDefinition | undefined =>
   INVENTORY_CATALOG_ITEMS.find((item) => item.id === itemId);
@@ -145,20 +155,26 @@ const getUnlockStatus = (state: GameState, offer: CatalogShopOffer): { unlocked:
         ? { unlocked: true, reason: null }
         : { unlocked: false, reason: `${numericValue} play days required` };
     case 'event':
-      return state.quests.seasonalEventId === offer.unlockValue
+      return (
+        state.quests.seasonalEventId === offer.unlockValue ||
+        Boolean(state.quests.seasonalEventId?.startsWith(offer.unlockValue))
+      )
         ? { unlocked: true, reason: null }
-        : { unlocked: false, reason: 'Seasonal offer' };
+        : { unlocked: false, reason: 'Limited-time offer' };
     case 'destination': {
       const destinationRegionMap: Record<string, string> = {
         dallas: 'downtown',
         skyline: 'new_york',
         any_city: 'downtown',
         grand_canyon: 'grand_canyon',
+        boardwalk: 'boardwalk',
         paris: 'paris',
-        tokyo: 'tokyo'
+        tokyo: 'tokyo',
+        great_wall: 'great_wall',
+        around_world: 'around_world'
       };
       if (offer.unlockValue === 'any_city') {
-        const cityRegionIds = ['downtown', 'new_york', 'london', 'old_europe', 'tokyo', 'paris'];
+        const cityRegionIds = ['downtown', 'new_york', 'london', 'old_europe', 'tokyo', 'paris', 'great_wall'];
         return getUnlockedRegions(state).some((region) => cityRegionIds.includes(region.id))
           ? { unlocked: true, reason: null }
           : { unlocked: false, reason: 'Reach a city region' };
@@ -225,6 +241,17 @@ export const applyCatalogOfferPurchase = (state: GameState, offerId: string): Ga
             }
           }
         : state.cosmetics,
+    profile:
+      offer.item.titleId
+        ? {
+            ...state.profile,
+            unlockedTitles: {
+              ...state.profile.unlockedTitles,
+              [offer.item.titleId]: true
+            },
+            activeTitleId: state.profile.activeTitleId ?? offer.item.titleId
+          }
+        : state.profile,
     ui: {
       ...state.ui,
       toast: `${offer.item.name} added to backpack.`

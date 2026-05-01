@@ -19,7 +19,12 @@ const V02_FEATURED_OFFER_IDS = new Set([
   'offer_lucky_laces_main',
   'offer_gas_station_sunglasses_main',
   'offer_trail_socks_main',
-  'offer_starter_step_counter_main'
+  'offer_starter_step_counter_main',
+  'offer_fresh_socks_main',
+  'offer_walking_playlist_main',
+  'offer_peace_offering_granola_main',
+  'offer_group_chat_invite_main',
+  'offer_spring_stride_crown_limited'
 ]);
 
 export const CatalogShopPanel = ({ state, onBuyOffer }: CatalogShopPanelProps) => {

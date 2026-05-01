@@ -2,7 +2,7 @@
 
 Walk The World is a mobile-first incremental walking game in the Walker World ecosystem.
 
-v0.4 keeps the verified walking, crew, regions, events, and WalkerBucks-settled shop loop, then adds the first replayable idle-game layer: Journey Reset, Journey Tokens, permanent Journey Upgrades, and Moon route unlocks.
+v0.5 keeps the verified walking, crew, regions, events, Journey Reset, and WalkerBucks-settled shop loop, then adds the first content-depth layer: more catalog items, rare cosmetics, more followers, more scenery beats, collection goals, limited-time rewards, and profile titles.
 
 ```text
 tap WALK -> gain distance -> reach milestone -> queue WB reward
@@ -10,7 +10,7 @@ tap WALK -> gain distance -> reach milestone -> queue WB reward
 -> raise DPT/DPS or stabilize the crew -> reach the next place
 ```
 
-## Current v0.4 Scope
+## Current v0.5 Scope
 
 Shipped in the active player path:
 
@@ -41,16 +41,23 @@ Shipped in the active player path:
 - Permanent Journey Upgrades for distance power, WB queued per mile, follower stability, offline cap, Moon acceleration, and route memory
 - Reset rules that clear normal run power while preserving account, WalkerBucks bridge state, achievements, cosmetics, inventory, profile, settings, and lifetime stats
 - Moon route unlock after the first Journey Reset
+- Runtime v0.5 catalog overlay with additional boosts, rare cosmetics, limited-time items, and title collectibles
+- Temporary DPS, follower-stability, and follower-recruit boost items
+- New rare cosmetics for follower morale and follower stability
+- Collection goals for item, souvenir, rare-item, cosmetic, and region progress
+- Profile title selection from collection goals and title-bearing items
+- Expanded follower roster with boardwalk, world-tour, and post-reset helpers
+- Expanded Earth route with Boardwalk and Great Wall scenery beats using existing licensed/runtime assets
+- Expanded random-event and route-encounter rewards tied to v0.5 items
 - Local guest play with optional account and WalkerBucks bridge setup
 
-Delayed beyond v0.4:
+Delayed beyond v0.5:
 
-- v0.5 collection depth
-- rare cosmetics and title depth
 - Marketplace and shared inventory depth
 - Discord and Telegram reward linking
+- Full v1.0 balance/polish pass
 
-Some older prototype systems still exist in the codebase for reference and dev testing, but marketplace depth, leaderboard depth, Mars/Solar route depth, and social bridge gameplay are not part of the default v0.4 player path.
+Some older prototype systems still exist in the codebase for reference and dev testing, but marketplace depth, leaderboard depth, Mars/Solar route depth, and social bridge gameplay are not part of the default v0.5 player path.
 
 ## Run Locally
 
@@ -96,6 +103,8 @@ Server-only WalkerBucks secrets belong in the trusted bridge, never in Vite env 
 
 ## Active Docs
 
+- [v0.5 Game Design](docs/V0_5_GAME_DESIGN.md)
+- [v0.5 Handoff](docs/V0_5_HANDOFF.md)
 - [v0.4 Game Design](docs/V0_4_GAME_DESIGN.md)
 - [v0.4 Handoff](docs/V0_4_HANDOFF.md)
 - [v0.3 Game Design](docs/V0_3_GAME_DESIGN.md)
@@ -139,7 +148,7 @@ supabase/functions/walkerbucks-bridge/index.ts
 ## Save Notes
 
 - Save key: `walk_the_world_save_v1`
-- Current save version: `13`
+- Current save version: `14`
 - Guest play works without Supabase or WalkerBucks bridge configuration.
 - WB earned while walking is queued for bridge settlement; it is not spendable local currency.
 - Upgrade, follower, and item purchases reserve bridge-reported spendable WB and roll back if settlement fails.

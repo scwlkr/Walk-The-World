@@ -129,6 +129,19 @@ export const EARTH_REGIONS: RegionDefinition[] = [
     effect: { idleMultiplier: 0.12, followerStabilityMultiplier: 0.08 }
   },
   {
+    id: 'boardwalk',
+    name: 'Beach Boardwalk',
+    shortName: 'Boardwalk',
+    description: 'Waterfront crowds, snack stands, and rhythm-heavy route boosts.',
+    unlockDistanceMiles: 1400,
+    sceneId: 'waterfront',
+    shopOfferIds: ['offer_boardwalk_shell_main', 'offer_fresh_socks_main', 'offer_walking_playlist_main'],
+    followerIds: ['boardwalk_busker'],
+    cosmeticItemIds: ['matching_tracksuits_item'],
+    eventIds: ['boardwalk_busker_tip', 'walking_playlist'],
+    effect: { clickMultiplier: 0.08, followerRecruitMultiplier: 0.08 }
+  },
+  {
     id: 'niagara',
     name: 'Niagara Walk',
     shortName: 'Niagara',
@@ -207,16 +220,29 @@ export const EARTH_REGIONS: RegionDefinition[] = [
     effect: { eventRewardMultiplier: 0.16, followerRecruitMultiplier: 0.08 }
   },
   {
+    id: 'great_wall',
+    name: 'Great Wall Trek',
+    shortName: 'Great Wall',
+    description: 'A late world-tour climb with bigger collection and follower pressure.',
+    unlockDistanceMiles: 14000,
+    sceneId: 'great_wall_china',
+    shopOfferIds: ['offer_world_tour_pin_main', 'offer_group_chat_invite_main', 'offer_peace_offering_granola_main'],
+    followerIds: ['passport_stamper', 'trekking_pole_guy'],
+    cosmeticItemIds: ['golden_sneakers_item'],
+    eventIds: ['world_tour_cache', 'passport_stampede'],
+    effect: { idleMultiplier: 0.16, followerStabilityMultiplier: 0.1, eventRewardMultiplier: 0.12 }
+  },
+  {
     id: 'around_world',
     name: 'Around The World',
     shortName: 'World',
-    description: 'Completion layer preview before Journey Reset work.',
+    description: 'Completion layer for collection flex and Journey Reset decisions.',
     unlockDistanceMiles: 24901,
     sceneId: 'great_wall_china',
-    shopOfferIds: ['offer_walker_passport_main', 'offer_certified_ledger_receipt_main'],
-    followerIds: ['trekking_pole_guy', 'neon_stride_fan'],
-    cosmeticItemIds: ['industrial_farmer_overalls'],
-    eventIds: ['double_step_weekend', 'golden_shoe'],
+    shopOfferIds: ['offer_walker_passport_main', 'offer_certified_ledger_receipt_main', 'offer_golden_sneakers_main'],
+    followerIds: ['trekking_pole_guy', 'neon_stride_fan', 'passport_stamper'],
+    cosmeticItemIds: ['industrial_farmer_overalls', 'golden_sneakers_item'],
+    eventIds: ['double_step_weekend', 'golden_shoe', 'world_tour_cache'],
     effect: { idleMultiplier: 0.2, clickMultiplier: 0.1, eventRewardMultiplier: 0.15 }
   }
 ];

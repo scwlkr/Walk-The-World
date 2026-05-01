@@ -171,6 +171,57 @@ export const ROUTE_ENCOUNTERS: RouteEncounterDefinition[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'boardwalk_pop_up',
+    name: 'Boardwalk Pop-Up',
+    description: 'A tiny stand has exactly the kind of collectible nobody needs but everyone wants.',
+    rarity: 'uncommon',
+    weight: 10,
+    regionIds: ['boardwalk'],
+    choices: [
+      {
+        id: 'take_shell',
+        label: 'Take shell',
+        description: 'Add a waterfront souvenir to the collection.',
+        effects: [{ type: 'item_drop', itemId: 'boardwalk_shell', quantity: 1 }]
+      },
+      {
+        id: 'buy_socks',
+        label: 'Grab socks',
+        description: 'Get a temporary DPS item for the next long stretch.',
+        effects: [{ type: 'item_drop', itemId: 'fresh_socks', quantity: 1 }]
+      }
+    ]
+  },
+  {
+    id: 'world_tour_stamp_table',
+    name: 'World Tour Stamp Table',
+    description: 'A late-route table is covered in stamps, pins, and suspicious paperwork.',
+    rarity: 'rare',
+    weight: 7,
+    regionIds: ['paris', 'great_wall', 'around_world'],
+    choices: [
+      {
+        id: 'claim_pin',
+        label: 'Claim pin',
+        description: 'Take the title-bearing collectible.',
+        effects: [{ type: 'item_drop', itemId: 'world_tour_pin', quantity: 1 }]
+      },
+      {
+        id: 'invite_crowd',
+        label: 'Invite crowd',
+        description: 'Improve follower recruiting for a short window.',
+        effects: [
+          {
+            type: 'temporary_boost',
+            boostType: 'follower_recruit_multiplier',
+            multiplier: 1.35,
+            durationMs: 30000
+          }
+        ]
+      }
+    ]
   }
 ];
 

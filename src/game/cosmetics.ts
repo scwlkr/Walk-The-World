@@ -1,6 +1,7 @@
 import generatedItems from '../data/generated/items.generated.json';
 import { getCosmeticIdForItemId } from './items';
 import type { CosmeticDefinition, CosmeticEffectType, CosmeticSlot, GameState, ItemRarity } from './types';
+import { V05_RUNTIME_CATALOG_ITEMS } from './v05Content';
 
 type GeneratedItem = {
   itemId: string;
@@ -15,6 +16,22 @@ type GeneratedItem = {
   assetFilename: string;
 };
 
+const CATALOG_COSMETIC_ITEMS: GeneratedItem[] = [
+  ...(generatedItems as GeneratedItem[]),
+  ...V05_RUNTIME_CATALOG_ITEMS.map((item) => ({
+    itemId: item.id,
+    slug: item.slug,
+    name: item.name,
+    itemType: item.type,
+    rarity: item.rarity,
+    description: item.description,
+    effectType: item.effect?.type ?? 'none',
+    effect_value: item.effect?.value ?? null,
+    assetPath: item.assetPath ?? item.asset_path ?? '',
+    assetFilename: item.assetFilename ?? item.asset_filename ?? ''
+  }))
+];
+
 const RARITIES = new Set<ItemRarity>(['common', 'uncommon', 'rare', 'epic', 'legendary']);
 
 const normalizeRarity = (rarity: string): ItemRarity =>
@@ -22,10 +39,10 @@ const normalizeRarity = (rarity: string): ItemRarity =>
 
 const getSlotForCosmeticItem = (item: GeneratedItem): CosmeticSlot => {
   const name = item.name.toLowerCase();
-  if (name.includes('lace') || name.includes('shoe')) return 'shoes';
+  if (name.includes('lace') || name.includes('shoe') || name.includes('sneaker')) return 'shoes';
   if (name.includes('sunglasses') || name.includes('wayfarer')) return 'face';
-  if (name.includes('sweatband') || name.includes('hat')) return 'head';
-  if (name.includes('overall')) return 'body';
+  if (name.includes('sweatband') || name.includes('hat') || name.includes('crown')) return 'head';
+  if (name.includes('overall') || name.includes('tracksuit')) return 'body';
   return 'flair';
 };
 
@@ -41,6 +58,12 @@ const getCosmeticEffect = (item: GeneratedItem): CosmeticDefinition['effect'] =>
       return { type: 'follower_morale_bonus', value: 0.03 };
     case 'industrial_farmer_overalls':
       return { type: 'follower_morale_bonus', value: 0.1 };
+    case 'matching_tracksuits_item':
+      return { type: 'follower_morale_bonus', value: 0.14 };
+    case 'golden_sneakers_item':
+      return { type: 'follower_leave_chance_reduction', value: 0.16 };
+    case 'spring_stride_crown_item':
+      return { type: 'follower_morale_bonus', value: 0.08 };
   }
 
   switch (item.effectType) {
@@ -57,7 +80,7 @@ const getCosmeticEffect = (item: GeneratedItem): CosmeticDefinition['effect'] =>
   }
 };
 
-export const COSMETICS: CosmeticDefinition[] = (generatedItems as GeneratedItem[])
+export const COSMETICS: CosmeticDefinition[] = CATALOG_COSMETIC_ITEMS
   .filter((item) => item.itemType === 'cosmetic')
   .map((item) => ({
     id: getCosmeticIdForItemId(item.itemId),

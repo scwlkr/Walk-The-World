@@ -142,6 +142,53 @@ export const FOLLOWERS: Follower[] = [
     personalityFlavor: 'Flashy, fast, expensive to impress.',
     regionIds: ['tokyo', 'around_world'],
     unlockRequirement: { distanceMiles: 6000, regionIds: ['tokyo', 'around_world'] }
+  },
+  {
+    id: 'boardwalk_busker',
+    name: 'Boardwalk Busker',
+    description: 'Keeps everyone walking in rhythm as long as the crowd keeps clapping.',
+    baseCost: 18000,
+    costMultiplier: 2,
+    maxCount: 9,
+    milesPerSecond: milesFromFeet(500),
+    recruitChancePerMinute: 0.011,
+    leaveChancePerMinute: 0.028,
+    moraleSensitivity: 1.12,
+    rarity: 'rare',
+    personalityFlavor: 'High morale when the route has a beat.',
+    regionIds: ['boardwalk'],
+    unlockRequirement: { distanceMiles: 900, regionIds: ['boardwalk'] }
+  },
+  {
+    id: 'passport_stamper',
+    name: 'Passport Stamper',
+    description: 'Turns every landmark into paperwork and somehow increases momentum.',
+    baseCost: 36000,
+    costMultiplier: 2.12,
+    maxCount: 5,
+    milesPerSecond: milesFromFeet(900),
+    recruitChancePerMinute: 0.007,
+    leaveChancePerMinute: 0.036,
+    moraleSensitivity: 1.4,
+    rarity: 'rare',
+    personalityFlavor: 'Official stamp energy, unofficial route authority.',
+    regionIds: ['paris', 'great_wall', 'around_world'],
+    unlockRequirement: { distanceMiles: 10000, regionIds: ['paris', 'great_wall', 'around_world'] }
+  },
+  {
+    id: 'moon_boot_intern',
+    name: 'Moon Boot Intern',
+    description: 'A post-reset recruit who insists lunar walking belongs on the resume.',
+    baseCost: 52000,
+    costMultiplier: 2.18,
+    maxCount: 4,
+    milesPerSecond: milesFromFeet(1200),
+    recruitChancePerMinute: 0.006,
+    leaveChancePerMinute: 0.04,
+    moraleSensitivity: 1.45,
+    rarity: 'rare',
+    personalityFlavor: 'Ambitious, undertrained, weirdly aerodynamic.',
+    unlockRequirement: { earthLoopsCompleted: 1 }
   }
 ];
 

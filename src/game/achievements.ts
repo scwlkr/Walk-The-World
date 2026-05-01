@@ -1,4 +1,4 @@
-import { grantRewardToState } from './inventory';
+import { INVENTORY_ITEMS, grantRewardToState } from './inventory';
 import { getUnlockedRegions } from './regions';
 import type { AchievementDefinition, AchievementProgress, GameState, RewardDefinition } from './types';
 
@@ -146,6 +146,38 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
       walkerBucks: 250,
       items: [{ itemId: 'detour_token', quantity: 1 }]
     }
+  },
+  {
+    id: 'starter_backpack_set',
+    name: 'Starter Backpack Set',
+    description: 'Own six different items.',
+    condition: { type: 'distinct_items_owned', target: 6 },
+    reward: {
+      walkerBucks: 180,
+      items: [{ itemId: 'fresh_socks', quantity: 1 }],
+      titleIds: ['tiny_collection_flex']
+    }
+  },
+  {
+    id: 'rare_case',
+    name: 'Rare Case',
+    description: 'Own three rare, epic, or legendary items.',
+    condition: { type: 'rare_items_owned', target: 3 },
+    reward: {
+      walkerBucks: 350,
+      items: [{ itemId: 'world_tour_pin', quantity: 1 }],
+      titleIds: ['rare_route_flex']
+    }
+  },
+  {
+    id: 'fit_check_captain',
+    name: 'Fit Check Captain',
+    description: 'Own three cosmetics.',
+    condition: { type: 'cosmetics_owned', target: 3 },
+    reward: {
+      items: [{ itemId: 'peace_offering_granola', quantity: 1 }],
+      titleIds: ['fit_check_captain']
+    }
   }
 ];
 
@@ -196,6 +228,15 @@ export const getAchievementProgressValue = (state: GameState, achievement: Achie
       return state.stats.routeEncountersClaimed;
     case 'regions_reached':
       return getUnlockedRegions(state).length;
+    case 'distinct_items_owned':
+      return Object.values(state.inventory.items).filter((quantity) => quantity > 0).length;
+    case 'rare_items_owned':
+      return INVENTORY_ITEMS.filter((item) => {
+        const rarityScore = ['common', 'uncommon', 'rare', 'epic', 'legendary'].indexOf(item.rarity);
+        return rarityScore >= 2 && (state.inventory.items[item.id] ?? 0) > 0;
+      }).length;
+    case 'cosmetics_owned':
+      return Object.values(state.cosmetics.owned).filter(Boolean).length;
     case 'perfect_steps':
       return state.stats.perfectSteps;
   }
@@ -314,6 +355,10 @@ export const getRewardSummary = (achievement: AchievementDefinition): string => 
 
   for (const cosmetic of achievement.reward.cosmetics ?? []) {
     parts.push(cosmetic);
+  }
+
+  for (const titleId of achievement.reward.titleIds ?? []) {
+    parts.push(`${titleId.replace(/_/g, ' ')} title`);
   }
 
   return parts.join(', ') || 'Badge only';

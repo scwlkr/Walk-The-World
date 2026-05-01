@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyActiveTap, getActiveTapMultiplier } from '../src/game/activePlay';
+import { canUseProfileTitle, getUnlockedProfileTitles, selectProfileTitle } from '../src/game/collections';
 import { equipCosmetic } from '../src/game/cosmetics';
 import { milesFromFeet } from '../src/game/distance';
 import { FOLLOWERS, getFollowerLeaveChanceReduction, runFollowerDynamics } from '../src/game/followers';
@@ -46,8 +47,9 @@ describe('catalog runtime adapter', () => {
     const state = createInitialGameState(1000);
     const offers = getLocalCatalogShopOffers({ ...state, walkerBucks: 500 });
 
-    expect(offers.length).toBeGreaterThanOrEqual(12);
+    expect(offers.length).toBeGreaterThanOrEqual(20);
     expect(offers.some((offer) => offer.item.id === 'trail_mix')).toBe(true);
+    expect(offers.some((offer) => offer.item.id === 'fresh_socks')).toBe(true);
   });
 
   it('unlocks v0.3 regional shop offers after reaching the matching region', () => {
@@ -113,6 +115,61 @@ describe('catalog runtime adapter', () => {
     expect(used.inventory.items.aura_battery).toBeUndefined();
     expect(used.activeBoosts[0]?.effectType).toBe('click_multiplier');
     expect(used.stats.itemsUsed).toBe(1);
+  });
+
+  it('uses v0.5 depth boosts through the existing active boost state', () => {
+    const state = {
+      ...createInitialGameState(1000),
+      inventory: {
+        ...createInitialGameState(1000).inventory,
+        items: {
+          fresh_socks: 1,
+          peace_offering_granola: 1,
+          group_chat_invite: 1
+        }
+      }
+    };
+
+    const socks = useInventoryItem(state, 'fresh_socks');
+    const granola = useInventoryItem(socks, 'peace_offering_granola');
+    const invite = useInventoryItem(granola, 'group_chat_invite');
+
+    expect(invite.activeBoosts.map((boost) => boost.effectType)).toEqual([
+      'speed_multiplier',
+      'follower_stability_multiplier',
+      'follower_recruit_multiplier'
+    ]);
+    expect(invite.stats.itemsUsed).toBe(3);
+  });
+
+  it('unlocks profile titles from v0.5 collection goals and title items', () => {
+    const state = {
+      ...createInitialGameState(1000),
+      inventory: {
+        ...createInitialGameState(1000).inventory,
+        items: {
+          trail_mix: 1,
+          walkertown_postcard: 1,
+          fresh_socks: 1,
+          peace_offering_granola: 1,
+          group_chat_invite: 1,
+          world_tour_pin: 1
+        }
+      },
+      profile: {
+        ...createInitialGameState(1000).profile,
+        unlockedTitles: {
+          world_tour_pin: true
+        }
+      }
+    };
+
+    expect(getUnlockedProfileTitles(state).map((title) => title.id)).toContain('tiny_collection_flex');
+    expect(canUseProfileTitle(state, 'world_tour_pin')).toBe(true);
+
+    const titled = selectProfileTitle(state, 'tiny_collection_flex');
+    expect(titled.profile.activeTitleId).toBe('tiny_collection_flex');
+    expect(titled.profile.unlockedTitles.tiny_collection_flex).toBe(true);
   });
 });
 
@@ -415,7 +472,7 @@ describe('worlds and save migration', () => {
     expect(canEnterWorld(moonLooped, 'mars')).toBe(true);
   });
 
-  it('migrates legacy saves into save version 13 v0.4 state', () => {
+  it('migrates legacy saves into save version 14 v0.5 state', () => {
     const migrated = importSave(
       JSON.stringify({
         saveVersion: 1,
@@ -425,7 +482,7 @@ describe('worlds and save migration', () => {
       })
     );
 
-    expect(migrated.saveVersion).toBe(13);
+    expect(migrated.saveVersion).toBe(14);
     expect(migrated.currentWorldId).toBe('earth');
     expect(migrated.profile).toBeDefined();
     expect(migrated.followerMorale.value).toBeGreaterThan(0);

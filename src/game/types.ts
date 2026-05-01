@@ -324,6 +324,9 @@ export type AchievementConditionType =
   | 'cosmetics_equipped'
   | 'route_encounters'
   | 'regions_reached'
+  | 'distinct_items_owned'
+  | 'rare_items_owned'
+  | 'cosmetics_owned'
   | 'perfect_steps';
 
 export type AchievementCondition = {
@@ -353,9 +356,12 @@ export type InventoryEffectType =
   | 'instant_wb'
   | 'currency_grant'
   | 'wb_multiplier'
+  | 'speed_multiplier_temp'
   | 'tap_multiplier_temp'
   | 'event_reward_multiplier'
   | 'drop_rate_boost_temp'
+  | 'follower_stability_temp'
+  | 'follower_recruit_temp'
   | 'souvenir_collectible'
   | 'cosmetic_equip'
   | 'title_unlock'

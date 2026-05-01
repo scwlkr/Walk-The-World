@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AccountPanel, type AccountBusyState } from './components/AccountPanel';
 import { AchievementsPanel } from './components/AchievementsPanel';
 import { BottomControls } from './components/BottomControls';
+import { CollectionGoalsPanel } from './components/CollectionGoalsPanel';
 import { DevLabPanel, type DevLabOverrides } from './components/DevLabPanel';
 import { GameHUD } from './components/GameHUD';
 import { GameOverlaySheet } from './components/GameOverlaySheet';
@@ -30,6 +31,7 @@ import {
 } from './game/audio';
 import { applyActiveTap, getActiveTapMultiplier } from './game/activePlay';
 import { claimAchievementReward, evaluateAchievements } from './game/achievements';
+import { selectProfileTitle } from './game/collections';
 import { equipCosmetic } from './game/cosmetics';
 import { createDevPresetState } from './game/devPresets';
 import { LOGIC_TICK_RATE_MS } from './game/constants';
@@ -1309,6 +1311,15 @@ const App = () => {
     });
   };
 
+  const onSelectTitle = (titleId: string | null) => {
+    playSoundEffect('ui', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = selectProfileTitle(prev, titleId);
+      saveGameState(next);
+      return next;
+    });
+  };
+
   const onApplyDevPreset = (presetId: Parameters<typeof createDevPresetState>[0]) => {
     const preset = createDevPresetState(presetId);
     setState(preset);
@@ -1631,6 +1642,7 @@ const App = () => {
           onSelectWorld={onSelectWorld}
           showAdvancedWorlds={devLabEnabled}
         />
+        <CollectionGoalsPanel state={state} onSelectTitle={onSelectTitle} />
         <StatsPanel state={state} />
         <AchievementsPanel state={state} onClaim={onClaimAchievement} />
         {devLabEnabled && (

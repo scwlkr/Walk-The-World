@@ -196,6 +196,66 @@ export const RANDOM_EVENTS: RandomEventDefinition[] = [
     value: 1.5,
     regionIds: ['around_world'],
     weatherTag: 'weekend'
+  },
+  {
+    id: 'fresh_socks_drop',
+    name: 'Fresh Socks',
+    description: 'A clean pair appears right when the route starts dragging.',
+    rarity: 'uncommon',
+    durationMs: 0,
+    weight: 10,
+    effectType: 'item_drop',
+    itemId: 'fresh_socks',
+    quantity: 1,
+    regionIds: ['forest', 'desert', 'mountains', 'boardwalk']
+  },
+  {
+    id: 'boardwalk_busker_tip',
+    name: 'Boardwalk Busker Tip',
+    description: 'The crowd tosses you a souvenir and the crew starts moving in rhythm.',
+    rarity: 'uncommon',
+    durationMs: 0,
+    weight: 9,
+    effectType: 'item_drop',
+    itemId: 'boardwalk_shell',
+    quantity: 1,
+    regionIds: ['boardwalk']
+  },
+  {
+    id: 'granola_peace_treaty',
+    name: 'Granola Peace Treaty',
+    description: 'Someone shares snacks before morale gets weird.',
+    rarity: 'rare',
+    durationMs: 0,
+    weight: 7,
+    effectType: 'item_drop',
+    itemId: 'peace_offering_granola',
+    quantity: 1,
+    regionIds: ['forest', 'mountains', 'niagara', 'london', 'great_wall']
+  },
+  {
+    id: 'passport_stampede',
+    name: 'Passport Stampede',
+    description: 'The world-tour crowd surges and recruiting spikes.',
+    rarity: 'rare',
+    durationMs: 45000,
+    weight: 8,
+    effectType: 'temporary_recruit_multiplier',
+    value: 1.45,
+    regionIds: ['paris', 'great_wall', 'around_world'],
+    weatherTag: 'crowd'
+  },
+  {
+    id: 'world_tour_cache',
+    name: 'World Tour Cache',
+    description: 'A late-route stash drops rare collection progress.',
+    rarity: 'legendary',
+    durationMs: 0,
+    weight: 3,
+    effectType: 'item_drop',
+    itemId: 'world_tour_pin',
+    quantity: 1,
+    regionIds: ['paris', 'great_wall', 'around_world']
   }
 ];
 

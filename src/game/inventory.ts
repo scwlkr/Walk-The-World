@@ -13,9 +13,16 @@ export const getInventoryQuantity = (state: GameState, itemId: string): number =
 export const isInventoryItemUsable = (item: InventoryItemDefinition): boolean =>
   item.type === 'consumable' &&
   Boolean(item.effect) &&
-  ['instant_wb', 'currency_grant', 'tap_multiplier_temp', 'event_reward_multiplier', 'drop_rate_boost_temp'].includes(
-    item.effect?.type ?? 'none'
-  );
+  [
+    'instant_wb',
+    'currency_grant',
+    'speed_multiplier_temp',
+    'tap_multiplier_temp',
+    'event_reward_multiplier',
+    'drop_rate_boost_temp',
+    'follower_stability_temp',
+    'follower_recruit_temp'
+  ].includes(item.effect?.type ?? 'none');
 
 const normalizeQuantity = (quantity: number): number => Math.max(1, Math.floor(quantity));
 
@@ -132,13 +139,26 @@ export const useInventoryItem = (state: GameState, itemId: string): GameState =>
     };
   }
 
-  if (item.effect.type === 'tap_multiplier_temp' || item.effect.type === 'event_reward_multiplier' || item.effect.type === 'drop_rate_boost_temp') {
+  if (
+    item.effect.type === 'speed_multiplier_temp' ||
+    item.effect.type === 'tap_multiplier_temp' ||
+    item.effect.type === 'event_reward_multiplier' ||
+    item.effect.type === 'drop_rate_boost_temp' ||
+    item.effect.type === 'follower_stability_temp' ||
+    item.effect.type === 'follower_recruit_temp'
+  ) {
     const durationMs = Math.max(10, item.effect.durationSeconds ?? 900) * 1000;
     const effectType =
-      item.effect.type === 'tap_multiplier_temp'
+      item.effect.type === 'speed_multiplier_temp'
+        ? 'speed_multiplier'
+        : item.effect.type === 'tap_multiplier_temp'
         ? 'click_multiplier'
         : item.effect.type === 'drop_rate_boost_temp'
           ? 'drop_rate_multiplier'
+          : item.effect.type === 'follower_stability_temp'
+            ? 'follower_stability_multiplier'
+            : item.effect.type === 'follower_recruit_temp'
+              ? 'follower_recruit_multiplier'
           : 'event_reward_multiplier';
     next = {
       ...next,
@@ -201,12 +221,18 @@ export const formatInventoryEffect = (item: InventoryItemDefinition): string => 
       return `Use: +${Math.floor(item.effect.value)} WB`;
     case 'wb_multiplier':
       return `${formatPercentBonus(item.effect.value)} WB per mile`;
+    case 'speed_multiplier_temp':
+      return `Use: ${formatPercentBonus(item.effect.value)} DPS boost`;
     case 'tap_multiplier_temp':
       return `Use: ${formatPercentBonus(item.effect.value)} tap boost`;
     case 'event_reward_multiplier':
       return `Use: ${formatPercentBonus(item.effect.value)} event rewards`;
     case 'drop_rate_boost_temp':
       return `Use: ${formatPercentBonus(item.effect.value)} drop luck`;
+    case 'follower_stability_temp':
+      return `Use: ${formatPercentBonus(item.effect.value)} follower stability`;
+    case 'follower_recruit_temp':
+      return `Use: ${formatPercentBonus(item.effect.value)} recruit chance`;
     case 'cosmetic_equip':
       return 'Cosmetic equip';
     case 'title_unlock':

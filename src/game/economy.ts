@@ -302,13 +302,18 @@ export const rollbackOptimisticPurchase = (
     const items = decrementRecord(next.inventory.items, purchase.itemDefId, purchase.quantity);
     const catalogItem = getCatalogInventoryItemById(purchase.itemDefId);
     const cosmeticId = catalogItem?.cosmeticId;
+    const titleId = catalogItem?.titleId;
     const shouldRemoveCosmetic = catalogItem?.type === 'cosmetic' && cosmeticId && !items[purchase.itemDefId];
+    const shouldRemoveTitle = Boolean(titleId && !items[purchase.itemDefId]);
     const ownedCosmetics = shouldRemoveCosmetic
       ? Object.fromEntries(Object.entries(next.cosmetics.owned).filter(([id]) => id !== cosmeticId))
       : next.cosmetics.owned;
     const equippedBySlot = shouldRemoveCosmetic
       ? Object.fromEntries(Object.entries(next.cosmetics.equippedBySlot).filter(([, id]) => id !== cosmeticId))
       : next.cosmetics.equippedBySlot;
+    const unlockedTitles = shouldRemoveTitle
+      ? Object.fromEntries(Object.entries(next.profile.unlockedTitles).filter(([id]) => id !== titleId))
+      : next.profile.unlockedTitles;
     next = {
       ...next,
       inventory: {
@@ -324,6 +329,11 @@ export const rollbackOptimisticPurchase = (
         ...next.cosmetics,
         owned: ownedCosmetics,
         equippedBySlot
+      },
+      profile: {
+        ...next.profile,
+        unlockedTitles,
+        activeTitleId: shouldRemoveTitle && next.profile.activeTitleId === titleId ? null : next.profile.activeTitleId
       }
     };
   }
