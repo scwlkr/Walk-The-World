@@ -64,6 +64,11 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
       ...base.stats,
       ...rawSave.stats
     },
+    followerMorale: {
+      ...base.followerMorale,
+      ...rawSave.followerMorale,
+      value: Math.min(100, Math.max(0, rawSave.followerMorale?.value ?? base.followerMorale.value))
+    },
     achievements: {
       ...base.achievements,
       ...rawSave.achievements

@@ -8,13 +8,26 @@ type CatalogShopPanelProps = {
   onBuyOffer: (offer: LocalCatalogShopOffer) => void;
 };
 
+const V02_FEATURED_OFFER_IDS = new Set([
+  'offer_trail_mix_main',
+  'offer_touch_grass_token_main',
+  'offer_aura_battery_main',
+  'offer_lucky_shoelaces_main',
+  'offer_detour_token_main',
+  'offer_retro_sweatband_main',
+  'offer_lucky_laces_main',
+  'offer_gas_station_sunglasses_main',
+  'offer_trail_socks_main',
+  'offer_starter_step_counter_main'
+]);
+
 export const CatalogShopPanel = ({ state, onBuyOffer }: CatalogShopPanelProps) => {
-  const offers = getLocalCatalogShopOffers(state).slice(0, 12);
+  const offers = getLocalCatalogShopOffers(state).filter((offer) => V02_FEATURED_OFFER_IDS.has(offer.offerId));
 
   return (
     <section className="collection-panel" aria-label="WalkerBucks item catalog shop">
       <div className="section-head">
-        <h4>Catalog Shop</h4>
+        <h4>Boosts & Gear</h4>
         <span>{offers.length} offers</span>
       </div>
       <div className="shop-list">

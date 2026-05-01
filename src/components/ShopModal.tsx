@@ -31,14 +31,14 @@ export const ShopModal = ({
   onEquipCosmetic,
   isUpgradeUnlocked,
   isFollowerUnlocked,
-  showAdvanced = false
+  showAdvanced = true
 }: ShopModalProps) => {
   if (!showAdvanced) {
     return (
       <>
         <section className="panel v01-shop-summary">
           <div className="section-head">
-            <h4>v0.1 Shop</h4>
+            <h4>Core Shop</h4>
             <span>WB settled by WalkerBucks</span>
           </div>
           <p>
@@ -61,7 +61,7 @@ export const ShopModal = ({
             className={`mini-btn ${state.ui.shopTab === tab ? 'active' : ''}`}
             onClick={() => onTab(tab)}
           >
-            {tab}
+            {tab === 'items' ? 'boosts' : tab}
           </button>
         ))}
       </div>

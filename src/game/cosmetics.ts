@@ -30,6 +30,19 @@ const getSlotForCosmeticItem = (item: GeneratedItem): CosmeticSlot => {
 };
 
 const getCosmeticEffect = (item: GeneratedItem): CosmeticDefinition['effect'] => {
+  switch (item.itemId) {
+    case 'retro_sweatband_item':
+      return { type: 'follower_morale_bonus', value: 0.05 };
+    case 'lucky_laces_item':
+      return { type: 'follower_leave_chance_reduction', value: 0.08 };
+    case 'golden_wayfarers_item':
+      return { type: 'follower_leave_chance_reduction', value: 0.12 };
+    case 'gas_station_sunglasses':
+      return { type: 'follower_morale_bonus', value: 0.03 };
+    case 'industrial_farmer_overalls':
+      return { type: 'follower_morale_bonus', value: 0.1 };
+  }
+
   switch (item.effectType) {
     case 'wb_multiplier':
       return { type: 'wb_multiplier', value: item.effect_value ?? 0.01 };
@@ -37,6 +50,8 @@ const getCosmeticEffect = (item: GeneratedItem): CosmeticDefinition['effect'] =>
       return { type: 'click_power_multiplier', value: item.effect_value ?? 0.01 };
     case 'event_reward_multiplier':
       return { type: 'event_reward_multiplier', value: item.effect_value ?? 0.01 };
+    case 'cosmetic_equip':
+      return { type: 'follower_morale_bonus', value: 0.02 };
     default:
       return { type: 'style_only', value: 0 };
   }
@@ -86,6 +101,10 @@ export const formatCosmeticEffect = (cosmetic: CosmeticDefinition): string => {
       return `${bonus} WB per mile`;
     case 'event_reward_multiplier':
       return `${bonus} random-event rewards`;
+    case 'follower_morale_bonus':
+      return `${bonus} follower morale`;
+    case 'follower_leave_chance_reduction':
+      return `${bonus} follower stability`;
   }
 };
 

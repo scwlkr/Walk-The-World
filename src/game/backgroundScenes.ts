@@ -66,9 +66,27 @@ export const BACKGROUND_SCENES: Record<string, BackgroundScene> = {
     pathYRatio: 0.82,
     vibeTags: ['city', 'night']
   },
+  night_city: {
+    id: 'night_city',
+    name: 'Night City',
+    src: '/assets/backgrounds/skyline/composite.png',
+    pathTint: 'rgba(30, 41, 59, 0.78)',
+    pathLine: 'rgba(226, 232, 240, 0.32)',
+    pathYRatio: 0.82,
+    vibeTags: ['city', 'night']
+  },
   grand_canyon: {
     id: 'grand_canyon',
     name: 'Grand Canyon',
+    src: '/assets/backgrounds/grand_canyon/composite.png',
+    pathTint: 'rgba(146, 64, 14, 0.72)',
+    pathLine: 'rgba(254, 215, 170, 0.35)',
+    pathYRatio: 0.82,
+    vibeTags: ['canyon', 'warm']
+  },
+  canyon: {
+    id: 'canyon',
+    name: 'Canyon',
     src: '/assets/backgrounds/grand_canyon/composite.png',
     pathTint: 'rgba(146, 64, 14, 0.72)',
     pathLine: 'rgba(254, 215, 170, 0.35)',
@@ -102,9 +120,27 @@ export const BACKGROUND_SCENES: Record<string, BackgroundScene> = {
     pathYRatio: 0.82,
     vibeTags: ['water', 'mist']
   },
+  waterfront: {
+    id: 'waterfront',
+    name: 'Waterfront',
+    src: '/assets/backgrounds/niagara_falls/composite.png',
+    pathTint: 'rgba(15, 118, 110, 0.7)',
+    pathLine: 'rgba(207, 250, 254, 0.34)',
+    pathYRatio: 0.82,
+    vibeTags: ['water', 'mist']
+  },
   tokyo: {
     id: 'tokyo',
     name: 'Tokyo',
+    src: '/assets/backgrounds/tokyo/composite.png',
+    pathTint: 'rgba(49, 46, 129, 0.76)',
+    pathLine: 'rgba(221, 214, 254, 0.35)',
+    pathYRatio: 0.82,
+    vibeTags: ['city', 'neon']
+  },
+  neon_city: {
+    id: 'neon_city',
+    name: 'Neon City',
     src: '/assets/backgrounds/tokyo/composite.png',
     pathTint: 'rgba(49, 46, 129, 0.76)',
     pathLine: 'rgba(221, 214, 254, 0.35)',
@@ -129,6 +165,15 @@ export const BACKGROUND_SCENES: Record<string, BackgroundScene> = {
     pathYRatio: 0.82,
     vibeTags: ['city', 'historic']
   },
+  old_town: {
+    id: 'old_town',
+    name: 'Old Town',
+    src: '/assets/backgrounds/rome/composite.png',
+    pathTint: 'rgba(120, 83, 45, 0.72)',
+    pathLine: 'rgba(254, 240, 138, 0.3)',
+    pathYRatio: 0.82,
+    vibeTags: ['city', 'historic']
+  },
   paris: {
     id: 'paris',
     name: 'Paris',
@@ -141,6 +186,15 @@ export const BACKGROUND_SCENES: Record<string, BackgroundScene> = {
   london: {
     id: 'london',
     name: 'London',
+    src: '/assets/backgrounds/london/composite.png',
+    pathTint: 'rgba(55, 65, 81, 0.76)',
+    pathLine: 'rgba(226, 232, 240, 0.3)',
+    pathYRatio: 0.82,
+    vibeTags: ['city', 'rain']
+  },
+  rainy_city: {
+    id: 'rainy_city',
+    name: 'Rainy City',
     src: '/assets/backgrounds/london/composite.png',
     pathTint: 'rgba(55, 65, 81, 0.76)',
     pathLine: 'rgba(226, 232, 240, 0.3)',

@@ -51,7 +51,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'mall_walker_crew',
     name: 'Mall Walker Crew',
-    description: 'A basic v0.1 generator crew. Adds 25 ft/sec.',
+    description: 'A reliable generator crew. Adds 25 ft/sec.',
     category: 'speed',
     baseCost: 420,
     costMultiplier: 1.7,
@@ -87,7 +87,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'treadmill_desk',
     name: 'Treadmill Desk',
-    description: 'The absurd v0.1 late generator. Adds 500 ft/sec.',
+    description: 'The absurd late generator. Adds 500 ft/sec.',
     category: 'speed',
     baseCost: 7500,
     costMultiplier: 2,

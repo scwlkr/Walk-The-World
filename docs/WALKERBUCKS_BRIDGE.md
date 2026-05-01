@@ -1,6 +1,6 @@
 # Walk The World WalkerBucks Bridge
 
-Last updated: 2026-04-30
+Last updated: 2026-05-01
 
 ## Rule
 
@@ -8,21 +8,23 @@ WalkerBucks must never be local to WTW.
 
 The game may calculate progress and queue pending reward or spend requests, but spendable WB balances, rewards, purchases, transfers, and audit history belong to the WalkerBucks ledger.
 
-## v0.1 Bridge Role
+## Current Bridge Role
 
-v0.1 needs the bridge for:
+The active v0.2 player path needs the bridge for:
 
 - reading spendable WB balance
 - settling queued walking/milestone rewards
 - spending WB on generator, tap, and offline upgrades
+- spending WB on WTW-owned follower hires
+- spending WB on WTW-owned item, cosmetic, and boost offers
 - storing retryable pending/failed request metadata in the local save
 
-v0.1 does not need the bridge for:
+The active v0.2 player path does not need the bridge for:
 
 - marketplace browsing
 - peer trading
-- item ownership depth
-- follower contracts
+- shared item ownership depth
+- follower contracts outside WTW gameplay state
 - prestige purchases
 - social reward linking
 
@@ -68,7 +70,7 @@ Not allowed:
 - local transfer records that act as canonical money movement
 - local shop or marketplace ownership as WalkerBucks core truth
 
-## v0.1 Purchase Flow
+## Purchase Flow
 
 ```text
 player clicks Buy
@@ -83,7 +85,7 @@ player clicks Buy
 
 If a non-retriable settlement failure occurs, WTW rolls back the optimistic item, upgrade, follower, DPS, and local displayed-balance effects, refreshes the wallet snapshot, and shows: "Could not sync. Balance refreshed."
 
-## v0.1 Reward Flow
+## Reward Flow
 
 ```text
 player gains distance or claims milestone
@@ -97,11 +99,8 @@ Queued reward metadata is not spendable WB.
 
 ## Future Work
 
-Before v0.2+ economy depth, define separate contracts for:
+Before v0.3+ economy depth, define separate contracts for:
 
-- follower contracts
-- cosmetics as morale/stability items
-- boost purchases
 - Journey Reset purchases
 - region/event rewards
 - marketplace and shared inventory

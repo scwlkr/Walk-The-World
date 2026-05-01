@@ -5,7 +5,7 @@ import {
   STARTING_IDLE_MILES_PER_SECOND
 } from './constants';
 import { getCosmeticEffectBonus } from './cosmetics';
-import { FOLLOWERS } from './followers';
+import { FOLLOWERS, getFollowerMoraleDpsMultiplier } from './followers';
 import { getEquipmentEffectBonus } from './inventory';
 import { getLandmarksForWorld } from './landmarks';
 import { UPGRADES } from './upgrades';
@@ -67,7 +67,7 @@ export const getFollowerMilesPerSecond = (state: GameState): number => {
     .filter((active) => active.effectType === 'follower_multiplier')
     .reduce((acc, active) => acc * active.multiplier, 1);
 
-  return base * boost;
+  return base * boost * getFollowerMoraleDpsMultiplier(state);
 };
 
 export const getClickMiles = (state: GameState): number => {

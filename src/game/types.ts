@@ -39,10 +39,21 @@ export type Follower = {
   costMultiplier: number;
   maxCount: number;
   milesPerSecond: number;
+  recruitChancePerMinute: number;
+  leaveChancePerMinute: number;
+  moraleSensitivity: number;
+  rarity: 'common' | 'uncommon' | 'rare';
+  personalityFlavor: string;
   unlockRequirement?: {
     distanceMiles?: number;
     earthLoopsCompleted?: number;
   };
+};
+
+export type FollowerMoraleState = {
+  value: number;
+  recentStory: string | null;
+  lastStoryAt: number | null;
 };
 
 export type RandomEventEffectType =
@@ -265,7 +276,9 @@ export type AchievementConditionType =
   | 'event_claims'
   | 'daily_play'
   | 'clicks'
-  | 'total_wb_earned';
+  | 'total_wb_earned'
+  | 'items_used'
+  | 'cosmetics_equipped';
 
 export type AchievementCondition = {
   type: AchievementConditionType;
@@ -346,7 +359,9 @@ export type CosmeticEffectType =
   | 'idle_speed_multiplier'
   | 'click_power_multiplier'
   | 'wb_multiplier'
-  | 'event_reward_multiplier';
+  | 'event_reward_multiplier'
+  | 'follower_morale_bonus'
+  | 'follower_leave_chance_reduction';
 
 export type CosmeticDefinition = {
   id: string;
@@ -622,6 +637,7 @@ export type GameState = {
   lastSavedAt: number;
   upgrades: Record<string, number>;
   followers: Record<string, number>;
+  followerMorale: FollowerMoraleState;
   achievements: Record<string, AchievementProgress>;
   inventory: InventoryState;
   cosmetics: CosmeticState;

@@ -9,6 +9,7 @@ import {
   getEventRewardMultiplier,
   getIdleMilesPerSecond
 } from './formulas';
+import { runFollowerDynamics } from './followers';
 import { evaluateAchievements, markDailyPlay } from './achievements';
 import { getInventoryItemById, grantRewardToState } from './inventory';
 import { syncMilestones } from './milestones';
@@ -68,6 +69,7 @@ export const runGameTick = (state: GameState, deltaSeconds: number, now: number)
   next = markDailyPlay(next, now);
   next = syncDailyQuests(next, now);
   next = reduceBoostDurations(next, now);
+  next = runFollowerDynamics(next, deltaSeconds, now);
   if (ENABLE_ADVANCED_EVENT_SYSTEMS) {
     next = maybeSpawnRandomEvent(next, now);
     next = syncRouteEncounterSpawn(next, now);

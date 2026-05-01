@@ -12,6 +12,7 @@ import type {
   WtwPurchaseStatus,
   WtwWalletState
 } from './types';
+import { getCatalogInventoryItemById } from './items';
 
 type ServerBackedWalkerBucksReward = {
   sourceType: ServerRewardSourceType;
@@ -299,6 +300,15 @@ export const rollbackOptimisticPurchase = (
 
   if (purchase.sourceType === 'catalog_offer') {
     const items = decrementRecord(next.inventory.items, purchase.itemDefId, purchase.quantity);
+    const catalogItem = getCatalogInventoryItemById(purchase.itemDefId);
+    const cosmeticId = catalogItem?.cosmeticId;
+    const shouldRemoveCosmetic = catalogItem?.type === 'cosmetic' && cosmeticId && !items[purchase.itemDefId];
+    const ownedCosmetics = shouldRemoveCosmetic
+      ? Object.fromEntries(Object.entries(next.cosmetics.owned).filter(([id]) => id !== cosmeticId))
+      : next.cosmetics.owned;
+    const equippedBySlot = shouldRemoveCosmetic
+      ? Object.fromEntries(Object.entries(next.cosmetics.equippedBySlot).filter(([, id]) => id !== cosmeticId))
+      : next.cosmetics.equippedBySlot;
     next = {
       ...next,
       inventory: {
@@ -309,6 +319,11 @@ export const rollbackOptimisticPurchase = (
             ? null
             : next.inventory.equippedEquipmentItemId,
         usedConsumables: decrementRecord(next.inventory.usedConsumables, `purchase:${purchase.offerId}`, purchase.quantity)
+      },
+      cosmetics: {
+        ...next.cosmetics,
+        owned: ownedCosmetics,
+        equippedBySlot
       }
     };
   }

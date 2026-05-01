@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { equipCosmetic } from '../src/game/cosmetics';
 import { milesFromFeet } from '../src/game/distance';
+import { FOLLOWERS, getFollowerLeaveChanceReduction, runFollowerDynamics } from '../src/game/followers';
 import { createInitialGameState } from '../src/game/initialState';
 import { getLocalCatalogShopOffers, getSharedInventoryEntitlements, purchaseLocalCatalogOffer } from '../src/game/items';
-import { useInventoryItem } from '../src/game/inventory';
+import { grantRewardToState, useInventoryItem } from '../src/game/inventory';
 import { claimMilestoneReward, syncMilestones } from '../src/game/milestones';
 import { resolveRouteEncounterChoice } from '../src/game/routeEncounters';
 import { importSave } from '../src/game/save';
@@ -61,6 +63,70 @@ describe('catalog runtime adapter', () => {
 
     expect(used.inventory.items.streak_insurance_policy).toBe(1);
     expect(used.stats.itemsUsed).toBe(0);
+  });
+
+  it('uses v0.2 boost items through active boost state', () => {
+    const state = {
+      ...createInitialGameState(1000),
+      inventory: {
+        ...createInitialGameState(1000).inventory,
+        items: {
+          aura_battery: 1
+        }
+      }
+    };
+    const used = useInventoryItem(state, 'aura_battery');
+
+    expect(used.inventory.items.aura_battery).toBeUndefined();
+    expect(used.activeBoosts[0]?.effectType).toBe('click_multiplier');
+    expect(used.stats.itemsUsed).toBe(1);
+  });
+});
+
+describe('v0.2 followers and cosmetics', () => {
+  it('lets followers recruit and leave through morale-gated dynamics', () => {
+    const follower = FOLLOWERS.find((entry) => entry.id === 'neighborhood_walker');
+    if (!follower) throw new Error('neighborhood_walker missing');
+
+    const recruited = runFollowerDynamics(
+      {
+        ...createInitialGameState(1000),
+        followers: { [follower.id]: 1 },
+        followerMorale: { value: 86, recentStory: null, lastStoryAt: null }
+      },
+      60,
+      2000,
+      () => 0
+    );
+
+    expect(recruited.followers[follower.id]).toBe(2);
+    expect(recruited.followerMorale.recentStory).toContain('recruited');
+
+    const left = runFollowerDynamics(
+      {
+        ...createInitialGameState(1000),
+        followers: { [follower.id]: follower.maxCount },
+        followerMorale: { value: 18, recentStory: null, lastStoryAt: null }
+      },
+      60,
+      3000,
+      () => 0
+    );
+
+    expect(left.followers[follower.id]).toBe(follower.maxCount - 1);
+    expect(left.followerMorale.recentStory).toContain('left');
+  });
+
+  it('equipped cosmetics reduce follower instability instead of minting local WalkerBucks', () => {
+    const state = createInitialGameState(1000);
+    const withCosmetic = grantRewardToState(state, {
+      items: [{ itemId: 'lucky_laces_item', quantity: 1 }]
+    });
+    const equipped = equipCosmetic(withCosmetic, 'lucky_laces');
+
+    expect(equipped.walkerBucks).toBe(0);
+    expect(equipped.cosmetics.equippedBySlot.shoes).toBe('lucky_laces');
+    expect(getFollowerLeaveChanceReduction(equipped)).toBeGreaterThan(0);
   });
 });
 
@@ -155,7 +221,7 @@ describe('worlds and save migration', () => {
     expect(canEnterWorld(moonLooped, 'mars')).toBe(true);
   });
 
-  it('migrates legacy saves into save version 10 v0.1 state', () => {
+  it('migrates legacy saves into save version 11 v0.2 state', () => {
     const migrated = importSave(
       JSON.stringify({
         saveVersion: 1,
@@ -165,9 +231,10 @@ describe('worlds and save migration', () => {
       })
     );
 
-    expect(migrated.saveVersion).toBe(10);
+    expect(migrated.saveVersion).toBe(11);
     expect(migrated.currentWorldId).toBe('earth');
     expect(migrated.profile).toBeDefined();
+    expect(migrated.followerMorale.value).toBeGreaterThan(0);
     expect(migrated.milestones.progress.leave_the_couch).toBeDefined();
     expect(migrated.spawnedRouteEncounter).toBeNull();
   });

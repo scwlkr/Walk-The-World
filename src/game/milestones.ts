@@ -54,7 +54,7 @@ export const MILESTONE_DEFINITIONS: MilestoneDefinition[] = [
   {
     id: 'across_america',
     name: 'Across America',
-    description: 'Reach 3,000 miles. This is the v0.1 long target.',
+    description: 'Reach 3,000 miles. This is the early long target.',
     condition: { type: 'distance_walked', target: 3000 },
     reward: { walkerBucks: 3000 },
     actionHint: 'Stack generator levels.'

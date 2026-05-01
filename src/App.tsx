@@ -1236,7 +1236,7 @@ const App = () => {
   const onEquipCosmetic = (cosmetic: CosmeticDefinition) => {
     playSoundEffect('ui', state.settings.soundEnabled);
     setState((prev) => {
-      const next = equipCosmetic(prev, cosmetic.id);
+      const next = syncMilestones(evaluateAchievements(equipCosmetic(prev, cosmetic.id)));
       saveGameState(next);
       return next;
     });
@@ -1567,7 +1567,7 @@ const App = () => {
           onEquipCosmetic={onEquipCosmetic}
           isUpgradeUnlocked={canUnlock}
           isFollowerUnlocked={canUnlock}
-          showAdvanced={devLabEnabled}
+          showAdvanced
         />
         {devLabEnabled && (
           <>
@@ -1597,6 +1597,7 @@ const App = () => {
           showAdvancedWorlds={devLabEnabled}
         />
         <StatsPanel state={state} />
+        <AchievementsPanel state={state} onClaim={onClaimAchievement} />
         {devLabEnabled && (
           <>
             <LeaderboardPanel
@@ -1606,7 +1607,6 @@ const App = () => {
               isBusy={walkerBucksBusy}
               onRefreshLeaderboard={refreshWalkerBucksLeaderboard}
             />
-            <AchievementsPanel state={state} onClaim={onClaimAchievement} />
           </>
         )}
       </GameOverlaySheet>

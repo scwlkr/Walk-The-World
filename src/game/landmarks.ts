@@ -7,11 +7,17 @@ export const EARTH_LANDMARKS: Landmark[] = [
   { name: 'End of the Street', distanceMiles: milesFromFeet(1000), biome: 'plains', sceneId: 'suburb' },
   { name: 'Around the Block', distanceMiles: 0.25, biome: 'city', sceneId: 'dallas' },
   { name: 'Neighborhood Loop', distanceMiles: 1, biome: 'city', sceneId: 'skyline' },
-  { name: 'Across Town', distanceMiles: 10, biome: 'city', sceneId: 'skyline' },
+  { name: 'Across Town', distanceMiles: 10, biome: 'city', sceneId: 'night_city' },
+  { name: 'Countryside Road', distanceMiles: 50, biome: 'plains', sceneId: 'suburb' },
   { name: 'Forest Road', distanceMiles: 100, biome: 'plains', sceneId: 'forest_illusion' },
   { name: 'Desert Highway', distanceMiles: 500, biome: 'desert', sceneId: 'desert' },
+  { name: 'Canyon Rim', distanceMiles: 750, biome: 'desert', sceneId: 'canyon' },
   { name: 'Mountain Pass', distanceMiles: 1000, biome: 'mountain', sceneId: 'mountains' },
+  { name: 'Waterfront Walk', distanceMiles: 1800, biome: 'ocean', sceneId: 'waterfront' },
+  { name: 'Rainy City', distanceMiles: 2200, biome: 'city', sceneId: 'rainy_city' },
+  { name: 'Old Town', distanceMiles: 2600, biome: 'city', sceneId: 'old_town' },
   { name: 'Across America', distanceMiles: 3000, biome: 'city', sceneId: 'skyline' },
+  { name: 'Neon City', distanceMiles: 6000, biome: 'city', sceneId: 'neon_city' },
   { name: 'World Tour', distanceMiles: 10000, biome: 'city', sceneId: 'paris' },
   { name: 'Around the World', distanceMiles: 24901, biome: 'plains', sceneId: 'suburb' }
 ];

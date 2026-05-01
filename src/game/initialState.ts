@@ -7,6 +7,7 @@ import {
 } from './constants';
 import { createInitialAchievementState, getLocalDateKey } from './achievements';
 import { DEFAULT_MUSIC_TRACK_ID as DEFAULT_TRACK_ID } from './audio';
+import { createInitialFollowerMoraleState } from './followers';
 import { createInitialMilestoneState } from './milestones';
 import { createInitialQuestState } from './quests';
 import type { GameState } from './types';
@@ -26,6 +27,7 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
   lastSavedAt: now,
   upgrades: {},
   followers: {},
+  followerMorale: createInitialFollowerMoraleState(),
   achievements: createInitialAchievementState(),
   inventory: {
     items: {},

@@ -11,6 +11,7 @@ import {
 } from '../game/formulas';
 import { formatDistance, formatDistanceRate } from '../game/distance';
 import { getSpendableWalkerBucks } from '../game/economy';
+import { getFollowerMoraleLabel, getTotalFollowerCount } from '../game/followers';
 import { getActiveSeasonalEventForState, getSeasonalEventById } from '../game/seasonalEvents';
 import { getCurrentWorldDefinition, getWorldProgress } from '../game/world';
 import type { CSSProperties } from 'react';
@@ -35,12 +36,14 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
   const journeyMilestones = getJourneyMilestones(state, 2);
   const activeBoosts = state.activeBoosts.filter((boost) => boost.expiresAt > Date.now()).slice(0, 3);
   const walletBalance = getSpendableWalkerBucks(state);
+  const followerCount = getTotalFollowerCount(state);
+  const moraleLabel = getFollowerMoraleLabel(state.followerMorale.value);
   const routeDistance = Math.max(0, next.distanceMiles - current.distanceMiles);
   const routeWalked = Math.max(0, currentLoopDistance - current.distanceMiles);
   const routePercent = routeDistance > 0 ? Math.min(100, (routeWalked / routeDistance) * 100) : 100;
   const routeRemainingLabel = next.name !== current.name ? `${formatDistance(milesToNext)} remaining` : 'Route complete';
   const routeLabel =
-    activeEvent?.visualTreatment.bannerLabel.replace(' active', '').replace('route', 'Route') ?? 'v0.1 Route';
+    activeEvent?.visualTreatment.bannerLabel.replace(' active', '').replace('route', 'Route') ?? 'v0.2 Route';
   const offlineHours = Math.floor(getOfflineCapSeconds(state) / 3600);
 
   return (
@@ -83,6 +86,8 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
           </span>
           <span>
             {routeLabel}
+            {' · '}
+            Crew {followerCount.toLocaleString()} {followerCount > 0 ? moraleLabel : 'Solo'}
             {' · '}
             Offline cap {offlineHours}h
           </span>

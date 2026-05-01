@@ -58,6 +58,25 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
     }
   },
   {
+    id: 'first_boost',
+    name: 'Boost Taste Test',
+    description: 'Use one boost or consumable item.',
+    condition: { type: 'items_used', target: 1 },
+    reward: {
+      walkerBucks: 50,
+      items: [{ itemId: 'detour_token', quantity: 1 }]
+    }
+  },
+  {
+    id: 'first_fit',
+    name: 'Crew Looks Legit',
+    description: 'Equip one cosmetic.',
+    condition: { type: 'cosmetics_equipped', target: 1 },
+    reward: {
+      items: [{ itemId: 'aura_battery', quantity: 1 }]
+    }
+  },
+  {
     id: 'local_wallet',
     name: 'WalkerBucks Earner',
     description: 'Earn 100 WB through Walk The World.',
@@ -118,6 +137,10 @@ export const getAchievementProgressValue = (state: GameState, achievement: Achie
       return state.stats.totalClicks;
     case 'total_wb_earned':
       return state.totalWalkerBucksEarned;
+    case 'items_used':
+      return state.stats.itemsUsed;
+    case 'cosmetics_equipped':
+      return state.stats.cosmeticsEquipped;
   }
 };
 
