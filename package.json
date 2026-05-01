@@ -14,7 +14,19 @@
     "shop:validate-images": "vitest run tests/shop-images.test.ts",
     "items:prompts": "node scripts/generate-item-art-prompts.mjs",
     "items:export": "node scripts/export-items-csv-to-json.mjs",
-    "items:validate": "node scripts/validate-items.mjs"
+    "items:validate": "node scripts/validate-items.mjs",
+    "dev:seed": "tsx dev/seed.ts",
+    "dev:reset": "tsx dev/reset-dev-account.ts",
+    "dev:reset-new-user": "tsx dev/reset-new-user.ts",
+    "dev:grant": "tsx dev/grant-wb.ts",
+    "dev:take": "tsx dev/take-wb.ts",
+    "dev:set-wb": "tsx dev/set-wb.ts",
+    "dev:buy": "tsx dev/buy-item.ts",
+    "dev:onboarding": "tsx dev/onboarding.ts",
+    "dev:session": "tsx dev/simulate-session.ts",
+    "test:smoke": "tsx dev/smoke-test.ts",
+    "test:economy": "vitest run tests/economy",
+    "test:mobile": "vitest run tests/mobile"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.0",
@@ -27,6 +39,7 @@
     "@vitejs/plugin-react": "^4.3.2",
     "typescript": "^5.6.3",
     "vite": "^5.4.10",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "tsx": "^4.20.0"
   }
 }
