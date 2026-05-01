@@ -4,6 +4,7 @@ import {
   getSpendableWalkerBucks,
   getWtwWalletState,
   markWtwPurchaseSettled,
+  rollbackSettlementFailedWtwPurchases,
   rollbackOptimisticPurchase
 } from '../src/game/economy';
 import { getIdleMilesPerSecond } from '../src/game/formulas';
@@ -169,5 +170,62 @@ describe('fast optimistic purchases', () => {
       displayedWbBalance: 60,
       spendableWb: 60
     });
+  });
+
+  it('rolls back persisted settlement failures during reconciliation', () => {
+    const state = withWalkerBucksBalance(createInitialGameState(1000), 100);
+    const upgrade = UPGRADES.find((entry) => entry.id === 'starter_shoes');
+    if (!upgrade) throw new Error('starter_shoes upgrade is missing');
+
+    const bought = buyOfferFastOptimistic(state, {
+      supabaseUserId: 'user_1',
+      accountId: 'acct_test',
+      purchaseId: 'purchase_failed_reconcile',
+      offerId: upgrade.id,
+      itemDefId: upgrade.id,
+      itemName: upgrade.name,
+      price: 15,
+      sourceType: 'upgrade',
+      sourceId: `${upgrade.id}:level_1`,
+      dpsDelta: upgrade.effectValue,
+      applyPurchase: (prev) => ({
+        ...prev,
+        upgrades: { ...prev.upgrades, [upgrade.id]: 1 },
+        stats: { ...prev.stats, upgradesPurchased: prev.stats.upgradesPurchased + 1 }
+      }),
+      now: 2000
+    });
+
+    expect(bought.ok).toBe(true);
+    if (!bought.ok) return;
+
+    const failed: GameState = {
+      ...bought.state,
+      walkerBucksBridge: {
+        ...bought.state.walkerBucksBridge,
+        purchases: {
+          ...bought.state.walkerBucksBridge.purchases,
+          purchase_failed_reconcile: {
+            ...bought.state.walkerBucksBridge.purchases.purchase_failed_reconcile,
+            status: 'settlement_failed',
+            errorMessage: 'insufficient funds elsewhere'
+          }
+        }
+      }
+    };
+
+    expect(getWtwWalletState(failed).pendingSpend).toBe(15);
+    const reconciled = rollbackSettlementFailedWtwPurchases(failed, 3000);
+
+    expect(reconciled.walkerBucksBridge.purchases.purchase_failed_reconcile.status).toBe('rolled_back');
+    expect(reconciled.upgrades[upgrade.id]).toBeUndefined();
+    expect(reconciled.stats.upgradesPurchased).toBe(0);
+    expect(getWtwWalletState(reconciled)).toMatchObject({
+      syncedWbBalance: 100,
+      pendingSpend: 0,
+      displayedWbBalance: 100,
+      spendableWb: 100
+    });
+    expect(reconciled.ui.toast).toBe('Could not sync. Balance refreshed.');
   });
 });

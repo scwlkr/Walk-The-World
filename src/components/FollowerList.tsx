@@ -70,7 +70,7 @@ export const FollowerList = ({ state, onBuyFollower, isUnlocked }: FollowerListP
               disabled={!unlocked || !affordable || maxed}
               onClick={() => onBuyFollower(follower)}
             >
-              {maxed ? 'Maxed' : unlocked ? (affordable ? 'Hire' : 'Need WB') : 'Locked'}
+              {maxed ? 'Maxed' : unlocked ? (affordable ? 'Hire' : 'Not enough WB') : 'Locked'}
             </button>
           </article>
         );

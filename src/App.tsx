@@ -55,6 +55,7 @@ import {
   markWalkerBucksGrantFailed,
   markWalkerBucksGrantGranted,
   rollbackOptimisticPurchase,
+  rollbackSettlementFailedWtwPurchases,
   upsertMarketplacePurchase,
   upsertWalkerBucksGrant
 } from './game/economy';
@@ -579,6 +580,12 @@ const App = () => {
   const reconcileWtwPurchases = async () => {
     if (!isWalkerBucksBridgeConfigured || !authSessionRef.current?.access_token) return;
     await refreshWalkerBucksBalance();
+    setState((prev) => {
+      const next = rollbackSettlementFailedWtwPurchases(prev);
+      if (next === prev) return prev;
+      saveGameState(next);
+      return next;
+    });
     for (const purchase of getUnsettledWtwPurchases(stateRef.current)) {
       void settlePurchaseWithWalkerBucksInBackground(purchase);
     }

@@ -47,6 +47,7 @@ export const CatalogShopPanel = ({ state, onBuyOffer }: CatalogShopPanelProps) =
           );
           const affordable = getSpendableWalkerBucks(state) >= offer.priceWb;
           const disabled = !offer.unlocked || !affordable || limitReached;
+          const soldOutLabel = offer.purchaseLimitPerAccount === 1 ? 'Owned' : 'Purchased';
           return (
             <article key={offer.offerId} className="panel shop-card">
               <div className="item-card-layout">
@@ -63,7 +64,13 @@ export const CatalogShopPanel = ({ state, onBuyOffer }: CatalogShopPanelProps) =
                   {regionalOfferIds.has(offer.offerId) && <p className="muted">Regional shop: {region.name}</p>}
                   {offer.lockedReason && <p className="muted">{offer.lockedReason}</p>}
                   <button type="button" className="mini-btn" disabled={disabled} onClick={() => onBuyOffer(offer)}>
-                    {limitReached ? 'Limit reached' : offer.unlocked ? (affordable ? 'Buy item' : 'Need WB') : 'Locked'}
+                    {limitReached
+                      ? soldOutLabel
+                      : offer.unlocked
+                        ? affordable
+                          ? 'Buy item'
+                          : 'Not enough WB'
+                        : 'Locked'}
                   </button>
                 </div>
               </div>

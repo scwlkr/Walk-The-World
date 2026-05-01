@@ -354,6 +354,18 @@ export const rollbackOptimisticPurchase = (
   );
 };
 
+export const getSettlementFailedWtwPurchases = (state: GameState): WtwPurchase[] =>
+  Object.values(state.walkerBucksBridge.purchases).filter((purchase) => purchase.status === 'settlement_failed');
+
+export const rollbackSettlementFailedWtwPurchases = (
+  state: GameState,
+  now = Date.now()
+): GameState =>
+  getSettlementFailedWtwPurchases(state).reduce(
+    (next, purchase) => rollbackOptimisticPurchase(next, purchase.purchaseId, now),
+    state
+  );
+
 export const getUnsettledWtwPurchases = (state: GameState): WtwPurchase[] =>
   Object.values(state.walkerBucksBridge.purchases).filter((purchase) =>
     purchase.status === 'optimistic_applied' || purchase.status === 'settling'

@@ -30,7 +30,7 @@ export const UpgradeList = ({ state, onBuyUpgrade, isUnlocked }: UpgradeListProp
             disabled={!unlocked || !affordable || maxed}
             onClick={() => onBuyUpgrade(upgrade)}
           >
-            {maxed ? 'Maxed' : unlocked ? (affordable ? 'Buy' : 'Need WB') : 'Locked'}
+            {maxed ? 'Maxed' : unlocked ? (affordable ? 'Buy' : 'Not enough WB') : 'Locked'}
           </button>
         </article>
       );
