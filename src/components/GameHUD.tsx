@@ -97,6 +97,8 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
             Crew {followerCount.toLocaleString()} {followerCount > 0 ? moraleLabel : 'Solo'}
             {' · '}
             Offline cap {offlineHours}h
+            {' · '}
+            JT {state.prestige.journeyTokens.toLocaleString()}
           </span>
         </div>
 

@@ -164,7 +164,7 @@ export const getFollowerMoraleLabel = (value: number): 'Happy' | 'Neutral' | 'An
 };
 
 export const getFollowerLeaveChanceReduction = (state: GameState): number =>
-  clamp(getCosmeticEffectBonus(state, 'follower_leave_chance_reduction'), 0, 0.6);
+  clamp(getCosmeticEffectBonus(state, 'follower_leave_chance_reduction') + state.prestige.followerStabilityBonus, 0, 0.6);
 
 export const getFollowerMoraleBonus = (state: GameState): number =>
   clamp(getCosmeticEffectBonus(state, 'follower_morale_bonus'), 0, 0.35);

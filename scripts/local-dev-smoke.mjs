@@ -293,11 +293,13 @@ const run = async () => {
     assert(await evaluate(client, click('[aria-label="Stats"]')), 'Stats control did not open.');
     await waitFor('achievements visible', () => evaluate(client, 'document.body.textContent.includes("Achievements")'));
     await waitFor('regions visible', () => evaluate(client, 'document.body.textContent.includes("Regions")'));
+    await waitFor('journey reset visible', () => evaluate(client, 'document.body.textContent.includes("Journey Reset")'));
+    await waitFor('journey upgrades visible', () => evaluate(client, 'document.body.textContent.includes("Journey Upgrades")'));
     assert(await evaluate(client, click('[aria-label="Milestones"]')), 'Milestones control did not reopen.');
     await waitFor('daily and weekly events visible', () => evaluate(client, 'document.body.textContent.includes("Daily & Weekly Events")'));
 
     const inventorySave = await readSave(client);
-    assert(inventorySave?.saveVersion === 12, 'Save did not persist as version 12.');
+    assert(inventorySave?.saveVersion === 13, 'Save did not persist as version 13.');
     assert(inventorySave?.stats?.totalClicks >= 6, 'Walking did not update click stats.');
     assert(inventorySave?.stats?.milestonesClaimed >= 1, 'Milestone claim did not persist.');
     assert(inventorySave?.walkerBucks === 0, 'Guest save created a spendable client-side WB balance.');

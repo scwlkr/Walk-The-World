@@ -59,8 +59,8 @@ import {
 import { calculateOfflineProgress, getClickMiles, getFollowerCost, getUpgradeCost } from './game/formulas';
 import { applyCatalogOfferPurchase, getLocalCatalogShopOffers, type LocalCatalogShopOffer } from './game/items';
 import { equipEquipmentItem, useInventoryItem } from './game/inventory';
-import { claimMilestoneReward, syncMilestones } from './game/milestones';
-import { claimQuestReward, syncDailyQuests } from './game/quests';
+import { claimMilestoneReward, createInitialMilestoneState, syncMilestones } from './game/milestones';
+import { claimQuestReward, createQuestStateForGameState, syncDailyQuests } from './game/quests';
 import { RANDOM_EVENTS } from './game/randomEvents';
 import { isInRequiredRegion } from './game/regions';
 import { getRouteEncounterById, resolveRouteEncounterChoice } from './game/routeEncounters';
@@ -72,6 +72,7 @@ import type {
   Follower,
   GameState,
   InventoryItemDefinition,
+  JourneyUpgradeDefinition,
   MilestoneDefinition,
   QuestDefinition,
   RouteEncounterChoice,
@@ -82,7 +83,7 @@ import type {
   WtwPurchase,
   WorldId
 } from './game/types';
-import { applyEarthPrestige, canEnterWorld } from './game/world';
+import { applyEarthPrestige, buyJourneyUpgrade, canEnterWorld } from './game/world';
 import {
   getAuthSession,
   isAuthConfigured,
@@ -1285,7 +1286,24 @@ const App = () => {
   const onPrestigeEarth = () => {
     playSoundEffect('event', state.settings.soundEnabled);
     setState((prev) => {
-      const next = syncMilestones(syncDailyQuests(evaluateAchievements(applyEarthPrestige(prev, Date.now()))));
+      const now = Date.now();
+      const reset = applyEarthPrestige(prev, now);
+      if (reset === prev) return prev;
+      const withFreshQuests: GameState = {
+        ...reset,
+        milestones: createInitialMilestoneState(),
+        quests: createQuestStateForGameState(reset, now)
+      };
+      const next = syncMilestones(evaluateAchievements(withFreshQuests, now), now);
+      saveGameState(next);
+      return next;
+    });
+  };
+
+  const onBuyJourneyUpgrade = (upgrade: JourneyUpgradeDefinition) => {
+    playSoundEffect('purchase', state.settings.soundEnabled);
+    setState((prev) => {
+      const next = buyJourneyUpgrade(prev, upgrade.id);
       saveGameState(next);
       return next;
     });
@@ -1609,6 +1627,7 @@ const App = () => {
         <ProgressPanel
           state={state}
           onPrestigeEarth={onPrestigeEarth}
+          onBuyJourneyUpgrade={onBuyJourneyUpgrade}
           onSelectWorld={onSelectWorld}
           showAdvancedWorlds={devLabEnabled}
         />

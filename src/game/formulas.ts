@@ -141,7 +141,7 @@ export const getEventRewardMultiplier = (state: GameState): number => {
 export const getOfflineCapSeconds = (state: GameState): number => {
   const backpack = UPGRADES.find((upgrade) => upgrade.id === 'snack_backpack');
   const level = backpack ? getUpgradeLevel(state, backpack.id) : 0;
-  const multiplier = backpack ? 1 + backpack.effectValue * level : 1;
+  const multiplier = (backpack ? 1 + backpack.effectValue * level : 1) + state.prestige.offlineCapBonus;
   return Math.floor(DEFAULT_OFFLINE_CAP_SECONDS * multiplier);
 };
 

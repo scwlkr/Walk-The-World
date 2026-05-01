@@ -3,26 +3,32 @@ import { applyActiveTap, getActiveTapMultiplier } from '../src/game/activePlay';
 import { equipCosmetic } from '../src/game/cosmetics';
 import { milesFromFeet } from '../src/game/distance';
 import { FOLLOWERS, getFollowerLeaveChanceReduction, runFollowerDynamics } from '../src/game/followers';
+import { getClickMiles } from '../src/game/formulas';
 import { createInitialGameState } from '../src/game/initialState';
 import { getLocalCatalogShopOffers, getSharedInventoryEntitlements, purchaseLocalCatalogOffer } from '../src/game/items';
 import { grantRewardToState, useInventoryItem } from '../src/game/inventory';
-import { claimMilestoneReward, syncMilestones } from '../src/game/milestones';
+import { claimMilestoneReward, createInitialMilestoneState, syncMilestones } from '../src/game/milestones';
 import { getRandomEventsForState } from '../src/game/randomEvents';
 import { getCurrentRegion } from '../src/game/regions';
 import { resolveRouteEncounterChoice } from '../src/game/routeEncounters';
 import { importSave } from '../src/game/save';
 import { resolveRandomEvent } from '../src/game/tick';
-import { canEnterWorld } from '../src/game/world';
+import { applyEarthPrestige, buyJourneyUpgrade, canEnterWorld } from '../src/game/world';
 import type { RandomEventDefinition, RouteEncounterChoice, WalkerBucksMarketplaceOffer } from '../src/game/types';
 
 describe('retention milestones', () => {
   it('turns early distance into a claimable v0.1 milestone reward', () => {
     const state = createInitialGameState(1000);
+    const distance = milesFromFeet(100);
     const synced = syncMilestones({
       ...state,
-      stats: {
-        ...state.stats,
-        totalDistanceWalked: milesFromFeet(100)
+      distanceMiles: distance,
+      worlds: {
+        ...state.worlds,
+        earth: {
+          ...state.worlds.earth,
+          distanceMiles: distance
+        }
       }
     }, 2000);
     const first = synced.milestones.progress.leave_the_couch;
@@ -263,6 +269,135 @@ describe('shared inventory mapping', () => {
 });
 
 describe('worlds and save migration', () => {
+  it('resets an Earth journey for Journey Tokens without creating local WalkerBucks', () => {
+    const state = createInitialGameState(1000);
+    const ready = {
+      ...state,
+      upgrades: { starter_shoes: 3 },
+      followers: { neighborhood_walker: 2 },
+      activeBoosts: [
+        {
+          id: 'boost_test',
+          sourceEventId: 'test',
+          effectType: 'speed_multiplier' as const,
+          multiplier: 2,
+          expiresAt: 5000
+        }
+      ],
+      cosmetics: {
+        owned: { lucky_laces: true },
+        equippedBySlot: { shoes: 'lucky_laces' as const }
+      },
+      achievements: {
+        ...state.achievements,
+        first_steps: {
+          progress: 0.01,
+          unlockedAt: 1200,
+          claimedAt: 1300
+        }
+      },
+      walkerBucksBridge: {
+        ...state.walkerBucksBridge,
+        accountId: 'acct_test',
+        balance: {
+          assetCode: 'WB' as const,
+          balance: 500,
+          lockedBalance: 0,
+          availableBalance: 500,
+          updatedAt: 1500
+        }
+      },
+      account: {
+        ...state.account,
+        provider: 'supabase' as const,
+        userId: 'user_test',
+        email: 'walker@example.test',
+        status: 'signed_in' as const
+      },
+      worlds: {
+        ...state.worlds,
+        earth: {
+          ...state.worlds.earth,
+          distanceMiles: 24902,
+          loopsCompleted: 1
+        }
+      },
+      distanceMiles: 24902,
+      earthLoopsCompleted: 1
+    };
+
+    const reset = applyEarthPrestige(ready, 2000);
+
+    expect(reset.currentWorldId).toBe('earth');
+    expect(reset.worlds.earth.distanceMiles).toBe(0);
+    expect(reset.worlds.earth.loopsCompleted).toBe(0);
+    expect(reset.upgrades).toEqual({});
+    expect(reset.followers).toEqual({});
+    expect(reset.activeBoosts).toEqual([]);
+    expect(reset.walkerBucksBridge.balance?.availableBalance).toBe(500);
+    expect(reset.walkerBucks).toBe(0);
+    expect(reset.cosmetics.equippedBySlot.shoes).toBe('lucky_laces');
+    expect(reset.achievements.first_steps.claimedAt).toBe(1300);
+    expect(reset.prestige.earthPrestigeCount).toBe(1);
+    expect(reset.prestige.journeyTokens).toBe(1);
+    expect(reset.prestige.totalJourneyTokensEarned).toBe(1);
+    expect(reset.worlds.moon.unlockedAt).toBe(2000);
+  });
+
+  it('spends Journey Tokens on permanent upgrades', () => {
+    const state = createInitialGameState(1000);
+    const funded = {
+      ...state,
+      prestige: {
+        ...state.prestige,
+        journeyTokens: 3,
+        totalJourneyTokensEarned: 3
+      }
+    };
+    const beforeClick = getClickMiles(funded);
+    const upgraded = buyJourneyUpgrade(funded, 'better_shoes');
+
+    expect(upgraded.prestige.journeyTokens).toBe(2);
+    expect(upgraded.prestige.upgrades.better_shoes).toBe(1);
+    expect(upgraded.prestige.permanentSpeedBonus).toBe(0.05);
+    expect(getClickMiles(upgraded)).toBeGreaterThan(beforeClick);
+    expect(upgraded.walkerBucks).toBe(0);
+  });
+
+  it('uses Route Memory to start the next journey with Leave the Couch complete', () => {
+    const state = createInitialGameState(1000);
+    const withRouteMemory = buyJourneyUpgrade(
+      {
+        ...state,
+        prestige: {
+          ...state.prestige,
+          journeyTokens: 2,
+          totalJourneyTokensEarned: 2
+        }
+      },
+      'route_memory'
+    );
+    const ready = {
+      ...withRouteMemory,
+      worlds: {
+        ...withRouteMemory.worlds,
+        earth: {
+          ...withRouteMemory.worlds.earth,
+          distanceMiles: 24902,
+          loopsCompleted: 1
+        }
+      },
+      distanceMiles: 24902,
+      earthLoopsCompleted: 1
+    };
+
+    const reset = applyEarthPrestige(ready, 2000);
+    const synced = syncMilestones({ ...reset, milestones: createInitialMilestoneState() }, 3000);
+
+    expect(reset.worlds.earth.distanceMiles).toBeCloseTo(milesFromFeet(100));
+    expect(synced.milestones.progress.leave_the_couch.completedAt).toBe(3000);
+  });
+
   it('unlocks Mars prototype after one Moon loop', () => {
     const state = createInitialGameState(1000);
     const moonLooped = {
@@ -280,7 +415,7 @@ describe('worlds and save migration', () => {
     expect(canEnterWorld(moonLooped, 'mars')).toBe(true);
   });
 
-  it('migrates legacy saves into save version 12 v0.3 state', () => {
+  it('migrates legacy saves into save version 13 v0.4 state', () => {
     const migrated = importSave(
       JSON.stringify({
         saveVersion: 1,
@@ -290,12 +425,13 @@ describe('worlds and save migration', () => {
       })
     );
 
-    expect(migrated.saveVersion).toBe(12);
+    expect(migrated.saveVersion).toBe(13);
     expect(migrated.currentWorldId).toBe('earth');
     expect(migrated.profile).toBeDefined();
     expect(migrated.followerMorale.value).toBeGreaterThan(0);
     expect(migrated.milestones.progress.leave_the_couch).toBeDefined();
     expect(migrated.spawnedRouteEncounter).toBeNull();
     expect(migrated.activePlay.tapCombo).toBe(0);
+    expect(migrated.prestige.journeyTokens).toBe(0);
   });
 });

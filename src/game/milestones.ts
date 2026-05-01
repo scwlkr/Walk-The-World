@@ -79,7 +79,7 @@ const getMilestoneProgressValue = (state: GameState, milestone: MilestoneDefinit
     case 'clicks':
       return state.stats.totalClicks;
     case 'distance_walked':
-      return state.stats.totalDistanceWalked;
+      return state.worlds[state.currentWorldId]?.distanceMiles ?? state.distanceMiles;
     case 'upgrades_purchased':
       return state.stats.upgradesPurchased;
     case 'followers_hired':

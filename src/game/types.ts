@@ -194,10 +194,34 @@ export type WorldProgressState = {
 
 export type PrestigeState = {
   earthPrestigeCount: number;
+  journeyTokens: number;
+  totalJourneyTokensEarned: number;
+  upgrades: Record<string, number>;
   permanentSpeedBonus: number;
   permanentWbBonus: number;
+  followerStabilityBonus: number;
+  offlineCapBonus: number;
   moonAccelerationBonus: number;
   lastPrestigedAt: number | null;
+};
+
+export type JourneyUpgradeEffectType =
+  | 'permanent_speed_bonus'
+  | 'permanent_wb_bonus'
+  | 'follower_stability_bonus'
+  | 'offline_cap_bonus'
+  | 'moon_acceleration_bonus'
+  | 'route_memory';
+
+export type JourneyUpgradeDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  baseCost: number;
+  costMultiplier: number;
+  maxLevel: number;
+  effectType: JourneyUpgradeEffectType;
+  effectValue: number;
 };
 
 export type RewardDefinition = {

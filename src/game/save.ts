@@ -5,7 +5,14 @@ import { createInitialGameState } from './initialState';
 import { createInitialMilestoneState, syncMilestones } from './milestones';
 import { createQuestStateForGameState, mergeQuestState, syncDailyQuests } from './quests';
 import type { GameState, PrestigeState, WorldId, WorldProgressState } from './types';
-import { canEnterWorld, createInitialWorldProgress, normalizeWorldId, WORLD_IDS } from './world';
+import {
+  JOURNEY_UPGRADES,
+  applyJourneyUpgradeBonuses,
+  canEnterWorld,
+  createInitialWorldProgress,
+  normalizeWorldId,
+  WORLD_IDS
+} from './world';
 
 type SavePayload = GameState;
 
@@ -202,13 +209,42 @@ const mergeWorldProgress = (
 
 const mergePrestigeState = (base: PrestigeState, rawPrestige?: Partial<PrestigeState>): PrestigeState => {
   const earthPrestigeCount = Math.max(0, rawPrestige?.earthPrestigeCount ?? base.earthPrestigeCount);
-  return {
+
+  const upgrades = { ...(rawPrestige?.upgrades ?? base.upgrades) };
+  if (!rawPrestige?.upgrades) {
+    const legacyUpgradeIds: Record<string, keyof PrestigeState> = {
+      better_shoes: 'permanentSpeedBonus',
+      ledger_sense: 'permanentWbBonus',
+      moon_map: 'moonAccelerationBonus'
+    };
+
+    for (const [upgradeId, bonusKey] of Object.entries(legacyUpgradeIds)) {
+      const upgrade = JOURNEY_UPGRADES.find((entry) => entry.id === upgradeId);
+      const bonus = Number(rawPrestige?.[bonusKey] ?? 0);
+      if (upgrade && bonus > 0) {
+        upgrades[upgradeId] = Math.min(upgrade.maxLevel, Math.max(1, Math.round(bonus / upgrade.effectValue)));
+      }
+    }
+  }
+
+  const journeyTokens = Math.max(0, rawPrestige?.journeyTokens ?? base.journeyTokens);
+  return applyJourneyUpgradeBonuses({
     earthPrestigeCount,
-    permanentSpeedBonus: Math.max(0, rawPrestige?.permanentSpeedBonus ?? base.permanentSpeedBonus),
-    permanentWbBonus: Math.max(0, rawPrestige?.permanentWbBonus ?? base.permanentWbBonus),
-    moonAccelerationBonus: Math.max(0, rawPrestige?.moonAccelerationBonus ?? base.moonAccelerationBonus),
+    journeyTokens,
+    totalJourneyTokensEarned: Math.max(
+      0,
+      rawPrestige?.totalJourneyTokensEarned ?? base.totalJourneyTokensEarned,
+      journeyTokens,
+      earthPrestigeCount
+    ),
+    upgrades,
+    permanentSpeedBonus: 0,
+    permanentWbBonus: 0,
+    followerStabilityBonus: 0,
+    offlineCapBonus: 0,
+    moonAccelerationBonus: 0,
     lastPrestigedAt: rawPrestige?.lastPrestigedAt ?? base.lastPrestigedAt
-  };
+  });
 };
 
 const migrateSave = (rawSave: Partial<SavePayload>): GameState => mergeGameState(rawSave);

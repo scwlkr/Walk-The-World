@@ -10,7 +10,7 @@ The game may calculate progress and queue pending reward or spend requests, but 
 
 ## Current Bridge Role
 
-The active v0.2 player path needs the bridge for:
+The active v0.4 player path needs the bridge for:
 
 - reading spendable WB balance
 - settling queued walking/milestone rewards
@@ -19,16 +19,16 @@ The active v0.2 player path needs the bridge for:
 - spending WB on WTW-owned item, cosmetic, and boost offers
 - storing retryable pending/failed request metadata in the local save
 
-The active v0.2 player path does not need the bridge for:
+The active v0.4 player path does not need the bridge for:
 
 - marketplace browsing
 - peer trading
 - shared item ownership depth
 - follower contracts outside WTW gameplay state
-- prestige purchases
+- Journey Token upgrades
 - social reward linking
 
-Those are later-version systems.
+Journey Tokens are local prestige progress only. Any future WalkerBucks-priced prestige item is a separate later-version bridge contract.
 
 ## Required Shape
 
@@ -101,7 +101,7 @@ Queued reward metadata is not spendable WB.
 
 Before v0.3+ economy depth, define separate contracts for:
 
-- Journey Reset purchases
+- WalkerBucks-priced Journey Reset purchases
 - region/event rewards
 - marketplace and shared inventory
 - Discord identity linking

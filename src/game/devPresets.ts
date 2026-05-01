@@ -100,8 +100,17 @@ export const createDevPresetState = (presetId: DevPresetId, now = Date.now()): G
           ...base,
           prestige: {
             earthPrestigeCount: 1,
+            journeyTokens: 0,
+            totalJourneyTokensEarned: 1,
+            upgrades: {
+              better_shoes: 1,
+              ledger_sense: 1,
+              moon_map: 1
+            },
             permanentSpeedBonus: 0.05,
             permanentWbBonus: 0.05,
+            followerStabilityBonus: 0,
+            offlineCapBonus: 0,
             moonAccelerationBonus: 0.15,
             lastPrestigedAt: now
           },
@@ -120,8 +129,17 @@ export const createDevPresetState = (presetId: DevPresetId, now = Date.now()): G
           ...base,
           prestige: {
             earthPrestigeCount: 1,
+            journeyTokens: 0,
+            totalJourneyTokensEarned: 1,
+            upgrades: {
+              better_shoes: 1,
+              ledger_sense: 1,
+              moon_map: 1
+            },
             permanentSpeedBonus: 0.05,
             permanentWbBonus: 0.05,
+            followerStabilityBonus: 0,
+            offlineCapBonus: 0,
             moonAccelerationBonus: 0.15,
             lastPrestigedAt: now
           },
