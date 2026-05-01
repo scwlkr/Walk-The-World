@@ -21,12 +21,13 @@ import { getJourneyMilestones, getMilestoneProgressText } from '../game/mileston
 type GameHUDProps = {
   state: GameState;
   seasonalEventOverrideId?: string | null;
+  realtimeMilesPerSecond?: number;
 };
 
-export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
+export const GameHUD = ({ state, seasonalEventOverrideId, realtimeMilesPerSecond }: GameHUDProps) => {
   const currentWorld = getCurrentWorldDefinition(state);
   const currentLoopDistance = getCurrentWorldLoopDistance(state);
-  const speed = getIdleMilesPerSecond(state);
+  const speed = realtimeMilesPerSecond ?? getIdleMilesPerSecond(state);
   const clickDistance = getClickMiles(state);
   const worldPercent = getCurrentWorldProgressPercent(state);
   const current = getCurrentLandmark(state);
