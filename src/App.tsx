@@ -65,6 +65,11 @@ import { equipEquipmentItem, useInventoryItem } from './game/inventory';
 import { claimMilestoneReward, createInitialMilestoneState, syncMilestones } from './game/milestones';
 import { claimQuestReward, createQuestStateForGameState, syncDailyQuests } from './game/quests';
 import { RANDOM_EVENTS } from './game/randomEvents';
+import {
+  getRealtimeMilesPerSecond,
+  pruneRealtimeTapSamples,
+  type RecentTapDistance
+} from './game/realtimeDps';
 import { isInRequiredRegion } from './game/regions';
 import { getRouteEncounterById, resolveRouteEncounterChoice } from './game/routeEncounters';
 import { exportSave, importSave, loadGameState, resetGameState, saveGameState } from './game/save';
@@ -131,6 +136,7 @@ const App = () => {
   const [accountMessage, setAccountMessage] = useState<string | null>(null);
   const [walkerBucksBusy, setWalkerBucksBusy] = useState(false);
   const [tapFeedback, setTapFeedback] = useState<TapFeedback[]>([]);
+  const [recentTapDistances, setRecentTapDistances] = useState<RecentTapDistance[]>([]);
   const [tapPulse, setTapPulse] = useState(0);
   const lastFrameRef = useRef<number>(performance.now());
   const stateRef = useRef(state);
@@ -146,6 +152,7 @@ const App = () => {
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('dev') === '1';
+  const realtimeMilesPerSecond = getRealtimeMilesPerSecond(state, recentTapDistances);
 
   useEffect(() => {
     stateRef.current = state;
@@ -912,11 +919,13 @@ const App = () => {
   };
 
   const onWalk = (tapPosition?: { x: number; y: number }) => {
-    const distance = getClickMiles(state) * getActiveTapMultiplier(state);
+    const now = Date.now();
+    const previewTap = applyActiveTap(state, now);
+    const distance = getClickMiles(previewTap) * getActiveTapMultiplier(previewTap);
     playSoundEffect('walk', state.settings.soundEnabled);
 
     setState((prev) => {
-      const tapped = applyActiveTap(prev, Date.now());
+      const tapped = applyActiveTap(prev, now);
       const boostedDistance = getClickMiles(tapped) * getActiveTapMultiplier(tapped);
       const next = evaluateAchievements(
         applyDistanceAndWb(
@@ -934,6 +943,9 @@ const App = () => {
       saveGameState(synced);
       return synced;
     });
+    setRecentTapDistances((prev) =>
+      pruneRealtimeTapSamples([...prev, { distanceMiles: distance, occurredAt: now }], now)
+    );
 
     if (tapPosition) {
       tapFeedbackIdRef.current += 1;
@@ -1583,7 +1595,11 @@ const App = () => {
         sceneOverrideId={devLabEnabled ? devLabOverrides.sceneId : null}
         seasonalEventOverrideId={devLabEnabled ? devLabOverrides.seasonalEventId : null}
       />
-      <GameHUD state={state} seasonalEventOverrideId={devLabEnabled ? devLabOverrides.seasonalEventId : null} />
+      <GameHUD
+        state={state}
+        seasonalEventOverrideId={devLabEnabled ? devLabOverrides.seasonalEventId : null}
+        realtimeMilesPerSecond={realtimeMilesPerSecond}
+      />
 
       <NotificationCenter
         state={state}
