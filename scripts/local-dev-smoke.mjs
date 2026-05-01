@@ -178,6 +178,25 @@ const hasDisabledButton = (text) => `
 })()
 `;
 
+const visibleMenuControls = `
+(() => {
+  const controls = document.querySelector('.bottom-controls');
+  const shell = document.querySelector('.game-shell');
+  if (!controls || !shell) return { count: 0, visible: false };
+  const rect = controls.getBoundingClientRect();
+  const shellRect = shell.getBoundingClientRect();
+  return {
+    count: document.querySelectorAll('.bottom-controls .icon-control').length,
+    visible: rect.width > 0
+      && rect.height > 0
+      && rect.left >= shellRect.left
+      && rect.right <= shellRect.right
+      && rect.top >= shellRect.top
+      && rect.bottom <= shellRect.bottom
+  };
+})()
+`;
+
 const readSave = (client) =>
   evaluate(
     client,
@@ -255,11 +274,32 @@ const run = async () => {
         bodyOverflows: document.documentElement.scrollWidth > window.innerWidth + 4
       }))()`
     );
+    const mobileMenuControls = await evaluate(client, visibleMenuControls);
     assert(firstScreen.hasCanvas, 'Game canvas did not render.');
     assert(firstScreen.hasWalk, 'Walk button did not render.');
     assert(firstScreen.hasJourneyHud, 'Journey HUD did not render.');
     assert(firstScreen.hasBottomControls, 'Bottom controls did not render.');
+    assert(mobileMenuControls.count === 4, `Expected 4 mobile menu controls, found ${mobileMenuControls.count}.`);
+    assert(mobileMenuControls.visible, 'Mobile controls are clipped or outside the game shell.');
     assert(!firstScreen.bodyOverflows, `Mobile viewport has horizontal overflow at ${firstScreen.viewportWidth}x${firstScreen.viewportHeight}.`);
+
+    await client.call('Emulation.setDeviceMetricsOverride', {
+      width: 1280,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: false
+    });
+    await delay(100);
+    const desktopMenuControls = await evaluate(client, visibleMenuControls);
+    assert(desktopMenuControls.count === 4, `Expected 4 desktop menu controls, found ${desktopMenuControls.count}.`);
+    assert(desktopMenuControls.visible, 'Desktop controls are clipped or outside the game shell.');
+    await client.call('Emulation.setDeviceMetricsOverride', {
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 2,
+      mobile: true
+    });
+    await delay(100);
 
     logStep('walking, claiming first distance milestone, and checking WB spend gating');
     for (let i = 0; i < 6; i += 1) {

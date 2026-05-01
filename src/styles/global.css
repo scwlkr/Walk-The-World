@@ -1312,20 +1312,19 @@ button.event-overlay {
 
 @media (min-width: 900px) {
   .game-hud {
-    max-width: 680px;
-    margin: 0 auto;
-    left: 0;
-    right: 0;
+    max-width: none;
+    margin: 0;
+    left: var(--safe-left);
+    right: var(--safe-right);
   }
 
   .notification-zone {
-    left: calc((100vw - 680px) / 2);
-    right: calc((100vw - 680px) / 2 + var(--right-rail-width) + var(--right-rail-gap) + var(--safe-edge-padding));
+    left: var(--safe-left);
+    right: calc(var(--side-button-offset) + var(--right-rail-width) + var(--right-rail-gap));
   }
 
   .bottom-controls {
-    left: auto;
-    right: calc((100vw - 680px) / 2 + var(--safe-edge-padding));
+    right: var(--side-button-offset);
     margin: 0;
     max-width: none;
   }

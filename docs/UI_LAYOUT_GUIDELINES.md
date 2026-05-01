@@ -6,6 +6,8 @@ Last updated: 2026-05-01
 
 Walk The World uses a mobile-first game shell. Desktop should render the same composition in a centered mobile-width frame instead of inventing a separate desktop HUD.
 
+Desktop media queries must position HUD, notifications, and action controls relative to the mobile game shell, not the full browser viewport. The shell clips overflow, so viewport-based rail offsets can hide controls on desktop.
+
 ## Safe Areas
 
 - `index.html` must keep `viewport-fit=cover`.
