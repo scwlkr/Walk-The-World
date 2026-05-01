@@ -9,6 +9,7 @@ import {
 import { getSpendableWalkerBucks } from '../game/economy';
 import { getRegionById } from '../game/regions';
 import type { Follower, GameState } from '../game/types';
+import { ItemArtwork } from './ItemArtwork';
 
 type FollowerListProps = {
   state: GameState;
@@ -50,28 +51,33 @@ export const FollowerList = ({ state, onBuyFollower, isUnlocked }: FollowerListP
 
         return (
           <article key={follower.id} className="panel shop-card">
-            <div className="card-row">
-              <h4>{follower.name}</h4>
-              <span className="pill">{regionLabel ?? follower.rarity}</span>
+            <div className="item-card-layout">
+              <ItemArtwork item={{ ...follower, itemType: 'follower' }} />
+              <div className="item-card-body">
+                <div className="card-row">
+                  <h4>{follower.name}</h4>
+                  <span className="pill">{regionLabel ?? follower.rarity}</span>
+                </div>
+                <p>{follower.description}</p>
+                <p className="muted">{follower.personalityFlavor}</p>
+                <p className="muted">Owned {count}/{follower.maxCount}</p>
+                <p className="muted">+{follower.milesPerSecond.toFixed(4)} mi/sec each before morale</p>
+                {regionLabel && <p className="muted">Regional follower: {regionLabel}</p>}
+                <p className="muted">
+                  Recruit {Math.round(follower.recruitChancePerMinute * 100)}%/min · Leave{' '}
+                  {Math.round(follower.leaveChancePerMinute * 100)}%/min
+                </p>
+                <p className="muted">Cost: {cost.toLocaleString()} WB</p>
+                <button
+                  type="button"
+                  className="mini-btn"
+                  disabled={!unlocked || !affordable || maxed}
+                  onClick={() => onBuyFollower(follower)}
+                >
+                  {maxed ? 'Maxed' : unlocked ? (affordable ? 'Hire' : 'Not enough WB') : 'Locked'}
+                </button>
+              </div>
             </div>
-            <p>{follower.description}</p>
-            <p className="muted">{follower.personalityFlavor}</p>
-            <p className="muted">Owned {count}/{follower.maxCount}</p>
-            <p className="muted">+{follower.milesPerSecond.toFixed(4)} mi/sec each before morale</p>
-            {regionLabel && <p className="muted">Regional follower: {regionLabel}</p>}
-            <p className="muted">
-              Recruit {Math.round(follower.recruitChancePerMinute * 100)}%/min · Leave{' '}
-              {Math.round(follower.leaveChancePerMinute * 100)}%/min
-            </p>
-            <p className="muted">Cost: {cost.toLocaleString()} WB</p>
-            <button
-              type="button"
-              className="mini-btn"
-              disabled={!unlocked || !affordable || maxed}
-              onClick={() => onBuyFollower(follower)}
-            >
-              {maxed ? 'Maxed' : unlocked ? (affordable ? 'Hire' : 'Not enough WB') : 'Locked'}
-            </button>
           </article>
         );
       })}

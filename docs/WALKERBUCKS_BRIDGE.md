@@ -92,12 +92,13 @@ If a non-retriable settlement failure occurs, WTW rolls back the optimistic item
 ```text
 player gains distance or claims milestone
 -> browser queues reward amount
+-> HUD may display the queued amount optimistically as syncing WB
 -> signed-in bridge loop submits reward batch
 -> WalkerBucks settles idempotent grant
 -> browser stores settled transaction metadata
 ```
 
-Queued reward metadata is not spendable WB.
+Queued reward metadata is not spendable WB. The shared wallet display may include `optimisticEarnedWb`, but shop affordability uses only `syncedWbBalance - pendingSpend` until WalkerBucks returns the authoritative balance.
 
 ## Future Work
 

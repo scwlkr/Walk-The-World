@@ -50,16 +50,26 @@ export const getPendingWalkerBucksSpend = (state: GameState): number =>
     return total + normalizeWbAmount(purchase.price) * Math.max(1, Math.floor(purchase.quantity));
   }, 0);
 
+export const getOptimisticWalkerBucksEarned = (state: GameState): number =>
+  normalizeWbAmount(state.walkerBucksBridge.pendingGrantAmount) +
+  Object.values(state.walkerBucksBridge.rewardGrants).reduce((total, grant) => {
+    if (grant.status !== 'pending') return total;
+    return total + normalizeWbAmount(grant.amount);
+  }, 0);
+
 export const getWtwWalletState = (state: GameState): WtwWalletState => {
   const syncedWbBalance = normalizeWbAmount(state.walkerBucksBridge.balance?.availableBalance ?? 0);
   const pendingSpend = getPendingWalkerBucksSpend(state);
-  const displayedWbBalance = Math.max(0, syncedWbBalance - pendingSpend);
+  const optimisticEarnedWb = getOptimisticWalkerBucksEarned(state);
+  const displayedWbBalance = Math.max(0, syncedWbBalance + optimisticEarnedWb - pendingSpend);
 
   return {
     syncedWbBalance,
+    optimisticEarnedWb,
     pendingSpend,
     displayedWbBalance,
-    spendableWb: displayedWbBalance,
+    spendableWb: Math.max(0, syncedWbBalance - pendingSpend),
+    isSyncing: optimisticEarnedWb > 0 || pendingSpend > 0 || state.walkerBucksBridge.status === 'checking',
     lastSyncedAt: state.walkerBucksBridge.lastCheckedAt
   };
 };

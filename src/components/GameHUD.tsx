@@ -10,7 +10,7 @@ import {
   getOfflineCapSeconds
 } from '../game/formulas';
 import { formatDistance, formatDistanceRate } from '../game/distance';
-import { getSpendableWalkerBucks } from '../game/economy';
+import { getWtwWalletState } from '../game/economy';
 import { getFollowerMoraleLabel, getTotalFollowerCount } from '../game/followers';
 import { getCurrentRegion, getNextRegion, getRegionEffectSummary } from '../game/regions';
 import { getActiveSeasonalEventForState, getSeasonalEventById } from '../game/seasonalEvents';
@@ -37,7 +37,7 @@ export const GameHUD = ({ state, seasonalEventOverrideId, realtimeMilesPerSecond
   const activeEvent = getSeasonalEventById(seasonalEventOverrideId) ?? getActiveSeasonalEventForState(state);
   const journeyMilestones = getJourneyMilestones(state, 2);
   const activeBoosts = state.activeBoosts.filter((boost) => boost.expiresAt > Date.now()).slice(0, 3);
-  const walletBalance = getSpendableWalkerBucks(state);
+  const wallet = getWtwWalletState(state);
   const followerCount = getTotalFollowerCount(state);
   const moraleLabel = getFollowerMoraleLabel(state.followerMorale.value);
   const region = getCurrentRegion(state);
@@ -74,8 +74,9 @@ export const GameHUD = ({ state, seasonalEventOverrideId, realtimeMilesPerSecond
             <span className="hud-stat-label">WB</span>
             <strong>
               <span aria-hidden="true">⭐</span>
-              {walletBalance.toLocaleString()}
+              {wallet.displayedWbBalance.toLocaleString()}
             </strong>
+            {wallet.isSyncing && <small>syncing</small>}
           </span>
           <span className="hud-stat-card">
             <span className="hud-stat-label">DT</span>

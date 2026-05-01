@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../game/types';
 import { getCurrentLandmark, getIdleMilesPerSecond } from '../game/formulas';
 import { getBackgroundScene } from '../game/backgroundScenes';
+import { FOLLOWERS, getTotalFollowerCount } from '../game/followers';
 import {
   getRandomEventPresentation,
   getRouteEncounterPresentation
@@ -33,8 +34,14 @@ type LoadedWalkerSprite = {
 };
 
 type ParallaxLayerKey = 'back' | 'middle' | 'ground';
+type VisibleFollowerCompanion = {
+  id: string;
+  name: string;
+  rarity: 'common' | 'uncommon' | 'rare';
+};
 
 const WALKER_ANIMATION_STATES: WalkerAnimationState[] = ['walk', 'idle', 'click', 'reward', 'celebration'];
+const MAX_VISIBLE_FOLLOWERS = 5;
 const PICKUP_MARKER_IMAGE_SRCS = [
   '/assets/items/trail_mix.png',
   '/assets/items/walkertown_postcard.png',
@@ -132,6 +139,24 @@ const biomePalette: Record<
     groundBottom: '#0f172a',
     path: '#cbd5e1'
   }
+};
+
+const getVisibleFollowerCompanions = (state: GameState): VisibleFollowerCompanion[] => {
+  const companions: VisibleFollowerCompanion[] = [];
+
+  for (const follower of FOLLOWERS) {
+    const count = Math.max(0, Math.floor(state.followers[follower.id] ?? 0));
+    for (let index = 0; index < count && companions.length < MAX_VISIBLE_FOLLOWERS; index += 1) {
+      companions.push({
+        id: `${follower.id}:${index}`,
+        name: follower.name,
+        rarity: follower.rarity
+      });
+    }
+    if (companions.length >= MAX_VISIBLE_FOLLOWERS) break;
+  }
+
+  return companions;
 };
 
 export const GameSceneCanvas = ({
@@ -559,6 +584,59 @@ export const GameSceneCanvas = ({
       ctx.fillRect(Math.round(centerX - 30), Math.round(footY + 1), 60, 4);
     };
 
+    const drawFollowerCompanion = (
+      companion: VisibleFollowerCompanion,
+      centerX: number,
+      footY: number,
+      elapsed: number,
+      index: number
+    ) => {
+      const paletteByRarity = {
+        common: { shirt: '#2563eb', trim: '#93c5fd', skin: '#fed7aa' },
+        uncommon: { shirt: '#16a34a', trim: '#bbf7d0', skin: '#fde68a' },
+        rare: { shirt: '#7c3aed', trim: '#ddd6fe', skin: '#f5d0fe' }
+      }[companion.rarity];
+      const stride = state.settings.reducedMotion ? 0 : Math.sin(elapsed * 6.4 + index * 0.72) * 3;
+      const bob = state.settings.reducedMotion ? 0 : Math.sin(elapsed * 5.2 + index) * 1.5;
+      const x = Math.round(centerX);
+      const y = Math.round(footY + bob);
+
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.2)';
+      ctx.fillRect(x - 16, y + 4, 32, 5);
+      ctx.fillStyle = paletteByRarity.skin;
+      ctx.fillRect(x - 7, y - 38, 14, 13);
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(x - 5, y - 34, 3, 3);
+      ctx.fillRect(x + 3, y - 34, 3, 3);
+      ctx.fillStyle = paletteByRarity.shirt;
+      ctx.fillRect(x - 9, y - 25, 18, 20);
+      ctx.fillStyle = paletteByRarity.trim;
+      ctx.fillRect(x - 9, y - 25, 18, 4);
+      ctx.fillStyle = paletteByRarity.shirt;
+      ctx.fillRect(x - 15, y - 22 + Math.max(0, stride), 6, 14);
+      ctx.fillRect(x + 9, y - 22 + Math.max(0, -stride), 6, 14);
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(x - 8, y - 5 + Math.max(0, -stride), 6, 12);
+      ctx.fillRect(x + 2, y - 5 + Math.max(0, stride), 6, 12);
+
+      const initial = companion.name.charAt(0).toUpperCase();
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '8px ui-monospace, monospace';
+      ctx.fillText(initial, x - 3, y - 14);
+    };
+
+    const drawFollowerOverflowBadge = (centerX: number, centerY: number, overflow: number) => {
+      const label = `+${overflow}`;
+      ctx.font = '10px ui-monospace, monospace';
+      const labelWidth = Math.max(22, Math.ceil(ctx.measureText(label).width) + 10);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+      ctx.fillRect(Math.round(centerX - labelWidth / 2), Math.round(centerY - 10), labelWidth, 18);
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.72)';
+      ctx.strokeRect(Math.round(centerX - labelWidth / 2), Math.round(centerY - 10), labelWidth, 18);
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillText(label, Math.round(centerX - labelWidth / 2 + 5), Math.round(centerY + 3));
+    };
+
     const draw = (time: number) => {
       const elapsed = time / 1000;
       const width = canvas.clientWidth;
@@ -640,6 +718,30 @@ export const GameSceneCanvas = ({
       const playerCenterX = Math.max(88, Math.min(width * 0.28, width - 116));
       const activeAnimation = getActiveAnimationState(speed);
       const walkerSprite = getLoadedWalkerSprite(activeAnimation);
+      const visibleFollowers = getVisibleFollowerCompanions(state);
+      const followerOverflow = Math.max(0, getTotalFollowerCount(state) - visibleFollowers.length);
+
+      if (visibleFollowers.length > 0) {
+        const followerOffsets = [
+          { x: -48, y: 8 },
+          { x: -76, y: -4 },
+          { x: -104, y: 12 },
+          { x: -30, y: 20 },
+          { x: -132, y: 2 }
+        ];
+
+        visibleFollowers.forEach((companion, index) => {
+          const offset = followerOffsets[index] ?? followerOffsets[followerOffsets.length - 1];
+          const companionX = Math.max(28, Math.min(width - 28, playerCenterX + offset.x));
+          const companionY = footY + offset.y;
+          drawFollowerCompanion(companion, companionX, companionY, elapsed, index);
+        });
+
+        if (followerOverflow > 0) {
+          const badgeX = Math.max(36, Math.min(width - 36, playerCenterX - 132));
+          drawFollowerOverflowBadge(badgeX, footY + 34, followerOverflow);
+        }
+      }
 
       drawWalkerShadow(playerCenterX, footY, tapPulse);
 

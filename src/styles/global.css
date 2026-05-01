@@ -1,21 +1,21 @@
 :root {
-  --bg: #020617;
-  --panel: rgba(15, 23, 42, 0.72);
-  --panel-2: rgba(30, 41, 59, 0.88);
+  --bg: #08110f;
+  --panel: rgba(13, 20, 18, 0.76);
+  --panel-2: rgba(24, 34, 31, 0.9);
   --text: #f8fafc;
-  --muted: #cbd5e1;
+  --muted: #c7d2cc;
   --gold: #facc15;
   --red: #ef4444;
-  --border: rgba(148, 163, 184, 0.36);
+  --border: rgba(166, 184, 174, 0.28);
   --safe-edge-padding: 16px;
   --safe-top: calc(env(safe-area-inset-top, 0px) + var(--safe-edge-padding));
   --safe-right: calc(env(safe-area-inset-right, 0px) + var(--safe-edge-padding));
   --safe-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--safe-edge-padding));
   --safe-left: calc(env(safe-area-inset-left, 0px) + var(--safe-edge-padding));
   --hud-top-offset: var(--safe-top);
-  --hud-zone-height: 224px;
-  --right-rail-width: 52px;
-  --right-rail-gap: 14px;
+  --hud-zone-height: 202px;
+  --right-rail-width: 48px;
+  --right-rail-gap: 12px;
   --side-button-offset: var(--safe-right);
   --bottom-controls-offset: var(--safe-bottom);
   --walk-button-zone-height: 74px;
@@ -37,7 +37,9 @@ body,
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: var(--bg);
+  background:
+    linear-gradient(90deg, #030706, #0d1714 24%, #0d1714 76%, #030706),
+    var(--bg);
   color: var(--text);
   overscroll-behavior: none;
 }
@@ -48,11 +50,15 @@ button {
 
 .game-shell {
   position: fixed;
-  inset: 0;
-  width: 100vw;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: min(100vw, 430px);
   height: 100dvh;
   overflow: hidden;
   background: var(--bg);
+  transform: translateX(-50%);
+  box-shadow: 0 0 42px rgba(0, 0, 0, 0.34);
 }
 
 .game-canvas {
@@ -74,27 +80,22 @@ button {
   pointer-events: none;
   display: grid;
   gap: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: Inter, system-ui, sans-serif;
 }
 
 .hud-strip {
-  background:
-    linear-gradient(180deg, rgba(14, 33, 58, 0.96), rgba(7, 19, 36, 0.96)),
-    #0f172a;
-  border: 2px solid rgba(251, 191, 36, 0.74);
-  box-shadow:
-    0 5px 0 rgba(2, 6, 23, 0.7),
-    0 0 0 2px rgba(2, 6, 23, 0.72),
-    inset 0 2px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -2px 0 rgba(2, 6, 23, 0.38);
-  border-radius: 18px;
+  background: rgba(11, 18, 17, 0.82);
+  border: 1px solid rgba(238, 214, 137, 0.28);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
 }
 
 .hud-travel-panel {
   display: grid;
-  gap: 0.42rem;
-  padding: 0.72rem 0.78rem 0.78rem;
-  border-color: color-mix(in srgb, var(--event-accent) 54%, rgba(250, 204, 21, 0.55));
+  gap: 0.38rem;
+  padding: 0.62rem 0.68rem 0.66rem;
+  border-color: color-mix(in srgb, var(--event-accent) 34%, rgba(166, 184, 174, 0.24));
 }
 
 .hud-meter-row {
@@ -104,8 +105,8 @@ button {
 }
 
 .hud-meter-row {
-  min-height: 42px;
-  color: #dbeafe;
+  min-height: 38px;
+  color: #dce7df;
 }
 
 .hud-stat-card {
@@ -126,8 +127,8 @@ button {
 
 .hud-stat-label {
   display: block;
-  color: #b6c7e8;
-  font-size: 0.68rem;
+  color: #a7b8ae;
+  font-size: 0.62rem;
   line-height: 1;
   text-transform: uppercase;
 }
@@ -137,16 +138,22 @@ button {
   align-items: baseline;
   gap: 0.26rem;
   min-width: 0;
-  color: #fed56b;
-  font-size: clamp(1.1rem, 4.6vw, 1.68rem);
+  color: #f8d86c;
+  font-size: clamp(0.98rem, 4.2vw, 1.32rem);
   line-height: 1.1;
-  text-shadow: 0 2px 0 rgba(120, 53, 15, 0.78);
   white-space: nowrap;
 }
 
 .hud-stat-card strong span {
   flex: 0 0 auto;
   font-size: 0.9em;
+}
+
+.hud-stat-card small {
+  display: block;
+  color: #9dd4bf;
+  font-size: 0.58rem;
+  line-height: 1;
 }
 
 .hud-detail-row {
@@ -156,16 +163,16 @@ button {
   min-width: 0;
   border-top: 1px solid rgba(148, 163, 184, 0.34);
   border-bottom: 1px solid rgba(148, 163, 184, 0.34);
-  padding: 0.32rem 0 0.34rem;
-  color: #bfd1ee;
-  font-size: 0.78rem;
+  padding: 0.28rem 0;
+  color: #b7c9bf;
+  font-size: 0.72rem;
   line-height: 1.1;
   text-transform: uppercase;
 }
 
 .hud-detail-row strong {
   color: #f8fafc;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
 }
 
 .hud-route-line {
@@ -179,7 +186,7 @@ button {
 .hud-route-line strong {
   min-width: 0;
   color: #f8fafc;
-  font-size: clamp(0.95rem, 3.8vw, 1.25rem);
+  font-size: clamp(0.86rem, 3.6vw, 1.04rem);
   line-height: 1.1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -187,8 +194,8 @@ button {
 }
 
 .hud-route-line span {
-  color: #fde68a;
-  font-size: 0.8rem;
+  color: #e9cf7a;
+  font-size: 0.72rem;
   line-height: 1.1;
   text-align: right;
   white-space: nowrap;
@@ -197,9 +204,9 @@ button {
 .hud-progress-track {
   position: relative;
   width: 100%;
-  height: 12px;
-  background: rgba(2, 6, 23, 0.78);
-  border: 2px solid rgba(148, 163, 184, 0.48);
+  height: 8px;
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(166, 184, 174, 0.26);
   border-radius: 999px;
   margin: 0.02rem 0 0.08rem;
   overflow: hidden;
@@ -208,16 +215,14 @@ button {
 .hud-progress-fill {
   display: block;
   height: 100%;
-  background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0 4px, transparent 4px 8px),
-    linear-gradient(90deg, #16a34a, #facc15);
+  background: linear-gradient(90deg, #1f9d68, #facc15);
 }
 
 .hud-route-marker {
   position: absolute;
   top: 50%;
   width: 4px;
-  height: 12px;
+  height: 10px;
   transform: translate(-50%, -50%);
   background: #fef3c7;
   border: 0;
@@ -229,7 +234,7 @@ button {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.36rem;
   color: #f8fafc;
-  font-size: 0.72rem;
+  font-size: 0.64rem;
   line-height: 1.1;
 }
 
@@ -242,10 +247,10 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border: 1px solid rgba(148, 163, 184, 0.34);
+  border: 1px solid rgba(166, 184, 174, 0.2);
   border-radius: 999px;
-  background: rgba(10, 26, 47, 0.68);
-  padding: 0.34rem 0.4rem;
+  background: rgba(255, 255, 255, 0.055);
+  padding: 0.28rem 0.34rem;
 }
 
 .hud-sub-row > span:last-child {
@@ -267,11 +272,11 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(2, 6, 23, 0.24);
+  background: rgba(255, 255, 255, 0.05);
   color: #cbd5e1;
   border-radius: 999px;
   padding: 0.18rem 0.42rem;
-  font-size: 0.58rem;
+  font-size: 0.56rem;
   line-height: 1.1;
 }
 
@@ -290,13 +295,13 @@ button {
 
 @media (max-width: 480px) {
   :root {
-    --hud-zone-height: 244px;
+    --hud-zone-height: 214px;
   }
 
   .hud-travel-panel {
     gap: 0.34rem;
-    padding: 0.62rem 0.66rem 0.68rem;
-    border-radius: 16px;
+    padding: 0.56rem 0.6rem 0.6rem;
+    border-radius: 13px;
   }
 
   .hud-stat-card {
@@ -305,7 +310,7 @@ button {
 
   .hud-stat-card strong {
     gap: 0.18rem;
-    font-size: clamp(0.98rem, 4.8vw, 1.18rem);
+    font-size: clamp(0.9rem, 4.3vw, 1.08rem);
   }
 
   .hud-route-line {
@@ -328,13 +333,13 @@ button {
   .hud-sub-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.28rem;
-    font-size: 0.64rem;
+    font-size: 0.6rem;
   }
 
   .hud-sub-row > span {
     display: block;
-    min-height: 28px;
-    padding: 0.28rem 0.38rem;
+    min-height: 24px;
+    padding: 0.24rem 0.34rem;
     text-align: left;
   }
 
@@ -346,7 +351,7 @@ button {
 @media (max-width: 360px) {
   :root {
     --safe-edge-padding: 14px;
-    --hud-zone-height: 266px;
+    --hud-zone-height: 232px;
   }
 
   .hud-route-line,
@@ -376,7 +381,7 @@ button {
 
 .bottom-controls {
   position: absolute;
-  top: calc(var(--hud-top-offset) + var(--hud-zone-height) + 8px);
+  top: calc(var(--hud-top-offset) + var(--hud-zone-height) + 10px);
   right: var(--side-button-offset);
   bottom: auto;
   z-index: 36;
@@ -384,25 +389,20 @@ button {
   flex-direction: column;
   align-items: flex-end;
   width: var(--right-rail-width);
-  gap: 0.58rem;
+  gap: 0.48rem;
   pointer-events: none;
 }
 
 .icon-control {
   width: var(--right-rail-width);
   height: var(--right-rail-width);
-  border-radius: 12px;
-  border: 2px solid rgba(251, 191, 36, 0.82);
-  background:
-    linear-gradient(180deg, rgba(21, 45, 75, 0.96), rgba(8, 24, 45, 0.96)),
-    #0f172a;
-  color: #fde68a;
-  box-shadow:
-    0 3px 0 rgba(2, 6, 23, 0.72),
-    0 0 0 2px rgba(2, 6, 23, 0.72),
-    inset 0 2px 0 rgba(255, 255, 255, 0.08);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 1.34rem;
+  border-radius: 11px;
+  border: 1px solid rgba(238, 214, 137, 0.34);
+  background: rgba(12, 20, 18, 0.76);
+  color: #f8dfa2;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 1.16rem;
   display: grid;
   place-items: center;
   pointer-events: auto;
@@ -411,31 +411,23 @@ button {
 
 .icon-control:active {
   transform: translateY(2px);
-  box-shadow:
-    0 1px 0 rgba(2, 6, 23, 0.62),
-    inset 0 2px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.22);
 }
 
 .icon-control.active {
-  border-color: #fde047;
+  border-color: #facc15;
   color: #fef9c3;
-  background:
-    linear-gradient(180deg, rgba(84, 63, 21, 0.94), rgba(39, 40, 28, 0.94)),
-    #422006;
+  background: rgba(75, 61, 22, 0.88);
 }
 
 .walk-btn {
   width: min(74vw, 292px);
-  min-height: 64px;
-  border: 2px solid rgba(254, 240, 138, 0.9);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 50% 16%, rgba(255, 255, 255, 0.46), transparent 28%),
-    linear-gradient(180deg, #fde68a 0%, #fbbf24 44%, #f97316 100%);
+  min-height: 62px;
+  border: 1px solid rgba(254, 240, 138, 0.82);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fde68a 0%, #fbbf24 54%, #f59e0b 100%);
   color: #1c1917;
-  box-shadow:
-    0 7px 0 rgba(124, 45, 18, 0.8),
-    0 0 0 2px rgba(124, 45, 18, 0.82);
+  box-shadow: 0 14px 26px rgba(67, 36, 6, 0.42);
   font-weight: 900;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -447,13 +439,13 @@ button {
 }
 
 .walk-btn strong {
-  font-size: clamp(1.75rem, 8vw, 2.58rem);
+  font-size: clamp(1.54rem, 7.2vw, 2.24rem);
   line-height: 1;
 }
 
 .walk-btn:active {
   transform: translateY(3px);
-  box-shadow: 0 2px 0 rgba(124, 45, 18, 0.72);
+  box-shadow: 0 7px 18px rgba(67, 36, 6, 0.38);
 }
 
 .walk-button-wrap {
@@ -542,8 +534,11 @@ button {
   border: 1px solid var(--border);
   background: var(--panel-2);
   color: var(--text);
-  border-radius: 10px;
-  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 0.52rem 0.68rem;
+  overflow-wrap: anywhere;
+  touch-action: manipulation;
 }
 
 .mini-btn.active {
@@ -713,30 +708,34 @@ button.event-overlay {
   position: absolute;
   inset: 0;
   z-index: 40;
-  background: rgba(2, 6, 23, 0.48);
+  background: rgba(0, 0, 0, 0.46);
   display: grid;
   align-items: end;
+  padding-top: var(--safe-top);
 }
 
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 0.65rem;
 }
 
 .overlay-sheet {
   width: 100%;
-  max-height: min(72dvh, 700px);
+  max-height: calc(100dvh - var(--safe-top) - 8px);
   border-radius: 16px 16px 0 0;
   overflow: hidden;
   display: grid;
   grid-template-rows: auto 1fr;
+  background: rgba(12, 20, 18, 0.94);
+  backdrop-filter: blur(14px);
 }
 
 .overlay-content {
   overflow: auto;
   padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  min-height: 0;
 }
 
 .modal-head,
@@ -750,6 +749,13 @@ button.event-overlay {
 
 .modal-head {
   align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: -0.65rem -0.65rem 0.6rem;
+  padding: 0.65rem;
+  background: rgba(12, 20, 18, 0.96);
+  border-bottom: 1px solid rgba(166, 184, 174, 0.18);
 }
 
 .modal-head h3 {
@@ -762,7 +768,7 @@ button.event-overlay {
 }
 
 .shop-card {
-  background: rgba(15, 23, 42, 0.9);
+  background: rgba(15, 24, 21, 0.78);
 }
 
 .shop-card h4 {
@@ -1181,6 +1187,7 @@ button.event-overlay {
 .settings-actions {
   display: grid;
   gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
 }
 
 .account-panel {
@@ -1229,6 +1236,22 @@ button.event-overlay {
   min-width: 0;
   text-align: right;
   overflow-wrap: anywhere;
+}
+
+@media (max-width: 380px) {
+  .account-status-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.12rem;
+  }
+
+  .account-status-grid strong {
+    text-align: left;
+  }
+
+  .account-actions,
+  .settings-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .account-message {

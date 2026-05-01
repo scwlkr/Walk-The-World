@@ -21,6 +21,7 @@ export type UnlockRequirement = {
 export type Upgrade = {
   id: string;
   name: string;
+  image: string;
   description: string;
   category: UpgradeCategory;
   baseCost: number;
@@ -34,6 +35,7 @@ export type Upgrade = {
 export type Follower = {
   id: string;
   name: string;
+  image: string;
   description: string;
   baseCost: number;
   costMultiplier: number;
@@ -544,9 +546,11 @@ export type WtwPurchase = {
 
 export type WtwWalletState = {
   syncedWbBalance: number;
+  optimisticEarnedWb: number;
   pendingSpend: number;
   displayedWbBalance: number;
   spendableWb: number;
+  isSyncing: boolean;
   lastSyncedAt: number | null;
 };
 

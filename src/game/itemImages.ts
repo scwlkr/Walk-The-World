@@ -108,6 +108,10 @@ export const getItemFallbackIcon = (item: ItemImageCandidate): string => {
       return 'EQ';
     case 'cosmetic':
       return 'COS';
+    case 'upgrade':
+      return 'UP';
+    case 'follower':
+      return 'CREW';
     case 'head':
       return 'HEAD';
     case 'face':

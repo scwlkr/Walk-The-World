@@ -73,6 +73,11 @@ import {
 import { isInRequiredRegion } from './game/regions';
 import { getRouteEncounterById, resolveRouteEncounterChoice } from './game/routeEncounters';
 import { exportSave, importSave, loadGameState, resetGameState, saveGameState } from './game/save';
+import {
+  createSaveSyncFingerprint,
+  resolveSaveSyncDecision,
+  type SaveSyncDecision
+} from './game/saveSync';
 import { applyDistanceAndWb, clearToast, resolveRandomEvent, runGameTick, shouldAutoSave } from './game/tick';
 import type {
   AchievementDefinition,
@@ -102,7 +107,12 @@ import {
   signUpWithEmail,
   type AuthSession
 } from './services/authClient';
-import { loadCloudSave, uploadCloudSave, type CloudSaveSnapshot } from './services/cloudSaveClient';
+import {
+  CloudSaveConflictError,
+  loadCloudSave,
+  uploadCloudSave,
+  type CloudSaveSnapshot
+} from './services/cloudSaveClient';
 import {
   completeWalkerBucksBankLink,
   grantWalkerBucksReward,
@@ -141,6 +151,12 @@ const App = () => {
   const lastFrameRef = useRef<number>(performance.now());
   const stateRef = useRef(state);
   const authSessionRef = useRef<AuthSession | null>(null);
+  const cloudSaveRef = useRef<CloudSaveSnapshot | null>(null);
+  const cloudSyncReadyRef = useRef(false);
+  const cloudSyncUserIdRef = useRef<string | null>(null);
+  const cloudUploadInFlightRef = useRef(false);
+  const lastCloudUploadFingerprintRef = useRef<string | null>(null);
+  const saveSyncRequestIdRef = useRef(0);
   const settlingPurchasesRef = useRef<Set<string>>(new Set());
   const pendingWalkerBucksGrantIdsRef = useRef<Set<string>>(new Set());
   const clickLockedOfferIdsRef = useRef<Set<string>>(new Set());
@@ -161,6 +177,10 @@ const App = () => {
   useEffect(() => {
     authSessionRef.current = authSession;
   }, [authSession]);
+
+  useEffect(() => {
+    cloudSaveRef.current = cloudSave;
+  }, [cloudSave]);
 
   const toErrorMessage = (error: unknown): string => {
     if (error instanceof Error) return error.message;
@@ -195,32 +215,261 @@ const App = () => {
     });
   };
 
-  const getCloudStatus = (snapshot: CloudSaveSnapshot | null): GameState['account']['status'] => {
-    if (!snapshot) return 'signed_in';
-    const hasTimestampConflict = Math.abs(snapshot.updatedAt - state.lastSavedAt) > 1000;
-    const hasVersionConflict = snapshot.saveVersion !== state.saveVersion;
-    return hasTimestampConflict || hasVersionConflict ? 'conflict' : 'synced';
+  const withSupabaseAccount = (
+    gameState: GameState,
+    user: AuthSession['user'],
+    patch: Partial<GameState['account']>
+  ): GameState => ({
+    ...gameState,
+    account: {
+      ...gameState.account,
+      provider: 'supabase',
+      userId: user.id,
+      email: user.email ?? null,
+      lastSyncError: null,
+      ...patch
+    }
+  });
+
+  const logSaveSyncDecision = (
+    userId: string,
+    decision: SaveSyncDecision,
+    loadedSource: 'startup' | 'manual-refresh' | 'auto-upload'
+  ) => {
+    if (!import.meta.env.DEV) return;
+
+    console.info('[WTW save sync]', {
+      authUserId: userId,
+      loadedSource,
+      localUpdatedAt: decision.local.updatedAt,
+      cloudUpdatedAt: decision.cloud?.updatedAt ?? null,
+      chosenWinner: decision.winner,
+      reason: decision.reason,
+      saveVersion: {
+        local: decision.local.saveVersion,
+        cloud: decision.cloud?.saveVersion ?? null
+      },
+      coreProgress: {
+        local: decision.local,
+        cloud: decision.cloud
+      }
+    });
   };
 
-  const refreshCloudForUser = async (userId: string, showMessage = true) => {
+  const markCloudSyncReady = (userId: string, uploadedFingerprint: string) => {
+    cloudSyncReadyRef.current = true;
+    cloudSyncUserIdRef.current = userId;
+    lastCloudUploadFingerprintRef.current = uploadedFingerprint;
+  };
+
+  const markCloudSyncBlocked = (userId: string) => {
+    cloudSyncReadyRef.current = false;
+    cloudSyncUserIdRef.current = userId;
+    lastCloudUploadFingerprintRef.current = null;
+  };
+
+  const refreshCloudForUser = async (
+    user: AuthSession['user'],
+    showMessage = true,
+    loadedSource: 'startup' | 'manual-refresh' = 'startup'
+  ) => {
+    const requestId = saveSyncRequestIdRef.current + 1;
+    saveSyncRequestIdRef.current = requestId;
+    markCloudSyncBlocked(user.id);
     setAccountBusy('checking');
     try {
-      const snapshot = await loadCloudSave(userId);
-      setCloudSave(snapshot);
-      updateAccountState({
-        cloudSaveUpdatedAt: snapshot?.updatedAt ?? null,
-        status: getCloudStatus(snapshot),
-        lastSyncError: null
+      const localState = stateRef.current;
+      const snapshot = await loadCloudSave(user.id);
+      const decision = resolveSaveSyncDecision(localState, snapshot?.state ?? null, {
+        localUpdatedAt: localState.lastSavedAt,
+        cloudUpdatedAt: snapshot?.updatedAt,
+        cloudSaveVersion: snapshot?.saveVersion
       });
-      if (showMessage) {
-        setAccountMessage(snapshot ? 'Cloud save found.' : 'No cloud save yet.');
+      logSaveSyncDecision(user.id, decision, loadedSource);
+      if (requestId !== saveSyncRequestIdRef.current) return;
+
+      if (!snapshot) {
+        const now = Date.now();
+        const uploadState = withSupabaseAccount(
+          {
+            ...localState,
+            lastSavedAt: now
+          },
+          user,
+          {
+            cloudSaveUpdatedAt: now,
+            lastSyncedAt: now,
+            status: 'synced',
+            lastSyncError: null
+          }
+        );
+        const uploaded = await uploadCloudSave(user.id, uploadState, {
+          allowOverwriteNewer: false,
+          expectedCloudUpdatedAt: null
+        });
+        const syncedState = withSupabaseAccount(uploaded.state, user, {
+          cloudSaveUpdatedAt: uploaded.updatedAt,
+          lastSyncedAt: uploaded.updatedAt,
+          status: 'synced',
+          lastSyncError: null
+        });
+        setCloudSave({ ...uploaded, state: syncedState });
+        setState(syncedState);
+        saveGameState(syncedState);
+        markCloudSyncReady(user.id, createSaveSyncFingerprint(syncedState));
+        if (showMessage) setAccountMessage('Cloud save created from this device.');
+        return;
       }
+
+      setCloudSave(snapshot);
+
+      if (decision.winner === 'cloud') {
+        const loadedState = withSupabaseAccount(snapshot.state, user, {
+          cloudSaveUpdatedAt: snapshot.updatedAt,
+          lastSyncedAt: Date.now(),
+          status: 'synced',
+          lastSyncError: null
+        });
+        setCloudSave({ ...snapshot, state: loadedState });
+        setState(loadedState);
+        saveGameState(loadedState);
+        markCloudSyncReady(user.id, createSaveSyncFingerprint(loadedState));
+        if (showMessage) setAccountMessage('Cloud save loaded locally.');
+        return;
+      }
+
+      const conflictMessage =
+        'Cloud save conflict. Cloud stays authoritative unless you choose Upload Local.';
+      const conflictState = withSupabaseAccount(localState, user, {
+        cloudSaveUpdatedAt: snapshot.updatedAt,
+        lastSyncedAt: localState.account.lastSyncedAt,
+        status: 'conflict',
+        lastSyncError: conflictMessage
+      });
+      setState(conflictState);
+      saveGameState(conflictState);
+      markCloudSyncBlocked(user.id);
+      setAccountMessage(conflictMessage);
     } catch (error) {
       const message = toErrorMessage(error);
+      markCloudSyncBlocked(user.id);
       updateAccountState({ status: 'error', lastSyncError: message });
       setAccountMessage(message);
     } finally {
       setAccountBusy('idle');
+    }
+  };
+
+  const logCloudAutoUpload = (
+    userId: string,
+    localState: GameState,
+    uploaded: CloudSaveSnapshot,
+    expectedCloudUpdatedAt: number | null
+  ) => {
+    if (!import.meta.env.DEV) return;
+
+    console.info('[WTW save sync]', {
+      authUserId: userId,
+      loadedSource: 'auto-upload',
+      localUpdatedAt: localState.lastSavedAt,
+      cloudUpdatedAt: uploaded.updatedAt,
+      expectedCloudUpdatedAt,
+      chosenWinner: 'local-uploaded',
+      saveVersion: {
+        local: localState.saveVersion,
+        cloud: uploaded.saveVersion
+      }
+    });
+  };
+
+  const uploadLatestCloudSave = async () => {
+    const session = authSessionRef.current;
+    const user = session?.user;
+    if (!user || !cloudSyncReadyRef.current || cloudSyncUserIdRef.current !== user.id) return;
+    if (cloudUploadInFlightRef.current) return;
+
+    const current = stateRef.current;
+    if (current.account.userId !== user.id || current.account.status === 'conflict') return;
+
+    const fingerprint = createSaveSyncFingerprint(current);
+    if (fingerprint === lastCloudUploadFingerprintRef.current) return;
+
+    cloudUploadInFlightRef.current = true;
+    const expectedCloudUpdatedAt = current.account.cloudSaveUpdatedAt ?? cloudSaveRef.current?.updatedAt ?? null;
+    const now = Date.now();
+    const uploadState = withSupabaseAccount(
+      {
+        ...current,
+        lastSavedAt: now
+      },
+      user,
+      {
+        cloudSaveUpdatedAt: expectedCloudUpdatedAt,
+        lastSyncedAt: current.account.lastSyncedAt,
+        status: 'synced',
+        lastSyncError: null
+      }
+    );
+
+    try {
+      const uploaded = await uploadCloudSave(user.id, uploadState, {
+        allowOverwriteNewer: false,
+        expectedCloudUpdatedAt
+      });
+      const uploadedState = withSupabaseAccount(uploaded.state, user, {
+        cloudSaveUpdatedAt: uploaded.updatedAt,
+        lastSyncedAt: uploaded.updatedAt,
+        status: 'synced',
+        lastSyncError: null
+      });
+      setCloudSave({ ...uploaded, state: uploadedState });
+      setState((prev) => {
+        if (prev.account.userId !== user.id) return prev;
+        const next = withSupabaseAccount(
+          {
+            ...prev,
+            lastSavedAt: Math.max(prev.lastSavedAt, uploaded.updatedAt)
+          },
+          user,
+          {
+            cloudSaveUpdatedAt: uploaded.updatedAt,
+            lastSyncedAt: uploaded.updatedAt,
+            status: 'synced',
+            lastSyncError: null
+          }
+        );
+        saveGameState(next);
+        return next;
+      });
+      lastCloudUploadFingerprintRef.current = fingerprint;
+      logCloudAutoUpload(user.id, uploadState, uploaded, expectedCloudUpdatedAt);
+    } catch (error) {
+      if (error instanceof CloudSaveConflictError) {
+        const conflictMessage = 'Cloud save changed on another device. Load Cloud or Upload Local to continue syncing.';
+        setCloudSave(error.cloudSave);
+        markCloudSyncBlocked(user.id);
+        setState((prev) => {
+          if (prev.account.userId !== user.id) return prev;
+          const next = withSupabaseAccount(prev, user, {
+            cloudSaveUpdatedAt: error.cloudSave.updatedAt,
+            lastSyncedAt: prev.account.lastSyncedAt,
+            status: 'conflict',
+            lastSyncError: conflictMessage
+          });
+          saveGameState(next);
+          return next;
+        });
+        setAccountMessage(conflictMessage);
+      } else if (import.meta.env.DEV) {
+        console.warn('[WTW save sync]', {
+          authUserId: user.id,
+          loadedSource: 'auto-upload',
+          chosenWinner: 'upload_failed',
+          error: toErrorMessage(error)
+        });
+      }
+    } finally {
+      cloudUploadInFlightRef.current = false;
     }
   };
 
@@ -350,6 +599,9 @@ const App = () => {
         lastCheckedAt: result.updatedAt,
         lastError: null
       });
+      window.setTimeout(() => {
+        void refreshWalkerBucksBalance();
+      }, 500);
     } catch (error) {
       const message = toErrorMessage(error);
       updateWalkerBucksBridgeState({
@@ -416,6 +668,9 @@ const App = () => {
         saveGameState(withToast);
         return withToast;
       });
+      window.setTimeout(() => {
+        void refreshWalkerBucksBalance();
+      }, 500);
     } finally {
       pendingWalkerBucksGrantIdsRef.current.delete(grant.id);
       if (pendingWalkerBucksGrantIdsRef.current.size === 0) {
@@ -472,6 +727,9 @@ const App = () => {
         saveGameState(withToast);
         return withToast;
       });
+      window.setTimeout(() => {
+        void refreshWalkerBucksBalance();
+      }, 500);
     } catch (error) {
       const message = toErrorMessage(error);
       setState((prev) => {
@@ -486,6 +744,9 @@ const App = () => {
         saveGameState(withToast);
         return withToast;
       });
+      window.setTimeout(() => {
+        void refreshWalkerBucksBalance();
+      }, 500);
     } finally {
       setWalkerBucksBusy(false);
     }
@@ -647,6 +908,9 @@ const App = () => {
     const user = authSession?.user;
     if (!user) {
       setCloudSave(null);
+      cloudSyncReadyRef.current = false;
+      cloudSyncUserIdRef.current = null;
+      lastCloudUploadFingerprintRef.current = null;
       updateAccountState({
         provider: 'guest',
         userId: null,
@@ -663,8 +927,31 @@ const App = () => {
       status: 'signed_in',
       lastSyncError: null
     });
-    void refreshCloudForUser(user.id, false);
+    void refreshCloudForUser(user, false, 'startup');
   }, [authSession?.user.id, authSession?.user.email]);
+
+  useEffect(() => {
+    if (!authSession?.user) return undefined;
+
+    const sync = () => {
+      void uploadLatestCloudSave();
+    };
+    const syncWhenVisible = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+
+    const interval = window.setInterval(sync, 2500);
+    window.addEventListener('focus', sync);
+    window.addEventListener('online', sync);
+    document.addEventListener('visibilitychange', syncWhenVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', sync);
+      window.removeEventListener('online', sync);
+      document.removeEventListener('visibilitychange', syncWhenVisible);
+    };
+  }, [authSession?.user?.id]);
 
   useEffect(() => {
     if (!isWalkerBucksBridgeConfigured) {
@@ -744,7 +1031,7 @@ const App = () => {
       });
     };
 
-    const interval = window.setInterval(flushPendingGrant, 5000);
+    const interval = window.setInterval(flushPendingGrant, 900);
     flushPendingGrant();
     return () => window.clearInterval(interval);
   }, [authSession?.user?.id, authSession?.access_token]);
@@ -1483,6 +1770,9 @@ const App = () => {
     try {
       await signOut();
       setCloudSave(null);
+      cloudSyncReadyRef.current = false;
+      cloudSyncUserIdRef.current = null;
+      lastCloudUploadFingerprintRef.current = null;
       updateAccountState({
         provider: 'guest',
         userId: null,
@@ -1502,7 +1792,7 @@ const App = () => {
   const handleRefreshCloud = async () => {
     const user = authSession?.user;
     if (!user) return;
-    await refreshCloudForUser(user.id);
+    await refreshCloudForUser(user, true, 'manual-refresh');
   };
 
   const handleUploadLocal = async () => {
@@ -1514,33 +1804,23 @@ const App = () => {
     setAccountMessage(null);
     try {
       const now = Date.now();
-      const uploadState: GameState = {
-        ...state,
-        lastSavedAt: now,
-        account: {
-          ...state.account,
-          provider: 'supabase',
-          userId: user.id,
-          email: user.email ?? null,
-          cloudSaveUpdatedAt: now,
-          lastSyncedAt: now,
-          status: 'synced',
-          lastSyncError: null
-        }
-      };
-      const snapshot = await uploadCloudSave(user.id, uploadState);
-      const syncedState: GameState = {
-        ...uploadState,
-        account: {
-          ...uploadState.account,
-          cloudSaveUpdatedAt: snapshot.updatedAt,
-          lastSyncedAt: snapshot.updatedAt,
-          status: 'synced'
-        }
-      };
+      const uploadState = withSupabaseAccount({ ...state, lastSavedAt: now }, user, {
+        cloudSaveUpdatedAt: now,
+        lastSyncedAt: now,
+        status: 'synced',
+        lastSyncError: null
+      });
+      const snapshot = await uploadCloudSave(user.id, uploadState, { allowOverwriteNewer: true });
+      const syncedState = withSupabaseAccount(snapshot.state, user, {
+        cloudSaveUpdatedAt: snapshot.updatedAt,
+        lastSyncedAt: snapshot.updatedAt,
+        status: 'synced',
+        lastSyncError: null
+      });
       setCloudSave({ ...snapshot, state: syncedState });
       setState(syncedState);
       saveGameState(syncedState);
+      markCloudSyncReady(user.id, createSaveSyncFingerprint(syncedState));
       setAccountMessage('Local save uploaded to cloud.');
     } catch (error) {
       const message = toErrorMessage(error);
@@ -1559,21 +1839,16 @@ const App = () => {
     setAccountBusy('loading');
     setAccountMessage(null);
     try {
-      const loadedState: GameState = {
-        ...cloudSave.state,
-        account: {
-          ...cloudSave.state.account,
-          provider: 'supabase',
-          userId: user.id,
-          email: user.email ?? null,
-          cloudSaveUpdatedAt: cloudSave.updatedAt,
-          lastSyncedAt: Date.now(),
-          status: 'synced',
-          lastSyncError: null
-        }
-      };
+      const loadedState = withSupabaseAccount(cloudSave.state, user, {
+        cloudSaveUpdatedAt: cloudSave.updatedAt,
+        lastSyncedAt: Date.now(),
+        status: 'synced',
+        lastSyncError: null
+      });
+      setCloudSave({ ...cloudSave, state: loadedState });
       setState(loadedState);
       saveGameState(loadedState);
+      markCloudSyncReady(user.id, createSaveSyncFingerprint(loadedState));
       setAccountMessage('Cloud save loaded locally.');
     } catch (error) {
       const message = toErrorMessage(error);

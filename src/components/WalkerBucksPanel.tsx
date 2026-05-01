@@ -69,7 +69,10 @@ export const WalkerBucksPanel = ({
       <article className="panel shop-card">
         <div className="card-row">
           <h4>Shared Balance</h4>
-          <span className="pill">{balance ? `${wallet.displayedWbBalance.toLocaleString()} WB` : 'Not loaded'}</span>
+          <span className="pill">
+            {balance || wallet.optimisticEarnedWb > 0 ? `${wallet.displayedWbBalance.toLocaleString()} WB` : 'Not loaded'}
+            {wallet.isSyncing ? ' syncing' : ''}
+          </span>
         </div>
         <p className="muted">
           Account: {state.walkerBucksBridge.accountId ?? 'none'} · Last checked:{' '}
@@ -77,6 +80,9 @@ export const WalkerBucksPanel = ({
         </p>
         {pendingGrantAmount > 0 && (
           <p className="muted">{pendingGrantAmount.toLocaleString()} WB earned in WTW is waiting for WalkerBucks sync.</p>
+        )}
+        {wallet.optimisticEarnedWb > 0 && (
+          <p className="muted">Visible balance includes {wallet.optimisticEarnedWb.toLocaleString()} WB still settling.</p>
         )}
         {legacyLocalBalance > 0 && (
           <p className="muted">{legacyLocalBalance.toLocaleString()} legacy WTW WB will migrate to WalkerBucks after sign-in.</p>

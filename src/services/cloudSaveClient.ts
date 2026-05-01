@@ -14,6 +14,21 @@ export type CloudSaveSnapshot = {
   updatedAt: number;
 };
 
+export type UploadCloudSaveOptions = {
+  allowOverwriteNewer?: boolean;
+  expectedCloudUpdatedAt?: number | null;
+};
+
+export class CloudSaveConflictError extends Error {
+  cloudSave: CloudSaveSnapshot;
+
+  constructor(cloudSave: CloudSaveSnapshot) {
+    super('Cloud save changed on another device before this upload completed.');
+    this.name = 'CloudSaveConflictError';
+    this.cloudSave = cloudSave;
+  }
+}
+
 const requireSupabaseClient = () => {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase account sync is not configured.');
@@ -44,8 +59,29 @@ export const loadCloudSave = async (userId: string): Promise<CloudSaveSnapshot |
   };
 };
 
-export const uploadCloudSave = async (userId: string, state: GameState): Promise<CloudSaveSnapshot> => {
+export const uploadCloudSave = async (
+  userId: string,
+  state: GameState,
+  options: UploadCloudSaveOptions = {}
+): Promise<CloudSaveSnapshot> => {
   const updatedAt = state.lastSavedAt || Date.now();
+  const allowOverwriteNewer = options.allowOverwriteNewer ?? true;
+
+  if (!allowOverwriteNewer) {
+    const existing = await loadCloudSave(userId);
+    const expectedCloudUpdatedAt = options.expectedCloudUpdatedAt;
+    const cloudChangedSinceRead =
+      existing &&
+      expectedCloudUpdatedAt !== null &&
+      expectedCloudUpdatedAt !== undefined &&
+      existing.updatedAt > expectedCloudUpdatedAt + 1000;
+    const candidateOlderThanCloud = existing && existing.updatedAt > updatedAt + 1000;
+
+    if (existing && (cloudChangedSinceRead || candidateOlderThanCloud)) {
+      throw new CloudSaveConflictError(existing);
+    }
+  }
+
   const { data, error } = await gameSaveTable()
     .upsert(
       {

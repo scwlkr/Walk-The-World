@@ -5,6 +5,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'starter_shoes',
     name: 'Starter Shoes',
+    image: '/assets/items/shop_upgrade_speed.svg',
     description: 'The first reliable generator. Adds 1 ft/sec.',
     category: 'speed',
     baseCost: 15,
@@ -16,6 +17,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'fingerless_walking_gloves',
     name: 'Fingerless Walking Gloves',
+    image: '/assets/items/shop_upgrade_click.svg',
     description: 'Makes every tap land harder. Adds 5 ft/tap.',
     category: 'click',
     baseCost: 30,
@@ -27,6 +29,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'walking_stick',
     name: 'Walking Stick',
+    image: '/assets/items/shop_upgrade_speed.svg',
     description: 'A stable early generator. Adds 5 ft/sec.',
     category: 'speed',
     baseCost: 85,
@@ -39,6 +42,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'rhythm_shoes',
     name: 'Rhythm Shoes',
+    image: '/assets/items/shop_upgrade_click.svg',
     description: 'A clean active-play multiplier for better taps.',
     category: 'click',
     baseCost: 140,
@@ -51,6 +55,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'mall_walker_crew',
     name: 'Mall Walker Crew',
+    image: '/assets/items/shop_upgrade_crew.svg',
     description: 'A reliable generator crew. Adds 25 ft/sec.',
     category: 'speed',
     baseCost: 420,
@@ -63,6 +68,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'snack_backpack',
     name: 'Backpack Upgrade',
+    image: '/assets/items/shop_upgrade_offline.svg',
     description: 'Raises the capped offline progress window.',
     category: 'offline',
     baseCost: 700,
@@ -75,6 +81,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'hydration_belt',
     name: 'Hydration Belt',
+    image: '/assets/items/shop_upgrade_speed.svg',
     description: 'A mid-route generator. Adds 100 ft/sec.',
     category: 'speed',
     baseCost: 1600,
@@ -87,6 +94,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'treadmill_desk',
     name: 'Treadmill Desk',
+    image: '/assets/items/shop_upgrade_speed.svg',
     description: 'The absurd late generator. Adds 500 ft/sec.',
     category: 'speed',
     baseCost: 7500,

@@ -16,3 +16,16 @@ Fallback source page: [Generic Items on OpenGameArt](https://opengameart.org/con
 License: Creative Commons Zero v1.0 Universal (CC0). Attribution is optional.
 
 The downloaded source license text is kept at `assets/source/items/kenney_generic_items/License.txt`.
+
+## Repo-Created Shop Icons
+
+- `public/assets/items/shop_upgrade_speed.svg`
+- `public/assets/items/shop_upgrade_click.svg`
+- `public/assets/items/shop_upgrade_crew.svg`
+- `public/assets/items/shop_upgrade_offline.svg`
+- `public/assets/items/shop_follower_common.svg`
+- `public/assets/items/shop_follower_uncommon.svg`
+- `public/assets/items/shop_follower_rare.svg`
+
+Source: original simple pixel SVG icons created for Walk The World.  
+License: project-owned game asset; no third-party attribution required.

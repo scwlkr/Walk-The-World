@@ -289,7 +289,9 @@ const run = async () => {
     assert(await evaluate(client, clickByText('button', 'boosts')), 'Boosts tab did not click.');
     await waitFor('boost shop visible', () => evaluate(client, 'document.body.textContent.includes("Boosts & Regional Gear")'));
     await waitFor('v0.3 regional shop visible', () => evaluate(client, 'document.body.textContent.includes("Regional Gear")'));
-    await waitFor('catalog spend blocked without WalkerBucks balance', () => evaluate(client, hasDisabledButton('Need WB')));
+    await waitFor('catalog spend blocked without WalkerBucks balance', () =>
+      evaluate(client, hasDisabledButton('Not enough WB'))
+    );
     assert(await evaluate(client, click('[aria-label="Stats"]')), 'Stats control did not open.');
     await waitFor('achievements visible', () => evaluate(client, 'document.body.textContent.includes("Achievements")'));
     await waitFor('regions visible', () => evaluate(client, 'document.body.textContent.includes("Regions")'));

@@ -7,6 +7,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'neighborhood_walker',
     name: 'Neighborhood Walker',
+    image: '/assets/items/shop_follower_common.svg',
     description: 'A steady local who knows every shortcut and every porch light by name.',
     baseCost: 120,
     costMultiplier: 1.55,
@@ -22,6 +23,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'mall_walker',
     name: 'Mall Walker',
+    image: '/assets/items/shop_follower_common.svg',
     description: 'Power laps with elite posture and zero patience for weak pacing.',
     baseCost: 360,
     costMultiplier: 1.65,
@@ -37,6 +39,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'hydration_bro',
     name: 'Hydration Bro',
+    image: '/assets/items/shop_follower_uncommon.svg',
     description: 'Carries three bottles and says electrolyte balance like it is a prophecy.',
     baseCost: 1100,
     costMultiplier: 1.75,
@@ -52,6 +55,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'trail_grandma',
     name: 'Trail Grandma',
+    image: '/assets/items/shop_follower_uncommon.svg',
     description: 'Somehow faster uphill and carrying emergency snacks for everyone.',
     baseCost: 3200,
     costMultiplier: 1.82,
@@ -67,6 +71,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'lost_tourist',
     name: 'Lost Tourist',
+    image: '/assets/items/shop_follower_rare.svg',
     description: 'Absolutely no idea where this walk is going, but somehow still moving.',
     baseCost: 8800,
     costMultiplier: 1.95,
@@ -82,6 +87,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'city_power_walker',
     name: 'City Power Walker',
+    image: '/assets/items/shop_follower_uncommon.svg',
     description: 'Crosswalk timing, commuter pace, and no tolerance for scenic delays.',
     baseCost: 5200,
     costMultiplier: 1.88,
@@ -98,6 +104,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'umbrella_walker',
     name: 'Umbrella Walker',
+    image: '/assets/items/shop_follower_uncommon.svg',
     description: 'Turns bad weather into a group activity.',
     baseCost: 6200,
     costMultiplier: 1.86,
@@ -114,6 +121,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'trekking_pole_guy',
     name: 'Guy Who Bought Trekking Poles',
+    image: '/assets/items/shop_follower_rare.svg',
     description: 'Shows up over-prepared and somehow improves the whole crew pace.',
     baseCost: 14000,
     costMultiplier: 2.02,
@@ -130,6 +138,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'neon_stride_fan',
     name: 'Neon Stride Fan',
+    image: '/assets/items/shop_follower_rare.svg',
     description: 'Keeps pace by syncing every step to the brightest sign on the block.',
     baseCost: 22000,
     costMultiplier: 2.08,
@@ -146,6 +155,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'boardwalk_busker',
     name: 'Boardwalk Busker',
+    image: '/assets/items/shop_follower_rare.svg',
     description: 'Keeps everyone walking in rhythm as long as the crowd keeps clapping.',
     baseCost: 18000,
     costMultiplier: 2,
@@ -162,6 +172,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'passport_stamper',
     name: 'Passport Stamper',
+    image: '/assets/items/shop_follower_rare.svg',
     description: 'Turns every landmark into paperwork and somehow increases momentum.',
     baseCost: 36000,
     costMultiplier: 2.12,
@@ -178,6 +189,7 @@ export const FOLLOWERS: Follower[] = [
   {
     id: 'moon_boot_intern',
     name: 'Moon Boot Intern',
+    image: '/assets/items/shop_follower_rare.svg',
     description: 'A post-reset recruit who insists lunar walking belongs on the resume.',
     baseCost: 52000,
     costMultiplier: 2.18,

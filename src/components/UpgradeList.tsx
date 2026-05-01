@@ -2,6 +2,7 @@ import { getUpgradeCost } from '../game/formulas';
 import { getSpendableWalkerBucks } from '../game/economy';
 import { UPGRADES } from '../game/upgrades';
 import type { GameState, Upgrade } from '../game/types';
+import { ItemArtwork } from './ItemArtwork';
 
 type UpgradeListProps = {
   state: GameState;
@@ -20,18 +21,23 @@ export const UpgradeList = ({ state, onBuyUpgrade, isUnlocked }: UpgradeListProp
 
       return (
         <article key={upgrade.id} className="panel shop-card">
-          <h4>{upgrade.name}</h4>
-          <p>{upgrade.description}</p>
-          <p className="muted">Level {level}/{upgrade.maxLevel}</p>
-          <p className="muted">Cost: {cost.toLocaleString()} WB</p>
-          <button
-            type="button"
-            className="mini-btn"
-            disabled={!unlocked || !affordable || maxed}
-            onClick={() => onBuyUpgrade(upgrade)}
-          >
-            {maxed ? 'Maxed' : unlocked ? (affordable ? 'Buy' : 'Not enough WB') : 'Locked'}
-          </button>
+          <div className="item-card-layout">
+            <ItemArtwork item={{ ...upgrade, itemType: 'upgrade' }} />
+            <div className="item-card-body">
+              <h4>{upgrade.name}</h4>
+              <p>{upgrade.description}</p>
+              <p className="muted">Level {level}/{upgrade.maxLevel}</p>
+              <p className="muted">Cost: {cost.toLocaleString()} WB</p>
+              <button
+                type="button"
+                className="mini-btn"
+                disabled={!unlocked || !affordable || maxed}
+                onClick={() => onBuyUpgrade(upgrade)}
+              >
+                {maxed ? 'Maxed' : unlocked ? (affordable ? 'Buy' : 'Not enough WB') : 'Locked'}
+              </button>
+            </div>
+          </div>
         </article>
       );
     })}
