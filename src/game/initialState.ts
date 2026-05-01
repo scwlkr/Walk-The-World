@@ -59,6 +59,7 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
     status: 'unavailable',
     accountId: null,
     balance: null,
+    purchases: {},
     rewardGrants: {},
     pendingGrantAmount: 0,
     pendingGrantSequence: 0,

@@ -35,25 +35,26 @@ import {
   createPendingLegacyWalkerBucksMigration,
   createPendingWalkerBucksBatchGrant,
   createPendingWalkerBucksGrant,
-  createPendingWalkerBucksSpend,
   createPendingMarketplacePurchase,
+  buyOfferFastOptimistic,
+  createWtwPurchaseId,
   getServerBackedAchievementReward,
-  getSpendableWalkerBucks,
-  markWalkerBucksSpendAttempt,
-  markWalkerBucksSpendFailed,
-  markWalkerBucksSpendSpent,
+  getUnsettledWtwPurchases,
+  markWtwPurchaseSettled,
+  markWtwPurchaseSettlementFailed,
+  markWtwPurchaseSettling,
   markMarketplacePurchaseAttempt,
   markMarketplacePurchaseFailed,
   markMarketplacePurchasePurchased,
   markWalkerBucksGrantAttempt,
   markWalkerBucksGrantFailed,
   markWalkerBucksGrantGranted,
+  rollbackOptimisticPurchase,
   upsertMarketplacePurchase,
-  upsertWalkerBucksGrant,
-  upsertWalkerBucksSpend
+  upsertWalkerBucksGrant
 } from './game/economy';
 import { calculateOfflineProgress, getClickMiles, getFollowerCost, getUpgradeCost } from './game/formulas';
-import { applyCatalogOfferPurchase, type LocalCatalogShopOffer } from './game/items';
+import { applyCatalogOfferPurchase, getLocalCatalogShopOffers, type LocalCatalogShopOffer } from './game/items';
 import { equipEquipmentItem, useInventoryItem } from './game/inventory';
 import { claimMilestoneReward, syncMilestones } from './game/milestones';
 import { claimQuestReward, syncDailyQuests } from './game/quests';
@@ -74,7 +75,7 @@ import type {
   WalkerBucksMarketplaceOffer,
   WalkerBucksMarketplacePurchase,
   WalkerBucksRewardGrant,
-  WalkerBucksSpend,
+  WtwPurchase,
   WorldId
 } from './game/types';
 import { applyEarthPrestige, canEnterWorld } from './game/world';
@@ -97,7 +98,8 @@ import {
   loadWalkerBucksLeaderboard,
   loadWalkerBucksMarketplace,
   purchaseWalkerBucksMarketplaceOffer,
-  spendWalkerBucksForGame
+  spendWalkerBucksForGame,
+  WalkerBucksBridgeRequestError
 } from './services/walkerbucksClient';
 
 type TapFeedback = {
@@ -123,6 +125,10 @@ const App = () => {
   const [tapFeedback, setTapFeedback] = useState<TapFeedback[]>([]);
   const [tapPulse, setTapPulse] = useState(0);
   const lastFrameRef = useRef<number>(performance.now());
+  const stateRef = useRef(state);
+  const authSessionRef = useRef<AuthSession | null>(null);
+  const settlingPurchasesRef = useRef<Set<string>>(new Set());
+  const clickLockedOfferIdsRef = useRef<Set<string>>(new Set());
   const musicAudioRef = useRef<HTMLAudioElement | null>(null);
   const musicTrackIndexRef = useRef(getMusicTrackIndex(state.settings.selectedMusicTrackId));
   const soundEnabledRef = useRef(state.settings.soundEnabled);
@@ -131,6 +137,14 @@ const App = () => {
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('dev') === '1';
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    authSessionRef.current = authSession;
+  }, [authSession]);
 
   const toErrorMessage = (error: unknown): string => {
     if (error instanceof Error) return error.message;
@@ -446,68 +460,104 @@ const App = () => {
     }
   };
 
-  const submitWalkerBucksSpend = async (
-    spend: WalkerBucksSpend,
-    applySettledSpend: (state: GameState) => GameState
-  ) => {
-    const accessToken = authSession?.access_token;
-    if (!isWalkerBucksBridgeConfigured || !accessToken) {
-      setState((prev) => ({
-        ...prev,
-        ui: { ...prev.ui, toast: 'Sign in and link WalkerBucks before spending WB.' }
-      }));
-      return;
-    }
+  const isRetriablePurchaseSettlementError = (error: unknown): boolean =>
+    error instanceof WalkerBucksBridgeRequestError &&
+    (error.isNetworkError || error.status === null || error.status === 408 || error.status === 429 || error.status >= 500);
 
-    setWalkerBucksBusy(true);
+  const settlePurchaseWithWalkerBucksInBackground = async (purchase: WtwPurchase) => {
+    const accessToken = authSessionRef.current?.access_token;
+    if (!isWalkerBucksBridgeConfigured || !accessToken) return;
+    if (settlingPurchasesRef.current.has(purchase.purchaseId)) return;
+
+    settlingPurchasesRef.current.add(purchase.purchaseId);
     setState((prev) => {
-      const existing = prev.walkerBucksBridge.spends[spend.id] ?? spend;
-      const next = markWalkerBucksSpendAttempt(upsertWalkerBucksSpend(prev, existing), spend.id);
+      const current = prev.walkerBucksBridge.purchases[purchase.purchaseId];
+      if (!current || current.status === 'settled' || current.status === 'rolled_back') return prev;
+      const next = markWtwPurchaseSettling(prev, purchase.purchaseId);
       saveGameState(next);
       return next;
     });
 
     try {
       const result = await spendWalkerBucksForGame(accessToken, {
-        sourceType: spend.sourceType,
-        sourceId: spend.sourceId,
-        amount: spend.amount,
-        idempotencyKey: spend.idempotencyKey
+        sourceType: purchase.sourceType,
+        sourceId: purchase.sourceId,
+        amount: purchase.price * purchase.quantity,
+        idempotencyKey: purchase.idempotencyKey,
+        reasonCode: 'wtw.shop.purchase',
+        metadata: {
+          app: 'walk_the_world',
+          purchase_id: purchase.purchaseId,
+          offer_id: purchase.offerId,
+          item_def_id: purchase.itemDefId,
+          item_name: purchase.itemName,
+          quantity: purchase.quantity,
+          price: purchase.price
+        }
       });
+
       setState((prev) => {
-        const spent = markWalkerBucksSpendSpent(
-          prev,
-          spend.id,
-          result.transactionId,
-          result.accountId,
-          result.balance
-        );
-        const next = syncMilestones(syncDailyQuests(evaluateAchievements(applySettledSpend(spent))));
-        const saved = {
-          ...next,
-          ui: {
-            ...next.ui,
-            toast: `${spend.label} purchased with WalkerBucks.`
+        const withWallet: GameState = {
+          ...prev,
+          walkerBucksBridge: {
+            ...prev.walkerBucksBridge,
+            status: 'ready',
+            accountId: result.accountId,
+            balance: result.balance,
+            lastCheckedAt: Date.now(),
+            lastError: null
           }
         };
-        saveGameState(saved);
-        return saved;
-      });
-    } catch (error) {
-      const message = toErrorMessage(error);
-      setState((prev) => {
-        const next = {
-          ...markWalkerBucksSpendFailed(prev, spend.id, message),
-          ui: {
-            ...prev.ui,
-            toast: `${spend.label} purchase failed.`
-          }
-        };
+        const settled = markWtwPurchaseSettled(withWallet, purchase.purchaseId, result.transactionId);
+        const next = syncMilestones(syncDailyQuests(evaluateAchievements(settled)));
         saveGameState(next);
         return next;
       });
+      await refreshWalkerBucksBalance();
+    } catch (error) {
+      const message = toErrorMessage(error);
+      if (isRetriablePurchaseSettlementError(error)) {
+        setState((prev) => {
+          const current = prev.walkerBucksBridge.purchases[purchase.purchaseId];
+          if (!current || current.status === 'settled' || current.status === 'rolled_back') return prev;
+          const next = {
+            ...prev,
+            walkerBucksBridge: {
+              ...prev.walkerBucksBridge,
+              lastError: message,
+              purchases: {
+                ...prev.walkerBucksBridge.purchases,
+                [purchase.purchaseId]: {
+                  ...current,
+                  status: 'optimistic_applied' as const,
+                  errorMessage: message,
+                  updatedAt: Date.now()
+                }
+              }
+            }
+          };
+          saveGameState(next);
+          return next;
+        });
+      } else {
+        setState((prev) => {
+          const failed = markWtwPurchaseSettlementFailed(prev, purchase.purchaseId, message);
+          const next = rollbackOptimisticPurchase(failed, purchase.purchaseId);
+          saveGameState(next);
+          return next;
+        });
+        await refreshWalkerBucksBalance();
+      }
     } finally {
-      setWalkerBucksBusy(false);
+      settlingPurchasesRef.current.delete(purchase.purchaseId);
+    }
+  };
+
+  const reconcileWtwPurchases = async () => {
+    if (!isWalkerBucksBridgeConfigured || !authSessionRef.current?.access_token) return;
+    await refreshWalkerBucksBalance();
+    for (const purchase of getUnsettledWtwPurchases(stateRef.current)) {
+      void settlePurchaseWithWalkerBucksInBackground(purchase);
     }
   };
 
@@ -583,6 +633,25 @@ const App = () => {
 
     void refreshWalkerBucksBalance();
   }, [authSession?.user.id, authSession?.access_token]);
+
+  useEffect(() => {
+    if (!authSession?.user || !authSession.access_token || !isWalkerBucksBridgeConfigured) return undefined;
+
+    const reconcile = () => {
+      void reconcileWtwPurchases();
+    };
+
+    reconcile();
+    const interval = window.setInterval(reconcile, 45000);
+    window.addEventListener('focus', reconcile);
+    window.addEventListener('online', reconcile);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', reconcile);
+      window.removeEventListener('online', reconcile);
+    };
+  }, [authSession?.user?.id, authSession?.access_token]);
 
   useEffect(() => {
     const user = authSession?.user;
@@ -778,24 +847,37 @@ const App = () => {
     return () => window.clearTimeout(timer);
   }, [tapPulse]);
 
-  const canUnlock = useMemo(
-    () =>
-      (requirement?: {
-        distanceMiles?: number;
-        earthLoopsCompleted?: number;
-        upgradeId?: string;
-        upgradeLevel?: number;
-      }) => {
-        if (!requirement) return true;
-        if (requirement.distanceMiles && state.stats.totalDistanceWalked < requirement.distanceMiles) return false;
-        if (requirement.earthLoopsCompleted && state.earthLoopsCompleted < requirement.earthLoopsCompleted) return false;
-        if (requirement.upgradeId && (state.upgrades[requirement.upgradeId] ?? 0) < (requirement.upgradeLevel ?? 1)) {
-          return false;
-        }
-        return true;
-      },
-    [state]
-  );
+  const canUnlockRequirement = (
+    gameState: GameState,
+    requirement?: {
+      distanceMiles?: number;
+      earthLoopsCompleted?: number;
+      upgradeId?: string;
+      upgradeLevel?: number;
+    }
+  ): boolean => {
+    if (!requirement) return true;
+    if (requirement.distanceMiles && gameState.stats.totalDistanceWalked < requirement.distanceMiles) return false;
+    if (requirement.earthLoopsCompleted && gameState.earthLoopsCompleted < requirement.earthLoopsCompleted) return false;
+    if (
+      requirement.upgradeId &&
+      (gameState.upgrades[requirement.upgradeId] ?? 0) < (requirement.upgradeLevel ?? 1)
+    ) {
+      return false;
+    }
+    return true;
+  };
+
+  const canUnlock = useMemo(() => (requirement?: Upgrade['unlockRequirement']) => canUnlockRequirement(state, requirement), [state]);
+
+  const lockOfferClickBriefly = (offerKey: string): boolean => {
+    if (clickLockedOfferIdsRef.current.has(offerKey)) return false;
+    clickLockedOfferIdsRef.current.add(offerKey);
+    window.setTimeout(() => {
+      clickLockedOfferIdsRef.current.delete(offerKey);
+    }, 350);
+    return true;
+  };
 
   const onWalk = (tapPosition?: { x: number; y: number }) => {
     const distance = getClickMiles(state);
@@ -832,95 +914,131 @@ const App = () => {
   };
 
   const onBuyUpgrade = (upgrade: Upgrade) => {
-    const level = state.upgrades[upgrade.id] ?? 0;
-    const cost = getUpgradeCost(upgrade, level);
-    const maxed = level >= upgrade.maxLevel;
-    const unlocked = canUnlock(upgrade.unlockRequirement);
-    const spendableWb = getSpendableWalkerBucks(state);
-
-    if (!unlocked || maxed) return;
+    if (!lockOfferClickBriefly(`upgrade:${upgrade.id}`)) return;
     if (!authSession?.user || !isWalkerBucksBridgeConfigured) {
       setState((prev) => ({ ...prev, ui: { ...prev.ui, toast: 'Sign in to spend WalkerBucks.' } }));
       return;
     }
-    if (spendableWb < cost) {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, toast: 'Not enough WalkerBucks.' } }));
-      return;
-    }
+    let purchaseToSettle: WtwPurchase | null = null;
+    const purchaseId = createWtwPurchaseId();
 
-    playSoundEffect('purchase', state.settings.soundEnabled);
-    const targetLevel = level + 1;
-    const spend = createPendingWalkerBucksSpend(
-      authSession.user.id,
-      'upgrade',
-      `${upgrade.id}:level_${targetLevel}`,
-      upgrade.name,
-      cost
-    );
-    void submitWalkerBucksSpend(spend, (prev) => {
-      if (!canUnlock(upgrade.unlockRequirement)) return prev;
+    setState((prev) => {
+      if (!canUnlockRequirement(prev, upgrade.unlockRequirement)) return prev;
       const level = prev.upgrades[upgrade.id] ?? 0;
-      if (level >= targetLevel || level >= upgrade.maxLevel) return prev;
+      if (level >= upgrade.maxLevel) return prev;
+      if (!prev.walkerBucksBridge.accountId) {
+        const next = { ...prev, ui: { ...prev.ui, toast: 'Could not sync. Balance refreshed.' } };
+        saveGameState(next);
+        return next;
+      }
 
-      const next: GameState = {
-        ...prev,
-        upgrades: {
-          ...prev.upgrades,
-          [upgrade.id]: level + 1
-        },
-        stats: {
-          ...prev.stats,
-          upgradesPurchased: prev.stats.upgradesPurchased + 1
-        }
-      };
+      const targetLevel = level + 1;
+      const result = buyOfferFastOptimistic(prev, {
+        supabaseUserId: authSession.user.id,
+        accountId: prev.walkerBucksBridge.accountId,
+        purchaseId,
+        offerId: upgrade.id,
+        itemDefId: upgrade.id,
+        itemName: upgrade.name,
+        price: getUpgradeCost(upgrade, level),
+        quantity: 1,
+        sourceType: 'upgrade',
+        sourceId: `${upgrade.id}:level_${targetLevel}`,
+        dpsDelta: upgrade.effectType === 'idle_speed_flat' ? upgrade.effectValue : 0,
+        applyPurchase: (current) => ({
+          ...current,
+          upgrades: {
+            ...current.upgrades,
+            [upgrade.id]: targetLevel
+          },
+          stats: {
+            ...current.stats,
+            upgradesPurchased: current.stats.upgradesPurchased + 1
+          }
+        })
+      });
+
+      if (!result.ok) {
+        saveGameState(result.state);
+        return result.state;
+      }
+
+      purchaseToSettle = result.purchase;
+      const next = syncMilestones(syncDailyQuests(evaluateAchievements(result.state)));
+      saveGameState(next);
       return next;
     });
+
+    if (purchaseToSettle) {
+      playSoundEffect('purchase', state.settings.soundEnabled);
+      void settlePurchaseWithWalkerBucksInBackground(purchaseToSettle);
+    } else if (state.walkerBucksBridge.accountId === null) {
+      void refreshWalkerBucksBalance();
+    }
   };
 
   const onBuyFollower = (follower: Follower) => {
-    const count = state.followers[follower.id] ?? 0;
-    const cost = getFollowerCost(follower, count);
-    const maxed = count >= follower.maxCount;
-    const unlocked = canUnlock(follower.unlockRequirement);
-    const spendableWb = getSpendableWalkerBucks(state);
-
-    if (!unlocked || maxed) return;
+    if (!lockOfferClickBriefly(`follower:${follower.id}`)) return;
     if (!authSession?.user || !isWalkerBucksBridgeConfigured) {
       setState((prev) => ({ ...prev, ui: { ...prev.ui, toast: 'Sign in to spend WalkerBucks.' } }));
       return;
     }
-    if (spendableWb < cost) {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, toast: 'Not enough WalkerBucks.' } }));
-      return;
-    }
+    let purchaseToSettle: WtwPurchase | null = null;
+    const purchaseId = createWtwPurchaseId();
 
-    playSoundEffect('purchase', state.settings.soundEnabled);
-    const targetCount = count + 1;
-    const spend = createPendingWalkerBucksSpend(
-      authSession.user.id,
-      'follower',
-      `${follower.id}:count_${targetCount}`,
-      follower.name,
-      cost
-    );
-    void submitWalkerBucksSpend(spend, (prev) => {
-      if (!canUnlock(follower.unlockRequirement)) return prev;
+    setState((prev) => {
+      if (!canUnlockRequirement(prev, follower.unlockRequirement)) return prev;
       const count = prev.followers[follower.id] ?? 0;
-      if (count >= targetCount || count >= follower.maxCount) return prev;
+      if (count >= follower.maxCount) return prev;
+      if (!prev.walkerBucksBridge.accountId) {
+        const next = { ...prev, ui: { ...prev.ui, toast: 'Could not sync. Balance refreshed.' } };
+        saveGameState(next);
+        return next;
+      }
 
-      const next: GameState = {
-        ...prev,
-        followers: {
-          ...prev.followers,
-          [follower.id]: count + 1
-        },
-        stats: {
-          ...prev.stats,
-          followersHired: prev.stats.followersHired + 1
-        }
-      };
+      const targetCount = count + 1;
+      const result = buyOfferFastOptimistic(prev, {
+        supabaseUserId: authSession.user.id,
+        accountId: prev.walkerBucksBridge.accountId,
+        purchaseId,
+        offerId: follower.id,
+        itemDefId: follower.id,
+        itemName: follower.name,
+        price: getFollowerCost(follower, count),
+        quantity: 1,
+        sourceType: 'follower',
+        sourceId: `${follower.id}:count_${targetCount}`,
+        dpsDelta: follower.milesPerSecond,
+        applyPurchase: (current) => ({
+          ...current,
+          followers: {
+            ...current.followers,
+            [follower.id]: targetCount
+          },
+          stats: {
+            ...current.stats,
+            followersHired: current.stats.followersHired + 1
+          }
+        })
+      });
+
+      if (!result.ok) {
+        saveGameState(result.state);
+        return result.state;
+      }
+
+      purchaseToSettle = result.purchase;
+      const next = syncMilestones(syncDailyQuests(evaluateAchievements(result.state)));
+      saveGameState(next);
       return next;
     });
+
+    if (purchaseToSettle) {
+      playSoundEffect('purchase', state.settings.soundEnabled);
+      void settlePurchaseWithWalkerBucksInBackground(purchaseToSettle);
+    } else if (state.walkerBucksBridge.accountId === null) {
+      void refreshWalkerBucksBalance();
+    }
   };
 
   const onClaimEvent = () => {
@@ -993,25 +1111,58 @@ const App = () => {
   };
 
   const onBuyCatalogOffer = (offer: LocalCatalogShopOffer) => {
-    const purchases = state.inventory.usedConsumables[`purchase:${offer.offerId}`] ?? 0;
+    if (!lockOfferClickBriefly(`catalog:${offer.offerId}`)) return;
     if (!authSession?.user || !isWalkerBucksBridgeConfigured) {
       setState((prev) => ({ ...prev, ui: { ...prev.ui, toast: 'Sign in to spend WalkerBucks.' } }));
       return;
     }
-    if (getSpendableWalkerBucks(state) < offer.priceWb) {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, toast: 'Not enough WalkerBucks.' } }));
-      return;
-    }
+    let purchaseToSettle: WtwPurchase | null = null;
+    const purchaseId = createWtwPurchaseId();
 
-    playSoundEffect('purchase', state.settings.soundEnabled);
-    const spend = createPendingWalkerBucksSpend(
-      authSession.user.id,
-      'catalog_offer',
-      `${offer.offerId}:purchase_${purchases + 1}`,
-      offer.item.name,
-      offer.priceWb
-    );
-    void submitWalkerBucksSpend(spend, (prev) => applyCatalogOfferPurchase(prev, offer.offerId));
+    setState((prev) => {
+      const currentOffers = getLocalCatalogShopOffers(prev);
+      const currentOffer = currentOffers.find((entry) => entry.offerId === offer.offerId);
+      if (!currentOffer?.unlocked) return prev;
+      const purchases = prev.inventory.usedConsumables[`purchase:${currentOffer.offerId}`] ?? 0;
+      if (currentOffer.purchaseLimitPerAccount && purchases >= currentOffer.purchaseLimitPerAccount) return prev;
+      if (!prev.walkerBucksBridge.accountId) {
+        const next = { ...prev, ui: { ...prev.ui, toast: 'Could not sync. Balance refreshed.' } };
+        saveGameState(next);
+        return next;
+      }
+
+      const result = buyOfferFastOptimistic(prev, {
+        supabaseUserId: authSession.user.id,
+        accountId: prev.walkerBucksBridge.accountId,
+        purchaseId,
+        offerId: currentOffer.offerId,
+        itemDefId: currentOffer.item.id,
+        itemName: currentOffer.item.name,
+        price: currentOffer.priceWb,
+        quantity: 1,
+        sourceType: 'catalog_offer',
+        sourceId: `${currentOffer.offerId}:purchase_${purchases + 1}`,
+        dpsDelta: 0,
+        applyPurchase: (current) => applyCatalogOfferPurchase(current, currentOffer.offerId)
+      });
+
+      if (!result.ok) {
+        saveGameState(result.state);
+        return result.state;
+      }
+
+      purchaseToSettle = result.purchase;
+      const next = syncMilestones(syncDailyQuests(evaluateAchievements(result.state)));
+      saveGameState(next);
+      return next;
+    });
+
+    if (purchaseToSettle) {
+      playSoundEffect('purchase', state.settings.soundEnabled);
+      void settlePurchaseWithWalkerBucksInBackground(purchaseToSettle);
+    } else if (state.walkerBucksBridge.accountId === null) {
+      void refreshWalkerBucksBalance();
+    }
   };
 
   const onClaimQuest = (quest: QuestDefinition) => {

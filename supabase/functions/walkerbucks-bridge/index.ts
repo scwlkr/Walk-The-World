@@ -78,6 +78,8 @@ type GameSpendRequest = {
   sourceId?: string;
   amount?: number;
   idempotencyKey?: string;
+  reasonCode?: string;
+  metadata?: Record<string, string | number | boolean | null>;
 };
 
 type RewardDefinition = {
@@ -247,12 +249,23 @@ const deriveMarketplaceIdempotencyKey = (userId: string, shopOfferId: number): s
 const deriveSpendIdempotencyKey = (userId: string, sourceType: string, sourceId: string): string =>
   `wtw:supabase:${userId}:spend:${sourceType}:${sourceId}`;
 
+const deriveShopPurchaseIdempotencyKey = (userId: string, offerId: string, purchaseId: string): string =>
+  `wtw:supabase:${userId}:shop:${offerId}:${purchaseId}`;
+
 const requireSafeSource = (value: string | undefined, field: string): string => {
   const source = value?.trim();
   if (!source || !/^[a-z0-9_.:-]{1,80}$/.test(source)) {
     throw new BridgeError(400, `${field} is invalid.`);
   }
   return source;
+};
+
+const getMetadataString = (
+  metadata: Record<string, string | number | boolean | null> | undefined,
+  field: string
+): string | null => {
+  const value = metadata?.[field];
+  return typeof value === 'string' ? value : null;
 };
 
 const requirePositiveInteger = (value: number | undefined, field: string, max: number): number => {
@@ -711,7 +724,18 @@ const handleGameSpend = async (request: Request): Promise<Response> => {
   }
 
   const amount = requirePositiveInteger(payload.amount, 'amount', MAX_GAME_SPEND_WB);
-  const expectedKey = deriveSpendIdempotencyKey(user.id, sourceType, sourceId);
+  const reasonCode = payload.reasonCode === 'wtw.shop.purchase' ? 'wtw.shop.purchase' : `webgame.spend.${sourceType}`;
+  const metadata = payload.metadata ?? {};
+  const offerId = getMetadataString(metadata, 'offer_id');
+  const purchaseId = getMetadataString(metadata, 'purchase_id');
+  const expectedKey =
+    reasonCode === 'wtw.shop.purchase' && offerId && purchaseId
+      ? deriveShopPurchaseIdempotencyKey(
+          user.id,
+          requireSafeSource(offerId, 'metadata.offer_id'),
+          requireSafeSource(purchaseId, 'metadata.purchase_id')
+        )
+      : deriveSpendIdempotencyKey(user.id, sourceType, sourceId);
   if (payload.idempotencyKey !== expectedKey) {
     throw new BridgeError(400, 'Idempotency key does not match the authenticated user and spend source.');
   }
@@ -725,13 +749,15 @@ const handleGameSpend = async (request: Request): Promise<Response> => {
       to_account_id: settlementAccount.id,
       amount,
       idempotency_key: expectedKey,
-      reason_code: `webgame.spend.${sourceType}`,
+      reason_code: reasonCode,
       description: `Walk The World ${sourceType.replace(/_/g, ' ')} spend`,
       actor_account_id: account.id,
       source_app: WTW_SOURCE_APP,
       platform: WTW_PLATFORM,
       platform_event_id: sourceId,
       metadata_json: {
+        ...metadata,
+        app: 'walk_the_world',
         supabase_user_id: user.id,
         source_type: sourceType,
         source_id: sourceId

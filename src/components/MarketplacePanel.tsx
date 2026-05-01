@@ -1,4 +1,4 @@
-import { getMarketplacePurchaseStateId } from '../game/economy';
+import { getMarketplacePurchaseStateId, getSpendableWalkerBucks } from '../game/economy';
 import { getInventoryItemById, INVENTORY_ITEMS } from '../game/inventory';
 import type { ItemImageCandidate } from '../game/itemImages';
 import type { GameState, WalkerBucksMarketplaceOffer } from '../game/types';
@@ -24,7 +24,7 @@ const getStatusLabel = (state: GameState, isBridgeConfigured: boolean, isSignedI
 const getActionLabel = (state: GameState, offer: WalkerBucksMarketplaceOffer): string => {
   const purchase = state.walkerBucksBridge.marketplacePurchases[getMarketplacePurchaseStateId(offer.id)];
   if (!purchase) return 'Buy with WB';
-  if (purchase.status === 'pending') return 'Pending';
+  if (purchase.status === 'pending') return 'Buy with WB';
   if (purchase.status === 'purchased') return 'Purchased';
   return 'Retry purchase';
 };
@@ -58,6 +58,7 @@ export const MarketplacePanel = ({
 }: MarketplacePanelProps) => {
   const offers = state.walkerBucksBridge.marketplaceOffers;
   const balance = state.walkerBucksBridge.balance;
+  const spendableWb = getSpendableWalkerBucks(state);
   const canUseBridge = isBridgeConfigured && isSignedIn && !isBusy;
 
   return (
@@ -70,7 +71,7 @@ export const MarketplacePanel = ({
       <article className="panel shop-card">
         <div className="card-row">
           <h4>Shared Offers</h4>
-          <span className="pill">{balance ? `${balance.availableBalance.toLocaleString()} WB` : 'No balance'}</span>
+          <span className="pill">{balance ? `${spendableWb.toLocaleString()} WB` : 'No balance'}</span>
         </div>
         <p className="muted">Purchases settle through the WalkerBucks bridge.</p>
         {state.walkerBucksBridge.lastError && <p className="muted">Last error: {state.walkerBucksBridge.lastError}</p>}
@@ -83,7 +84,7 @@ export const MarketplacePanel = ({
         {offers.length === 0 && <p className="muted">No shared WalkerBucks offers loaded.</p>}
         {offers.map((offer) => {
           const purchase = state.walkerBucksBridge.marketplacePurchases[getMarketplacePurchaseStateId(offer.id)];
-          const insufficientSharedWb = Boolean(balance && balance.availableBalance < offer.priceWb);
+          const insufficientSharedWb = Boolean(balance && spendableWb < offer.priceWb);
           const disabled = !canUseBridge || purchase?.status === 'pending' || purchase?.status === 'purchased' || insufficientSharedWb;
           return (
             <article key={offer.id} className="panel shop-card">

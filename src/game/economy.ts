@@ -7,7 +7,10 @@ import type {
   WalkerBucksMarketplaceOffer,
   WalkerBucksMarketplacePurchase,
   WalkerBucksRewardGrant,
-  WalkerBucksSpend
+  WalkerBucksSpend,
+  WtwPurchase,
+  WtwPurchaseStatus,
+  WtwWalletState
 } from './types';
 
 type ServerBackedWalkerBucksReward = {
@@ -32,8 +35,304 @@ export const getServerBackedAchievementReward = (
   achievementId: string
 ): ServerBackedWalkerBucksReward | undefined => SERVER_BACKED_ACHIEVEMENT_REWARDS[achievementId];
 
-export const getSpendableWalkerBucks = (state: GameState): number =>
-  state.walkerBucksBridge.balance?.availableBalance ?? 0;
+const OPTIMISTIC_PENDING_PURCHASE_STATUSES = new Set<WtwPurchaseStatus>([
+  'optimistic_applied',
+  'settling',
+  'settlement_failed'
+]);
+
+const normalizeWbAmount = (amount: number): number => Math.max(0, Math.floor(amount));
+
+export const getPendingWalkerBucksSpend = (state: GameState): number =>
+  Object.values(state.walkerBucksBridge.purchases).reduce((total, purchase) => {
+    if (!OPTIMISTIC_PENDING_PURCHASE_STATUSES.has(purchase.status)) return total;
+    return total + normalizeWbAmount(purchase.price) * Math.max(1, Math.floor(purchase.quantity));
+  }, 0);
+
+export const getWtwWalletState = (state: GameState): WtwWalletState => {
+  const syncedWbBalance = normalizeWbAmount(state.walkerBucksBridge.balance?.availableBalance ?? 0);
+  const pendingSpend = getPendingWalkerBucksSpend(state);
+  const displayedWbBalance = Math.max(0, syncedWbBalance - pendingSpend);
+
+  return {
+    syncedWbBalance,
+    pendingSpend,
+    displayedWbBalance,
+    spendableWb: displayedWbBalance,
+    lastSyncedAt: state.walkerBucksBridge.lastCheckedAt
+  };
+};
+
+export const getSpendableWalkerBucks = (state: GameState): number => getWtwWalletState(state).spendableWb;
+
+export type FastOptimisticPurchaseInput = {
+  supabaseUserId: string;
+  accountId: string;
+  purchaseId: string;
+  offerId: string;
+  itemDefId: string;
+  itemName: string;
+  price: number;
+  sourceType: ServerSpendSourceType;
+  sourceId: string;
+  dpsDelta: number;
+  quantity?: number;
+  applyPurchase: (state: GameState) => GameState;
+  now?: number;
+};
+
+export type FastOptimisticPurchaseResult =
+  | {
+      ok: true;
+      state: GameState;
+      purchase: WtwPurchase;
+    }
+  | {
+      ok: false;
+      state: GameState;
+      reason: 'not_enough_wb' | 'invalid_price' | 'purchase_exists';
+    };
+
+export const createWtwPurchaseId = (now = Date.now()): string => {
+  const random =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID().replace(/-/g, '').slice(0, 12)
+      : Math.random().toString(36).slice(2, 14);
+  return `purchase_${now}_${random}`;
+};
+
+export const deriveWtwPurchaseIdempotencyKey = (
+  supabaseUserId: string,
+  offerId: string,
+  purchaseId: string
+): string => `wtw:supabase:${supabaseUserId}:shop:${offerId}:${purchaseId}`;
+
+export const upsertWtwPurchase = (state: GameState, purchase: WtwPurchase): GameState => ({
+  ...state,
+  walkerBucksBridge: {
+    ...state.walkerBucksBridge,
+    purchases: {
+      ...state.walkerBucksBridge.purchases,
+      [purchase.purchaseId]: purchase
+    }
+  }
+});
+
+export const buyOfferFastOptimistic = (
+  state: GameState,
+  input: FastOptimisticPurchaseInput
+): FastOptimisticPurchaseResult => {
+  const price = normalizeWbAmount(input.price);
+  const quantity = Math.max(1, Math.floor(input.quantity ?? 1));
+  const now = input.now ?? Date.now();
+
+  if (price <= 0) {
+    return { ok: false, state, reason: 'invalid_price' };
+  }
+  if (state.walkerBucksBridge.purchases[input.purchaseId]) {
+    return { ok: false, state, reason: 'purchase_exists' };
+  }
+  if (price * quantity > getSpendableWalkerBucks(state)) {
+    return {
+      ok: false,
+      state: {
+        ...state,
+        ui: {
+          ...state.ui,
+          toast: 'Not enough WalkerBucks'
+        }
+      },
+      reason: 'not_enough_wb'
+    };
+  }
+
+  const purchase: WtwPurchase = {
+    purchaseId: input.purchaseId,
+    idempotencyKey: deriveWtwPurchaseIdempotencyKey(input.supabaseUserId, input.offerId, input.purchaseId),
+    accountId: input.accountId,
+    sourceType: input.sourceType,
+    sourceId: input.sourceId,
+    offerId: input.offerId,
+    itemDefId: input.itemDefId,
+    itemName: input.itemName,
+    price,
+    quantity,
+    dpsDelta: input.dpsDelta,
+    status: 'optimistic_applied',
+    createdAt: now,
+    updatedAt: now
+  };
+
+  const withPurchase = upsertWtwPurchase(state, purchase);
+  const applied = input.applyPurchase(withPurchase);
+
+  return {
+    ok: true,
+    state: {
+      ...applied,
+      walkerBucksBridge: {
+        ...applied.walkerBucksBridge,
+        purchases: {
+          ...applied.walkerBucksBridge.purchases,
+          [purchase.purchaseId]: purchase
+        }
+      }
+    },
+    purchase
+  };
+};
+
+export const markWtwPurchaseSettling = (
+  state: GameState,
+  purchaseId: string,
+  now = Date.now()
+): GameState => {
+  const purchase = state.walkerBucksBridge.purchases[purchaseId];
+  if (!purchase || purchase.status === 'settled' || purchase.status === 'rolled_back') return state;
+
+  return upsertWtwPurchase(state, {
+    ...purchase,
+    status: 'settling',
+    errorCode: undefined,
+    errorMessage: undefined,
+    updatedAt: now
+  });
+};
+
+export const markWtwPurchaseSettlementFailed = (
+  state: GameState,
+  purchaseId: string,
+  message: string,
+  now = Date.now()
+): GameState => {
+  const purchase = state.walkerBucksBridge.purchases[purchaseId];
+  if (!purchase || purchase.status === 'settled' || purchase.status === 'rolled_back') return state;
+
+  return upsertWtwPurchase(
+    {
+      ...state,
+      walkerBucksBridge: {
+        ...state.walkerBucksBridge,
+        lastError: message
+      }
+    },
+    {
+      ...purchase,
+      status: 'settlement_failed',
+      errorMessage: message,
+      updatedAt: now
+    }
+  );
+};
+
+export const markWtwPurchaseSettled = (
+  state: GameState,
+  purchaseId: string,
+  walkerBucksTransactionId: string,
+  now = Date.now()
+): GameState => {
+  const purchase = state.walkerBucksBridge.purchases[purchaseId];
+  if (!purchase) return state;
+
+  return upsertWtwPurchase(
+    {
+      ...state,
+      walkerBucksBridge: {
+        ...state.walkerBucksBridge,
+        status: 'ready',
+        lastCheckedAt: now,
+        lastError: null
+      }
+    },
+    {
+      ...purchase,
+      status: 'settled',
+      walkerBucksTransactionId,
+      errorCode: undefined,
+      errorMessage: undefined,
+      updatedAt: now
+    }
+  );
+};
+
+const decrementRecord = (record: Record<string, number>, key: string, amount: number): Record<string, number> => {
+  const next = { ...record };
+  const value = Math.max(0, (next[key] ?? 0) - amount);
+  if (value > 0) {
+    next[key] = value;
+  } else {
+    delete next[key];
+  }
+  return next;
+};
+
+export const rollbackOptimisticPurchase = (
+  state: GameState,
+  purchaseId: string,
+  now = Date.now()
+): GameState => {
+  const purchase = state.walkerBucksBridge.purchases[purchaseId];
+  if (!purchase || purchase.status === 'settled' || purchase.status === 'rolled_back') return state;
+
+  let next: GameState = state;
+  if (purchase.sourceType === 'upgrade') {
+    next = {
+      ...next,
+      upgrades: decrementRecord(next.upgrades, purchase.itemDefId, purchase.quantity),
+      stats: {
+        ...next.stats,
+        upgradesPurchased: Math.max(0, next.stats.upgradesPurchased - purchase.quantity)
+      }
+    };
+  }
+
+  if (purchase.sourceType === 'follower') {
+    next = {
+      ...next,
+      followers: decrementRecord(next.followers, purchase.itemDefId, purchase.quantity),
+      stats: {
+        ...next.stats,
+        followersHired: Math.max(0, next.stats.followersHired - purchase.quantity)
+      }
+    };
+  }
+
+  if (purchase.sourceType === 'catalog_offer') {
+    const items = decrementRecord(next.inventory.items, purchase.itemDefId, purchase.quantity);
+    next = {
+      ...next,
+      inventory: {
+        ...next.inventory,
+        items,
+        equippedEquipmentItemId:
+          next.inventory.equippedEquipmentItemId === purchase.itemDefId && !items[purchase.itemDefId]
+            ? null
+            : next.inventory.equippedEquipmentItemId,
+        usedConsumables: decrementRecord(next.inventory.usedConsumables, `purchase:${purchase.offerId}`, purchase.quantity)
+      }
+    };
+  }
+
+  return upsertWtwPurchase(
+    {
+      ...next,
+      ui: {
+        ...next.ui,
+        toast: 'Could not sync. Balance refreshed.'
+      }
+    },
+    {
+      ...purchase,
+      status: 'rolled_back',
+      updatedAt: now
+    }
+  );
+};
+
+export const getUnsettledWtwPurchases = (state: GameState): WtwPurchase[] =>
+  Object.values(state.walkerBucksBridge.purchases).filter((purchase) =>
+    purchase.status === 'optimistic_applied' || purchase.status === 'settling'
+  );
 
 export const queueWalkerBucksGrantAmount = (
   state: GameState,

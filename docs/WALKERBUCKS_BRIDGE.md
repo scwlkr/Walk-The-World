@@ -57,6 +57,7 @@ Allowed local bridge state:
 - pending grant amount
 - pending grant attempts
 - pending spend attempts
+- optimistic WTW purchase records with pending spend reservation
 - failed request error messages
 - settled transaction IDs returned by the bridge
 
@@ -71,14 +72,16 @@ Not allowed:
 
 ```text
 player clicks Buy
--> browser checks latest bridge balance snapshot
--> browser creates pending spend metadata
--> bridge verifies identity and spends WB through WalkerBucks
+-> browser calculates spendableWb = latest bridge balance snapshot - unsettled optimistic spend
+-> if spendableWb is too low, reject immediately
+-> browser creates a local purchase record with a stable idempotency key
+-> browser reserves the spend locally and applies WTW-owned gameplay state immediately
+-> bridge verifies identity and spends WB through WalkerBucks in the background
 -> WalkerBucks returns settled transaction/balance
--> browser applies the upgrade locally
+-> browser marks the local purchase settled and refreshes the wallet snapshot
 ```
 
-If the spend fails, the upgrade must not apply.
+If a non-retriable settlement failure occurs, WTW rolls back the optimistic item, upgrade, follower, DPS, and local displayed-balance effects, refreshes the wallet snapshot, and shows: "Could not sync. Balance refreshed."
 
 ## v0.1 Reward Flow
 

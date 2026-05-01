@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { getWtwWalletState } from '../game/economy';
 import type { GameState, WalkerBucksRewardGrant } from '../game/types';
 
 type WalkerBucksPanelProps = {
@@ -36,6 +37,7 @@ export const WalkerBucksPanel = ({
   const [bankLinkCode, setBankLinkCode] = useState('');
   const [bankLinkMessage, setBankLinkMessage] = useState<string | null>(null);
   const balance = state.walkerBucksBridge.balance;
+  const wallet = getWtwWalletState(state);
   const grants = Object.values(state.walkerBucksBridge.rewardGrants).sort((a, b) => b.updatedAt - a.updatedAt);
   const spends = Object.values(state.walkerBucksBridge.spends).sort((a, b) => b.updatedAt - a.updatedAt);
   const pendingGrantAmount = Math.floor(state.walkerBucksBridge.pendingGrantAmount);
@@ -67,7 +69,7 @@ export const WalkerBucksPanel = ({
       <article className="panel shop-card">
         <div className="card-row">
           <h4>Shared Balance</h4>
-          <span className="pill">{balance ? `${balance.availableBalance.toLocaleString()} WB` : 'Not loaded'}</span>
+          <span className="pill">{balance ? `${wallet.displayedWbBalance.toLocaleString()} WB` : 'Not loaded'}</span>
         </div>
         <p className="muted">
           Account: {state.walkerBucksBridge.accountId ?? 'none'} · Last checked:{' '}

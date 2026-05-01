@@ -39,8 +39,9 @@ The browser may call only the trusted WTW bridge URL. WalkerBucks API URLs, serv
 - queue pending reward requests with stable idempotency keys
 - keep pending, failed, granted, spent, or purchased bridge-request status for retry visibility
 - display the canonical WalkerBucks balance returned by the bridge
+- reserve locally spendable WB for optimistic WTW shop purchases as `syncedWbBalance - pendingSpend`
 - request bridge-settled rewards, spends, transfers, and marketplace purchases
-- show app-layer item or inventory UI after the bridge has verified identity and ledger settlement
+- show app-layer item, inventory, upgrade, and DPS changes optimistically after a local spendable-WB reservation, then reconcile or roll back after bridge settlement
 - preserve guest/local play when the bridge is unavailable, with WB unavailable or pending for settlement
 
 ## WTW Must Not Do
@@ -49,7 +50,7 @@ The browser may call only the trusted WTW bridge URL. WalkerBucks API URLs, serv
 - keep a local spendable WB wallet
 - use localStorage, cloud saves, or app tables as WalkerBucks balance truth
 - treat client-calculated rewards as final WalkerBucks grants
-- spend pending or unsynced WB
+- spend pending, reserved, or unsynced WB again
 - create a parallel ledger, rewards table, transfer system, audit log, marketplace economy, or wallet model
 - silently copy or merge Discord, browser, or app-specific economy state into WalkerBucks
 - bypass WalkerBucks account identity, idempotency, or ledger records
@@ -61,9 +62,10 @@ WalkerBucks core owns WB movement and ledger history. WTW can own gameplay item 
 If a purchase uses WB:
 
 1. The bridge verifies the signed-in account.
-2. The bridge validates the offer and idempotency key.
-3. WalkerBucks records the ledger movement.
-4. Only after successful ledger settlement may WTW record or display an app-layer item entitlement.
+2. WTW may reserve locally spendable WB and apply WTW-owned gameplay effects immediately.
+3. The bridge validates the purchase idempotency key and forwards only currency-settlement metadata.
+4. WalkerBucks records the ledger movement.
+5. WTW marks the local purchase settled after confirmation, or rolls back the optimistic item/DPS/balance effects after a non-retriable settlement failure.
 
 If item or shop data needs to become ecosystem-wide, design the ownership in WalkerBucks first instead of expanding WTW tables.
 

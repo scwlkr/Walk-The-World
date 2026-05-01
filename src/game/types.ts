@@ -448,6 +448,41 @@ export type ServerRewardSourceType =
 
 export type ServerSpendSourceType = 'upgrade' | 'follower' | 'catalog_offer';
 
+export type WtwPurchaseStatus =
+  | 'optimistic_applied'
+  | 'settling'
+  | 'settled'
+  | 'settlement_failed'
+  | 'rolled_back';
+
+export type WtwPurchase = {
+  purchaseId: string;
+  idempotencyKey: string;
+  accountId: string;
+  sourceType: ServerSpendSourceType;
+  sourceId: string;
+  offerId: string;
+  itemDefId: string;
+  itemName: string;
+  price: number;
+  quantity: number;
+  dpsDelta: number;
+  status: WtwPurchaseStatus;
+  walkerBucksTransactionId?: string;
+  createdAt: number;
+  updatedAt: number;
+  errorCode?: string;
+  errorMessage?: string;
+};
+
+export type WtwWalletState = {
+  syncedWbBalance: number;
+  pendingSpend: number;
+  displayedWbBalance: number;
+  spendableWb: number;
+  lastSyncedAt: number | null;
+};
+
 export type WalkerBucksRewardGrantStatus = 'pending' | 'granted' | 'failed';
 
 export type WalkerBucksRewardGrant = {
@@ -560,6 +595,7 @@ export type WalkerBucksBridgeState = {
   status: WalkerBucksBridgeStatus;
   accountId: string | null;
   balance: WalkerBucksBalanceSnapshot | null;
+  purchases: Record<string, WtwPurchase>;
   rewardGrants: Record<string, WalkerBucksRewardGrant>;
   pendingGrantAmount: number;
   pendingGrantSequence: number;

@@ -14,8 +14,23 @@ export const isWalkerBucksBridgeConfigured = bridgeUrl.length > 0;
 type BridgeErrorBody = {
   detail?: string;
   error?: string;
+  error_code?: string;
   message?: string;
 };
+
+export class WalkerBucksBridgeRequestError extends Error {
+  status: number | null;
+  code: string | null;
+  isNetworkError: boolean;
+
+  constructor(message: string, status: number | null, code: string | null, isNetworkError: boolean) {
+    super(message);
+    this.name = 'WalkerBucksBridgeRequestError';
+    this.status = status;
+    this.code = code;
+    this.isNetworkError = isNetworkError;
+  }
+}
 
 export type WalkerBucksRewardGrantRequest = {
   sourceType: ServerRewardSourceType;
@@ -54,6 +69,8 @@ export type WalkerBucksSpendRequest = {
   sourceId: string;
   amount: number;
   idempotencyKey: string;
+  reasonCode?: string;
+  metadata?: Record<string, string | number | boolean | null>;
 };
 
 export type WalkerBucksSpendResponse = {
@@ -91,12 +108,11 @@ export type WalkerBucksBankLinkResponse = {
   updatedAt: number;
 };
 
-const getErrorMessage = async (response: Response): Promise<string> => {
+const getErrorBody = async (response: Response): Promise<BridgeErrorBody> => {
   try {
-    const body = (await response.json()) as BridgeErrorBody;
-    return body.detail ?? body.error ?? body.message ?? `WalkerBucks bridge request failed with ${response.status}.`;
+    return (await response.json()) as BridgeErrorBody;
   } catch {
-    return `WalkerBucks bridge request failed with ${response.status}.`;
+    return {};
   }
 };
 
@@ -105,17 +121,33 @@ const requestBridge = async <T>(path: string, accessToken: string, init: Request
     throw new Error('WalkerBucks bridge is not configured.');
   }
 
-  const response = await fetch(`${bridgeUrl}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-      ...init.headers
-    }
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${bridgeUrl}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...init.headers
+      }
+    });
+  } catch (error) {
+    throw new WalkerBucksBridgeRequestError(
+      error instanceof Error ? error.message : 'WalkerBucks bridge request could not be sent.',
+      null,
+      null,
+      true
+    );
+  }
 
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
+    const body = await getErrorBody(response);
+    throw new WalkerBucksBridgeRequestError(
+      body.detail ?? body.error ?? body.message ?? `WalkerBucks bridge request failed with ${response.status}.`,
+      response.status,
+      body.error_code ?? body.error ?? null,
+      false
+    );
   }
 
   return (await response.json()) as T;
