@@ -1,4 +1,5 @@
 import { EARTH_CIRCUMFERENCE_MILES, SAVE_KEY, SAVE_VERSION } from './constants';
+import { createInitialActivePlayState } from './activePlay';
 import { evaluateAchievements, markDailyPlay } from './achievements';
 import { createInitialGameState } from './initialState';
 import { createInitialMilestoneState, syncMilestones } from './milestones';
@@ -145,6 +146,10 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
         ...rawSave.walkerBucksBridge?.spends
       },
       inventory: rawSave.walkerBucksBridge?.inventory ?? base.walkerBucksBridge.inventory
+    },
+    activePlay: {
+      ...createInitialActivePlayState(),
+      ...rawSave.activePlay
     },
     ui: {
       ...base.ui,

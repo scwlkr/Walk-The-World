@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.2.0';
+export const GAME_VERSION = '0.3.0';
 export const EARTH_CIRCUMFERENCE_MILES = 24901;
 export const CANONICAL_MOON_DISTANCE_MILES = 238855;
 export const MOON_CIRCUMFERENCE_MILES = 6786;
@@ -13,7 +13,7 @@ export const EARTH_PRESTIGE_SPEED_BONUS = 0.05;
 export const EARTH_PRESTIGE_WB_BONUS = 0.05;
 export const EARTH_PRESTIGE_MOON_ACCELERATION_BONUS = 0.15;
 export const SAVE_KEY = 'walk_the_world_save_v1';
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 export const LOGIC_TICK_RATE_MS = 100;
 export const AUTO_SAVE_INTERVAL_MS = 5000;
 export const RANDOM_EVENT_MIN_INTERVAL_MS = 20000;
@@ -22,7 +22,7 @@ export const RANDOM_EVENT_LIFE_MS = 12000;
 export const ROUTE_ENCOUNTER_MIN_INTERVAL_MS = 12000;
 export const ROUTE_ENCOUNTER_MAX_INTERVAL_MS = 28000;
 export const ROUTE_ENCOUNTER_LIFE_MS = 14000;
-export const ENABLE_ADVANCED_EVENT_SYSTEMS = false;
+export const ENABLE_ADVANCED_EVENT_SYSTEMS = true;
 
 // WalkerBucks/WB is ledger-owned. The browser may queue unsubmitted grant
 // amounts, but every spendable WB balance must come from the trusted bridge.

@@ -16,7 +16,7 @@ import type {
 } from './types';
 import { WORLD_IDS } from './world';
 
-const QUEST_SET_SIZE = 3;
+const QUEST_SET_SIZE = 4;
 
 const EMPTY_BASELINE: QuestBaseline = {
   totalDistanceWalked: 0,
@@ -24,8 +24,10 @@ const EMPTY_BASELINE: QuestBaseline = {
   upgradesPurchased: 0,
   followersHired: 0,
   randomEventsClaimed: 0,
+  routeEncountersClaimed: 0,
   achievementsClaimed: 0,
-  totalWorldDistance: 0
+  totalWorldDistance: 0,
+  perfectSteps: 0
 };
 
 export const DAILY_QUEST_DEFINITIONS: QuestDefinition[] = [
@@ -94,10 +96,35 @@ export const DAILY_QUEST_DEFINITIONS: QuestDefinition[] = [
     progress: { type: 'world_progress', target: 0.05 },
     reward: { walkerBucks: 25 },
     localOnly: false
+  },
+  {
+    id: 'daily_perfect_steps',
+    name: 'Perfect Step Set',
+    description: 'Keep tapping in rhythm and land a perfect step combo.',
+    category: 'daily',
+    progress: { type: 'perfect_steps', target: 1 },
+    reward: {
+      walkerBucks: 45,
+      items: [{ itemId: 'aura_battery', quantity: 1 }]
+    },
+    localOnly: false
+  },
+  {
+    id: 'weekly_double_step_route',
+    name: 'Double Step Route',
+    description: 'A weekly route challenge for active walkers.',
+    category: 'weekly',
+    progress: { type: 'route_encounters', target: 2 },
+    reward: {
+      walkerBucks: 90,
+      items: [{ itemId: 'detour_token', quantity: 1 }]
+    },
+    localOnly: false
   }
 ];
 
 const FIXED_DAILY_QUEST_IDS = ['daily_warmup_walk', 'daily_tap_pace'];
+const FIXED_WEEKLY_QUEST_IDS = ['weekly_double_step_route'];
 
 const hashString = (input: string): number => {
   let hash = 0;
@@ -125,8 +152,10 @@ const createQuestBaseline = (state?: GameState): QuestBaseline => {
     upgradesPurchased: state.stats.upgradesPurchased,
     followersHired: state.stats.followersHired,
     randomEventsClaimed: state.stats.randomEventsClaimed,
+    routeEncountersClaimed: state.stats.routeEncountersClaimed,
     achievementsClaimed: state.stats.achievementsClaimed,
-    totalWorldDistance: getTotalWorldDistance(state)
+    totalWorldDistance: getTotalWorldDistance(state),
+    perfectSteps: state.stats.perfectSteps
   };
 };
 
@@ -142,10 +171,14 @@ const getMetricValue = (state: GameState, type: QuestProgressType): number => {
       return state.stats.followersHired;
     case 'event_claims':
       return state.stats.randomEventsClaimed;
+    case 'route_encounters':
+      return state.stats.routeEncountersClaimed;
     case 'achievement_claims':
       return state.stats.achievementsClaimed;
     case 'world_progress':
       return getTotalWorldDistance(state);
+    case 'perfect_steps':
+      return state.stats.perfectSteps;
   }
 };
 
@@ -161,10 +194,14 @@ const getBaselineValue = (baseline: QuestBaseline, type: QuestProgressType): num
       return baseline.followersHired;
     case 'event_claims':
       return baseline.randomEventsClaimed;
+    case 'route_encounters':
+      return baseline.routeEncountersClaimed;
     case 'achievement_claims':
       return baseline.achievementsClaimed;
     case 'world_progress':
       return baseline.totalWorldDistance;
+    case 'perfect_steps':
+      return baseline.perfectSteps;
   }
 };
 
@@ -201,14 +238,16 @@ const selectQuestIds = (dateKey: string, state?: GameState, seasonalEventId?: st
 
   if (seasonalQuest) {
     questIds.push(seasonalQuest.id);
+    questIds.push(...FIXED_WEEKLY_QUEST_IDS);
     return questIds.slice(0, QUEST_SET_SIZE);
   }
 
   const rotatingPool = DAILY_QUEST_DEFINITIONS.filter(
-    (quest) => !questIds.includes(quest.id) && isQuestEligible(state, quest)
+    (quest) => !questIds.includes(quest.id) && !FIXED_WEEKLY_QUEST_IDS.includes(quest.id) && isQuestEligible(state, quest)
   );
   const rotationIndex = hashString(`${dateKey}:${state?.currentWorldId ?? 'earth'}`) % rotatingPool.length;
   questIds.push(rotatingPool[rotationIndex].id);
+  questIds.push(...FIXED_WEEKLY_QUEST_IDS);
 
   return questIds.slice(0, QUEST_SET_SIZE);
 };

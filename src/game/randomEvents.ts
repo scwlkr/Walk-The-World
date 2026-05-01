@@ -1,5 +1,6 @@
 import { RANDOM_EVENT_LIFE_MS } from './constants';
-import type { RandomEventDefinition } from './types';
+import { getCurrentRegion } from './regions';
+import type { GameState, RandomEventDefinition } from './types';
 
 export const RANDOM_EVENTS: RandomEventDefinition[] = [
   {
@@ -114,7 +115,100 @@ export const RANDOM_EVENTS: RandomEventDefinition[] = [
     weight: 2,
     effectType: 'temporary_speed_multiplier',
     value: 4
+  },
+  {
+    id: 'perfect_weather',
+    name: 'Perfect Weather',
+    description: 'The route feels effortless. DPS jumps for a short stretch.',
+    rarity: 'uncommon',
+    durationMs: 45000,
+    weight: 16,
+    effectType: 'temporary_speed_multiplier',
+    value: 1.2,
+    weatherTag: 'perfect'
+  },
+  {
+    id: 'rainy_day',
+    name: 'Rainy Day',
+    description: 'Nobody wants to sprint, but the crew sticks together.',
+    rarity: 'common',
+    durationMs: 60000,
+    weight: 15,
+    effectType: 'temporary_follower_stability',
+    value: 1.25,
+    regionIds: ['niagara', 'london'],
+    weatherTag: 'rain'
+  },
+  {
+    id: 'blister_incident',
+    name: 'Blister Incident',
+    description: 'Taps lose some power until the sting fades.',
+    rarity: 'common',
+    durationMs: 30000,
+    weight: 10,
+    effectType: 'temporary_click_multiplier',
+    value: 0.72,
+    regionIds: ['desert'],
+    weatherTag: 'heat'
+  },
+  {
+    id: 'parade_recruit_surge',
+    name: 'Parade',
+    description: 'A crowd joins the walk and follower recruiting gets easier.',
+    rarity: 'uncommon',
+    durationMs: 45000,
+    weight: 14,
+    effectType: 'temporary_recruit_multiplier',
+    value: 1.35,
+    regionIds: ['suburb', 'downtown', 'niagara', 'new_york'],
+    weatherTag: 'crowd'
+  },
+  {
+    id: 'walking_playlist',
+    name: 'Walking Playlist',
+    description: 'A perfect beat makes every route reward feel a little bigger.',
+    rarity: 'uncommon',
+    durationMs: 60000,
+    weight: 12,
+    effectType: 'temporary_click_multiplier',
+    value: 1.12,
+    regionIds: ['night_city', 'old_europe', 'tokyo', 'paris']
+  },
+  {
+    id: 'rush_hour_sprint',
+    name: 'Rush-Hour Sprint',
+    description: 'Active taps cut through the crowd.',
+    rarity: 'rare',
+    durationMs: 30000,
+    weight: 9,
+    effectType: 'temporary_click_multiplier',
+    value: 1.45,
+    regionIds: ['downtown', 'new_york', 'tokyo']
+  },
+  {
+    id: 'double_step_weekend',
+    name: 'Double Step Weekend',
+    description: 'The weekly walking crowd pushes milestone progress faster.',
+    rarity: 'rare',
+    durationMs: 90000,
+    weight: 8,
+    effectType: 'temporary_speed_multiplier',
+    value: 1.5,
+    regionIds: ['around_world'],
+    weatherTag: 'weekend'
   }
 ];
 
 export const getRandomEventLifetime = (): number => RANDOM_EVENT_LIFE_MS;
+
+export const getRandomEventsForState = (state: GameState): RandomEventDefinition[] => {
+  const region = getCurrentRegion(state);
+  const regionalEventIds = new Set(region.eventIds);
+  const events = RANDOM_EVENTS.filter(
+    (event) =>
+      !event.regionIds?.length ||
+      event.regionIds.includes(region.id) ||
+      regionalEventIds.has(event.id)
+  );
+  return events.length ? events : RANDOM_EVENTS.filter((event) => !event.regionIds?.length);
+};

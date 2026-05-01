@@ -1,5 +1,6 @@
 import { getSpendableWalkerBucks } from '../game/economy';
 import { getLocalCatalogShopOffers, type LocalCatalogShopOffer } from '../game/items';
+import { getCurrentRegion, getDailyRegionalOfferIds } from '../game/regions';
 import type { GameState } from '../game/types';
 import { ItemArtwork } from './ItemArtwork';
 
@@ -22,13 +23,17 @@ const V02_FEATURED_OFFER_IDS = new Set([
 ]);
 
 export const CatalogShopPanel = ({ state, onBuyOffer }: CatalogShopPanelProps) => {
-  const offers = getLocalCatalogShopOffers(state).filter((offer) => V02_FEATURED_OFFER_IDS.has(offer.offerId));
+  const region = getCurrentRegion(state);
+  const regionalOfferIds = new Set(getDailyRegionalOfferIds(state));
+  const offers = getLocalCatalogShopOffers(state).filter(
+    (offer) => V02_FEATURED_OFFER_IDS.has(offer.offerId) || regionalOfferIds.has(offer.offerId)
+  );
 
   return (
     <section className="collection-panel" aria-label="WalkerBucks item catalog shop">
       <div className="section-head">
-        <h4>Boosts & Gear</h4>
-        <span>{offers.length} offers</span>
+        <h4>Boosts & Regional Gear</h4>
+        <span>{region.shortName} refresh · {offers.length} offers</span>
       </div>
       <div className="shop-list">
         {offers.map((offer) => {
@@ -50,6 +55,7 @@ export const CatalogShopPanel = ({ state, onBuyOffer }: CatalogShopPanelProps) =
                   <p className="muted">
                     {offer.item.rarity} {offer.item.type} · Owned {offer.ownedQuantity.toLocaleString()}
                   </p>
+                  {regionalOfferIds.has(offer.offerId) && <p className="muted">Regional shop: {region.name}</p>}
                   {offer.lockedReason && <p className="muted">{offer.lockedReason}</p>}
                   <button type="button" className="mini-btn" disabled={disabled} onClick={() => onBuyOffer(offer)}>
                     {limitReached ? 'Limit reached' : offer.unlocked ? (affordable ? 'Buy item' : 'Need WB') : 'Locked'}

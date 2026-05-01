@@ -7,6 +7,7 @@ import {
   getTotalFollowerCount
 } from '../game/followers';
 import { getSpendableWalkerBucks } from '../game/economy';
+import { getRegionById } from '../game/regions';
 import type { Follower, GameState } from '../game/types';
 
 type FollowerListProps = {
@@ -42,17 +43,22 @@ export const FollowerList = ({ state, onBuyFollower, isUnlocked }: FollowerListP
         const unlocked = isUnlocked(follower.unlockRequirement);
         const cost = getFollowerCost(follower, count);
         const affordable = getSpendableWalkerBucks(state) >= cost;
+        const regionLabel = follower.regionIds
+          ?.map((regionId) => getRegionById(regionId)?.shortName)
+          .filter(Boolean)
+          .join(' / ');
 
         return (
           <article key={follower.id} className="panel shop-card">
             <div className="card-row">
               <h4>{follower.name}</h4>
-              <span className="pill">{follower.rarity}</span>
+              <span className="pill">{regionLabel ?? follower.rarity}</span>
             </div>
             <p>{follower.description}</p>
             <p className="muted">{follower.personalityFlavor}</p>
             <p className="muted">Owned {count}/{follower.maxCount}</p>
             <p className="muted">+{follower.milesPerSecond.toFixed(4)} mi/sec each before morale</p>
+            {regionLabel && <p className="muted">Regional follower: {regionLabel}</p>}
             <p className="muted">
               Recruit {Math.round(follower.recruitChancePerMinute * 100)}%/min · Leave{' '}
               {Math.round(follower.leaveChancePerMinute * 100)}%/min

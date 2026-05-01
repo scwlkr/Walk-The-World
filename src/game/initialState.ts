@@ -5,6 +5,7 @@ import {
   STARTING_IDLE_MILES_PER_SECOND,
   STARTING_WALKERBUCKS
 } from './constants';
+import { createInitialActivePlayState } from './activePlay';
 import { createInitialAchievementState, getLocalDateKey } from './achievements';
 import { DEFAULT_MUSIC_TRACK_ID as DEFAULT_TRACK_ID } from './audio';
 import { createInitialFollowerMoraleState } from './followers';
@@ -74,6 +75,7 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
     lastError: null
   },
   activeBoosts: [],
+  activePlay: createInitialActivePlayState(),
   stats: {
     totalClicks: 0,
     randomEventsClaimed: 0,
@@ -84,7 +86,8 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
     itemsUsed: 0,
     achievementsClaimed: 0,
     cosmeticsEquipped: 0,
-    milestonesClaimed: 0
+    milestonesClaimed: 0,
+    perfectSteps: 0
   },
   wbBankedRemainder: 0,
   nextRandomEventAt: now + AUTO_SAVE_INTERVAL_MS,

@@ -273,7 +273,7 @@ const run = async () => {
 
     assert(await evaluate(client, click('[aria-label="Shop"]')), 'Shop control did not open.');
     await waitFor('starter generator visible', () => evaluate(client, 'document.body.textContent.includes("Starter Shoes")'));
-    const v02Shop = await evaluate(
+    const shopSurface = await evaluate(
       client,
       `(() => ({
         hasFollowersTab: document.body.textContent.includes('followers'),
@@ -281,19 +281,23 @@ const run = async () => {
         hasCosmeticsTab: document.body.textContent.includes('cosmetics')
       }))()`
     );
-    assert(v02Shop.hasFollowersTab, 'v0.2 followers tab did not render.');
-    assert(v02Shop.hasBoostsTab, 'v0.2 boosts tab did not render.');
-    assert(v02Shop.hasCosmeticsTab, 'v0.2 cosmetics tab did not render.');
+    assert(shopSurface.hasFollowersTab, 'Followers tab did not render.');
+    assert(shopSurface.hasBoostsTab, 'Boosts tab did not render.');
+    assert(shopSurface.hasCosmeticsTab, 'Cosmetics tab did not render.');
     assert(await evaluate(client, clickByText('button', 'followers')), 'Followers tab did not click.');
     await waitFor('crew status visible', () => evaluate(client, 'document.body.textContent.includes("Crew Status")'));
     assert(await evaluate(client, clickByText('button', 'boosts')), 'Boosts tab did not click.');
-    await waitFor('boost shop visible', () => evaluate(client, 'document.body.textContent.includes("Boosts & Gear")'));
+    await waitFor('boost shop visible', () => evaluate(client, 'document.body.textContent.includes("Boosts & Regional Gear")'));
+    await waitFor('v0.3 regional shop visible', () => evaluate(client, 'document.body.textContent.includes("Regional Gear")'));
     await waitFor('catalog spend blocked without WalkerBucks balance', () => evaluate(client, hasDisabledButton('Need WB')));
     assert(await evaluate(client, click('[aria-label="Stats"]')), 'Stats control did not open.');
     await waitFor('achievements visible', () => evaluate(client, 'document.body.textContent.includes("Achievements")'));
+    await waitFor('regions visible', () => evaluate(client, 'document.body.textContent.includes("Regions")'));
+    assert(await evaluate(client, click('[aria-label="Milestones"]')), 'Milestones control did not reopen.');
+    await waitFor('daily and weekly events visible', () => evaluate(client, 'document.body.textContent.includes("Daily & Weekly Events")'));
 
     const inventorySave = await readSave(client);
-    assert(inventorySave?.saveVersion === 11, 'Save did not persist as version 11.');
+    assert(inventorySave?.saveVersion === 12, 'Save did not persist as version 12.');
     assert(inventorySave?.stats?.totalClicks >= 6, 'Walking did not update click stats.');
     assert(inventorySave?.stats?.milestonesClaimed >= 1, 'Milestone claim did not persist.');
     assert(inventorySave?.walkerBucks === 0, 'Guest save created a spendable client-side WB balance.');

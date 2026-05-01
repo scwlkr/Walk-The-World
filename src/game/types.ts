@@ -44,9 +44,11 @@ export type Follower = {
   moraleSensitivity: number;
   rarity: 'common' | 'uncommon' | 'rare';
   personalityFlavor: string;
+  regionIds?: string[];
   unlockRequirement?: {
     distanceMiles?: number;
     earthLoopsCompleted?: number;
+    regionIds?: string[];
   };
 };
 
@@ -62,6 +64,8 @@ export type RandomEventEffectType =
   | 'temporary_speed_multiplier'
   | 'temporary_click_multiplier'
   | 'temporary_follower_multiplier'
+  | 'temporary_follower_stability'
+  | 'temporary_recruit_multiplier'
   | 'item_drop'
   | 'mystery'
   | 'fake';
@@ -77,12 +81,21 @@ export type RandomEventDefinition = {
   value?: number;
   itemId?: string;
   quantity?: number;
+  regionIds?: string[];
+  weatherTag?: 'perfect' | 'rain' | 'heat' | 'crowd' | 'weekend';
 };
 
 export type ActiveBoost = {
   id: string;
   sourceEventId: string;
-  effectType: 'speed_multiplier' | 'click_multiplier' | 'follower_multiplier' | 'event_reward_multiplier' | 'drop_rate_multiplier';
+  effectType:
+    | 'speed_multiplier'
+    | 'click_multiplier'
+    | 'follower_multiplier'
+    | 'follower_stability_multiplier'
+    | 'follower_recruit_multiplier'
+    | 'event_reward_multiplier'
+    | 'drop_rate_multiplier';
   multiplier: number;
   expiresAt: number;
 };
@@ -120,6 +133,7 @@ export type RouteEncounterDefinition = {
   description: string;
   rarity: 'common' | 'uncommon' | 'rare';
   weight: number;
+  regionIds?: string[];
   choices: RouteEncounterChoice[];
 };
 
@@ -149,6 +163,7 @@ export type GameStats = {
   achievementsClaimed: number;
   cosmeticsEquipped: number;
   milestonesClaimed: number;
+  perfectSteps: number;
 };
 
 export type WorldId = 'earth' | 'moon' | 'mars' | 'solar_system';
@@ -201,14 +216,16 @@ export type QuestProgressType =
   | 'upgrade_purchases'
   | 'follower_hires'
   | 'event_claims'
+  | 'route_encounters'
   | 'achievement_claims'
-  | 'world_progress';
+  | 'world_progress'
+  | 'perfect_steps';
 
 export type QuestDefinition = {
   id: string;
   name: string;
   description: string;
-  category: 'daily' | 'seasonal';
+  category: 'daily' | 'weekly' | 'seasonal';
   progress: {
     type: QuestProgressType;
     target: number;
@@ -230,8 +247,10 @@ export type QuestBaseline = {
   upgradesPurchased: number;
   followersHired: number;
   randomEventsClaimed: number;
+  routeEncountersClaimed: number;
   achievementsClaimed: number;
   totalWorldDistance: number;
+  perfectSteps: number;
 };
 
 export type QuestState = {
@@ -278,7 +297,10 @@ export type AchievementConditionType =
   | 'clicks'
   | 'total_wb_earned'
   | 'items_used'
-  | 'cosmetics_equipped';
+  | 'cosmetics_equipped'
+  | 'route_encounters'
+  | 'regions_reached'
+  | 'perfect_steps';
 
 export type AchievementCondition = {
   type: AchievementConditionType;
@@ -623,6 +645,13 @@ export type WalkerBucksBridgeState = {
   lastError: string | null;
 };
 
+export type ActivePlayState = {
+  tapCombo: number;
+  lastTapAt: number | null;
+  bestTapCombo: number;
+  perfectSteps: number;
+};
+
 export type GameState = {
   saveVersion: number;
   distanceMiles: number;
@@ -648,6 +677,7 @@ export type GameState = {
   account: AccountSyncState;
   walkerBucksBridge: WalkerBucksBridgeState;
   activeBoosts: ActiveBoost[];
+  activePlay: ActivePlayState;
   stats: GameStats;
   wbBankedRemainder: number;
   nextRandomEventAt: number;

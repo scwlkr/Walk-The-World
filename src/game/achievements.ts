@@ -1,4 +1,5 @@
 import { grantRewardToState } from './inventory';
+import { getUnlockedRegions } from './regions';
 import type { AchievementDefinition, AchievementProgress, GameState, RewardDefinition } from './types';
 
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
@@ -95,6 +96,56 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
       items: [{ itemId: 'golden_wayfarers_item', quantity: 1 }]
     },
     hidden: true
+  },
+  {
+    id: 'region_hopper',
+    name: 'Region Hopper',
+    description: 'Reach five Earth regions.',
+    condition: { type: 'regions_reached', target: 5 },
+    reward: {
+      walkerBucks: 180,
+      items: [{ itemId: 'souvenir_magnet', quantity: 1 }]
+    }
+  },
+  {
+    id: 'world_tourist',
+    name: 'World Tourist',
+    description: 'Reach ten Earth regions.',
+    condition: { type: 'regions_reached', target: 10 },
+    reward: {
+      walkerBucks: 500,
+      items: [{ itemId: 'walker_passport', quantity: 1 }]
+    }
+  },
+  {
+    id: 'route_story_collector',
+    name: 'Route Story Collector',
+    description: 'Resolve three route encounters.',
+    condition: { type: 'route_encounters', target: 3 },
+    reward: {
+      walkerBucks: 140,
+      items: [{ itemId: 'route_marker', quantity: 1 }]
+    }
+  },
+  {
+    id: 'combo_walker',
+    name: 'Combo Walker',
+    description: 'Land three perfect step combos.',
+    condition: { type: 'perfect_steps', target: 3 },
+    reward: {
+      walkerBucks: 120,
+      items: [{ itemId: 'aura_battery', quantity: 1 }]
+    }
+  },
+  {
+    id: 'weather_chaser',
+    name: 'Weather Chaser',
+    description: 'Claim five route events.',
+    condition: { type: 'event_claims', target: 5 },
+    reward: {
+      walkerBucks: 250,
+      items: [{ itemId: 'detour_token', quantity: 1 }]
+    }
   }
 ];
 
@@ -141,6 +192,12 @@ export const getAchievementProgressValue = (state: GameState, achievement: Achie
       return state.stats.itemsUsed;
     case 'cosmetics_equipped':
       return state.stats.cosmeticsEquipped;
+    case 'route_encounters':
+      return state.stats.routeEncountersClaimed;
+    case 'regions_reached':
+      return getUnlockedRegions(state).length;
+    case 'perfect_steps':
+      return state.stats.perfectSteps;
   }
 };
 

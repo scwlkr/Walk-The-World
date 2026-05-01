@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { applyActiveTap, getActiveTapMultiplier } from '../src/game/activePlay';
 import { equipCosmetic } from '../src/game/cosmetics';
 import { milesFromFeet } from '../src/game/distance';
 import { FOLLOWERS, getFollowerLeaveChanceReduction, runFollowerDynamics } from '../src/game/followers';
@@ -6,6 +7,8 @@ import { createInitialGameState } from '../src/game/initialState';
 import { getLocalCatalogShopOffers, getSharedInventoryEntitlements, purchaseLocalCatalogOffer } from '../src/game/items';
 import { grantRewardToState, useInventoryItem } from '../src/game/inventory';
 import { claimMilestoneReward, syncMilestones } from '../src/game/milestones';
+import { getRandomEventsForState } from '../src/game/randomEvents';
+import { getCurrentRegion } from '../src/game/regions';
 import { resolveRouteEncounterChoice } from '../src/game/routeEncounters';
 import { importSave } from '../src/game/save';
 import { resolveRandomEvent } from '../src/game/tick';
@@ -39,6 +42,30 @@ describe('catalog runtime adapter', () => {
 
     expect(offers.length).toBeGreaterThanOrEqual(12);
     expect(offers.some((offer) => offer.item.id === 'trail_mix')).toBe(true);
+  });
+
+  it('unlocks v0.3 regional shop offers after reaching the matching region', () => {
+    const state = createInitialGameState(1000);
+    const newYork = {
+      ...state,
+      distanceMiles: 3000,
+      worlds: {
+        ...state.worlds,
+        earth: {
+          ...state.worlds.earth,
+          distanceMiles: 3000
+        }
+      },
+      stats: {
+        ...state.stats,
+        totalDistanceWalked: 3000
+      }
+    };
+    const offers = getLocalCatalogShopOffers(newYork);
+    const metroCard = offers.find((offer) => offer.offerId === 'offer_nyc_metro_card_main');
+
+    expect(getCurrentRegion(newYork).id).toBe('new_york');
+    expect(metroCard?.unlocked).toBe(true);
   });
 
   it('applies a generated catalog item after a WalkerBucks spend settles', () => {
@@ -152,6 +179,38 @@ describe('route encounters', () => {
   });
 });
 
+describe('v0.3 regions and events', () => {
+  it('filters weather events to the active region', () => {
+    const state = createInitialGameState(1000);
+    const london = {
+      ...state,
+      distanceMiles: 2200,
+      worlds: {
+        ...state.worlds,
+        earth: {
+          ...state.worlds.earth,
+          distanceMiles: 2200
+        }
+      }
+    };
+    const events = getRandomEventsForState(london).map((event) => event.id);
+
+    expect(getCurrentRegion(london).id).toBe('london');
+    expect(events).toContain('rainy_day');
+  });
+
+  it('turns quick taps into active-play combo bonuses', () => {
+    let state = createInitialGameState(1000);
+    for (let i = 0; i < 10; i += 1) {
+      state = applyActiveTap(state, 2000 + i * 100);
+    }
+
+    expect(state.activePlay.tapCombo).toBe(10);
+    expect(state.stats.perfectSteps).toBe(1);
+    expect(getActiveTapMultiplier(state)).toBeGreaterThan(1);
+  });
+});
+
 describe('random item events', () => {
   it('grants catalog items through the existing inventory reward path', () => {
     const state = createInitialGameState(1000);
@@ -221,7 +280,7 @@ describe('worlds and save migration', () => {
     expect(canEnterWorld(moonLooped, 'mars')).toBe(true);
   });
 
-  it('migrates legacy saves into save version 11 v0.2 state', () => {
+  it('migrates legacy saves into save version 12 v0.3 state', () => {
     const migrated = importSave(
       JSON.stringify({
         saveVersion: 1,
@@ -231,11 +290,12 @@ describe('worlds and save migration', () => {
       })
     );
 
-    expect(migrated.saveVersion).toBe(11);
+    expect(migrated.saveVersion).toBe(12);
     expect(migrated.currentWorldId).toBe('earth');
     expect(migrated.profile).toBeDefined();
     expect(migrated.followerMorale.value).toBeGreaterThan(0);
     expect(migrated.milestones.progress.leave_the_couch).toBeDefined();
     expect(migrated.spawnedRouteEncounter).toBeNull();
+    expect(migrated.activePlay.tapCombo).toBe(0);
   });
 });

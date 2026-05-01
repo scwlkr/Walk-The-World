@@ -8,6 +8,7 @@ import { getCosmeticEffectBonus } from './cosmetics';
 import { FOLLOWERS, getFollowerMoraleDpsMultiplier } from './followers';
 import { getEquipmentEffectBonus } from './inventory';
 import { getLandmarksForWorld } from './landmarks';
+import { getCurrentRegionEffect } from './regions';
 import { UPGRADES } from './upgrades';
 import {
   getCurrentWorldDistance,
@@ -50,6 +51,7 @@ export const getIdleMilesPerSecond = (state: GameState): number => {
     .reduce((acc, boost) => acc * boost.multiplier, 1);
 
   multiplier += getCosmeticEffectBonus(state, 'idle_speed_multiplier');
+  multiplier += getCurrentRegionEffect(state).idleMultiplier ?? 0;
 
   const prestigeMultiplier = 1 + state.prestige.permanentSpeedBonus;
   const worldMultiplier = state.currentWorldId === 'moon' ? 1 + state.prestige.moonAccelerationBonus : 1;
@@ -92,6 +94,7 @@ export const getClickMiles = (state: GameState): number => {
     .reduce((acc, boost) => acc * boost.multiplier, 1);
 
   multiplier += getCosmeticEffectBonus(state, 'click_power_multiplier');
+  multiplier += getCurrentRegionEffect(state).clickMultiplier ?? 0;
 
   const prestigeMultiplier = 1 + state.prestige.permanentSpeedBonus;
   const worldMultiplier = state.currentWorldId === 'moon' ? 1 + state.prestige.moonAccelerationBonus : 1;
@@ -127,6 +130,7 @@ export const getEventRewardMultiplier = (state: GameState): number => {
   }
 
   multiplier += getCosmeticEffectBonus(state, 'event_reward_multiplier');
+  multiplier += getCurrentRegionEffect(state).eventRewardMultiplier ?? 0;
   multiplier *= state.activeBoosts
     .filter((boost) => boost.effectType === 'event_reward_multiplier')
     .reduce((acc, boost) => acc * boost.multiplier, 1);

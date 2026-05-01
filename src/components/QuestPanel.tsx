@@ -19,9 +19,9 @@ export const QuestPanel = ({ state, onClaim }: QuestPanelProps) => {
   const activeEvent = getActiveSeasonalEventForState(state);
 
   return (
-    <section className="quest-panel" aria-label="Daily quests">
+    <section className="quest-panel" aria-label="Daily and weekly walking events">
       <div className="section-head">
-        <h4>Daily Quests</h4>
+        <h4>Daily & Weekly Events</h4>
         <span>
           {summary.completed}/{summary.total} complete
         </span>

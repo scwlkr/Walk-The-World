@@ -12,6 +12,7 @@ import {
 import { formatDistance, formatDistanceRate } from '../game/distance';
 import { getSpendableWalkerBucks } from '../game/economy';
 import { getFollowerMoraleLabel, getTotalFollowerCount } from '../game/followers';
+import { getCurrentRegion, getNextRegion, getRegionEffectSummary } from '../game/regions';
 import { getActiveSeasonalEventForState, getSeasonalEventById } from '../game/seasonalEvents';
 import { getCurrentWorldDefinition, getWorldProgress } from '../game/world';
 import type { CSSProperties } from 'react';
@@ -38,13 +39,16 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
   const walletBalance = getSpendableWalkerBucks(state);
   const followerCount = getTotalFollowerCount(state);
   const moraleLabel = getFollowerMoraleLabel(state.followerMorale.value);
+  const region = getCurrentRegion(state);
+  const nextRegion = getNextRegion(state);
   const routeDistance = Math.max(0, next.distanceMiles - current.distanceMiles);
   const routeWalked = Math.max(0, currentLoopDistance - current.distanceMiles);
   const routePercent = routeDistance > 0 ? Math.min(100, (routeWalked / routeDistance) * 100) : 100;
   const routeRemainingLabel = next.name !== current.name ? `${formatDistance(milesToNext)} remaining` : 'Route complete';
   const routeLabel =
-    activeEvent?.visualTreatment.bannerLabel.replace(' active', '').replace('route', 'Route') ?? 'v0.2 Route';
+    activeEvent?.visualTreatment.bannerLabel.replace(' active', '').replace('route', 'Route') ?? 'v0.3 Route';
   const offlineHours = Math.floor(getOfflineCapSeconds(state) / 3600);
+  const comboLabel = state.activePlay.tapCombo > 1 ? ` · Combo x${state.activePlay.tapCombo}` : '';
 
   return (
     <header className="game-hud" aria-label="Game HUD">
@@ -87,6 +91,9 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
           <span>
             {routeLabel}
             {' · '}
+            {region.shortName}
+            {comboLabel}
+            {' · '}
             Crew {followerCount.toLocaleString()} {followerCount > 0 ? moraleLabel : 'Solo'}
             {' · '}
             Offline cap {offlineHours}h
@@ -94,6 +101,14 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
         </div>
 
         <div className="hud-journey-row">
+          <span>
+            Region: {region.name} <b>{getRegionEffectSummary(region)}</b>
+          </span>
+          {nextRegion && (
+            <span>
+              Next region: {nextRegion.shortName} <b>{nextRegion.unlockDistanceMiles.toLocaleString()} mi</b>
+            </span>
+          )}
           {journeyMilestones.map((milestone) => {
             const progress = state.milestones.progress[milestone.id] ?? {
               progress: 0,

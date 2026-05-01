@@ -5,6 +5,7 @@ import {
   RANDOM_EVENT_MIN_INTERVAL_MS
 } from './constants';
 import { queueWalkerBucksGrantAmount } from './economy';
+import { decayActiveTapCombo } from './activePlay';
 import {
   getEventRewardMultiplier,
   getIdleMilesPerSecond
@@ -16,7 +17,7 @@ import { syncMilestones } from './milestones';
 import { applyDistanceAndWb } from './progression';
 import { syncDailyQuests } from './quests';
 import { syncRouteEncounterSpawn } from './routeEncounters';
-import { RANDOM_EVENTS, getRandomEventLifetime } from './randomEvents';
+import { getRandomEventsForState, getRandomEventLifetime } from './randomEvents';
 import type { GameState, RandomEventDefinition } from './types';
 
 export { applyDistanceAndWb } from './progression';
@@ -48,7 +49,7 @@ const maybeSpawnRandomEvent = (state: GameState, now: number): GameState => {
     return state;
   }
 
-  const event = weightedPick(RANDOM_EVENTS);
+  const event = weightedPick(getRandomEventsForState(state));
   return {
     ...state,
     spawnedEvent: {
@@ -69,6 +70,7 @@ export const runGameTick = (state: GameState, deltaSeconds: number, now: number)
   next = markDailyPlay(next, now);
   next = syncDailyQuests(next, now);
   next = reduceBoostDurations(next, now);
+  next = decayActiveTapCombo(next, now);
   next = runFollowerDynamics(next, deltaSeconds, now);
   if (ENABLE_ADVANCED_EVENT_SYSTEMS) {
     next = maybeSpawnRandomEvent(next, now);
@@ -137,6 +139,32 @@ export const resolveRandomEvent = (state: GameState, eventDef: RandomEventDefini
         }
       ];
       next.ui.toast = `${eventDef.name} fired up your crew!`;
+      break;
+    case 'temporary_follower_stability':
+      next.activeBoosts = [
+        ...next.activeBoosts,
+        {
+          id: `boost_${now}_follower_stability`,
+          sourceEventId: eventDef.id,
+          effectType: 'follower_stability_multiplier',
+          multiplier: eventDef.value ?? 1.2,
+          expiresAt: now + eventDef.durationMs
+        }
+      ];
+      next.ui.toast = `${eventDef.name}: followers are steadier.`;
+      break;
+    case 'temporary_recruit_multiplier':
+      next.activeBoosts = [
+        ...next.activeBoosts,
+        {
+          id: `boost_${now}_follower_recruit`,
+          sourceEventId: eventDef.id,
+          effectType: 'follower_recruit_multiplier',
+          multiplier: eventDef.value ?? 1.2,
+          expiresAt: now + eventDef.durationMs
+        }
+      ];
+      next.ui.toast = `${eventDef.name}: recruiting is easier.`;
       break;
     case 'item_drop': {
       const itemId = eventDef.itemId ?? 'trail_mix';

@@ -1,5 +1,6 @@
 import { getCosmeticEffectBonus } from './cosmetics';
 import { milesFromFeet } from './distance';
+import { getCurrentRegionEffect } from './regions';
 import type { Follower, FollowerMoraleState, GameState } from './types';
 
 export const FOLLOWERS: Follower[] = [
@@ -77,6 +78,70 @@ export const FOLLOWERS: Follower[] = [
     rarity: 'rare',
     personalityFlavor: 'High upside, deeply confused.',
     unlockRequirement: { distanceMiles: 500 }
+  },
+  {
+    id: 'city_power_walker',
+    name: 'City Power Walker',
+    description: 'Crosswalk timing, commuter pace, and no tolerance for scenic delays.',
+    baseCost: 5200,
+    costMultiplier: 1.88,
+    maxCount: 14,
+    milesPerSecond: milesFromFeet(180),
+    recruitChancePerMinute: 0.016,
+    leaveChancePerMinute: 0.024,
+    moraleSensitivity: 1.2,
+    rarity: 'uncommon',
+    personalityFlavor: 'Fast, direct, vaguely late.',
+    regionIds: ['downtown', 'new_york'],
+    unlockRequirement: { distanceMiles: 1, regionIds: ['downtown', 'new_york'] }
+  },
+  {
+    id: 'umbrella_walker',
+    name: 'Umbrella Walker',
+    description: 'Turns bad weather into a group activity.',
+    baseCost: 6200,
+    costMultiplier: 1.86,
+    maxCount: 12,
+    milesPerSecond: milesFromFeet(150),
+    recruitChancePerMinute: 0.014,
+    leaveChancePerMinute: 0.018,
+    moraleSensitivity: 0.85,
+    rarity: 'uncommon',
+    personalityFlavor: 'Dry socks, calm vibes.',
+    regionIds: ['niagara', 'london'],
+    unlockRequirement: { distanceMiles: 1800, regionIds: ['niagara', 'london'] }
+  },
+  {
+    id: 'trekking_pole_guy',
+    name: 'Guy Who Bought Trekking Poles',
+    description: 'Shows up over-prepared and somehow improves the whole crew pace.',
+    baseCost: 14000,
+    costMultiplier: 2.02,
+    maxCount: 8,
+    milesPerSecond: milesFromFeet(420),
+    recruitChancePerMinute: 0.01,
+    leaveChancePerMinute: 0.03,
+    moraleSensitivity: 1.25,
+    rarity: 'rare',
+    personalityFlavor: 'Clacky poles, huge confidence.',
+    regionIds: ['mountains', 'around_world'],
+    unlockRequirement: { distanceMiles: 1000, regionIds: ['mountains', 'around_world'] }
+  },
+  {
+    id: 'neon_stride_fan',
+    name: 'Neon Stride Fan',
+    description: 'Keeps pace by syncing every step to the brightest sign on the block.',
+    baseCost: 22000,
+    costMultiplier: 2.08,
+    maxCount: 6,
+    milesPerSecond: milesFromFeet(620),
+    recruitChancePerMinute: 0.008,
+    leaveChancePerMinute: 0.034,
+    moraleSensitivity: 1.35,
+    rarity: 'rare',
+    personalityFlavor: 'Flashy, fast, expensive to impress.',
+    regionIds: ['tokyo', 'around_world'],
+    unlockRequirement: { distanceMiles: 6000, regionIds: ['tokyo', 'around_world'] }
   }
 ];
 
@@ -159,7 +224,20 @@ export const runFollowerDynamics = (
   const moraleRecruitMultiplier = morale >= 72 ? 1.18 : morale >= 50 ? 1 : morale >= 30 ? 0.72 : 0.38;
   const moraleLeaveMultiplier = morale >= 72 ? 0.55 : morale >= 50 ? 1 : morale >= 30 ? 1.75 : 2.7;
   const recruitResistance = 1 / (1 + followerCount / 32);
-  const leaveReduction = getFollowerLeaveChanceReduction(next);
+  const regionEffect = getCurrentRegionEffect(next);
+  const activeRecruitMultiplier = next.activeBoosts
+    .filter((boost) => boost.effectType === 'follower_recruit_multiplier')
+    .reduce((acc, boost) => acc * boost.multiplier, 1);
+  const activeStabilityBonus =
+    next.activeBoosts
+      .filter((boost) => boost.effectType === 'follower_stability_multiplier')
+      .reduce((acc, boost) => acc * boost.multiplier, 1) - 1;
+  const regionalRecruitMultiplier = 1 + (regionEffect.followerRecruitMultiplier ?? 0);
+  const leaveReduction = clamp(
+    getFollowerLeaveChanceReduction(next) + (regionEffect.followerStabilityMultiplier ?? 0) + Math.max(0, activeStabilityBonus),
+    0,
+    0.82
+  );
   const crowdLeaveMultiplier = 1 + followerCount / 38;
   const storyAllowed = !next.followerMorale.lastStoryAt || now - next.followerMorale.lastStoryAt > 25000;
 
@@ -173,7 +251,7 @@ export const runFollowerDynamics = (
         ? 0
         : 1 -
           Math.pow(
-            1 - follower.recruitChancePerMinute * moraleRecruitMultiplier * recruitResistance,
+            1 - follower.recruitChancePerMinute * moraleRecruitMultiplier * recruitResistance * regionalRecruitMultiplier * activeRecruitMultiplier,
             (count * deltaSeconds) / 60
           );
     if (recruitChance > 0 && random() < recruitChance) {

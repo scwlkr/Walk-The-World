@@ -825,6 +825,29 @@ button.event-overlay {
   opacity: 0.58;
 }
 
+.region-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.region-card {
+  min-height: 96px;
+  display: grid;
+  gap: 0.22rem;
+  align-content: start;
+  border-color: rgba(96, 165, 250, 0.28);
+}
+
+.region-card.active,
+.region-current-card {
+  border-color: rgba(250, 204, 21, 0.58);
+}
+
+.region-card p {
+  margin: 0;
+}
+
 .section-head,
 .card-row {
   display: flex;

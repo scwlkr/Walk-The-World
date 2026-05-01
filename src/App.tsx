@@ -12,6 +12,7 @@ import { MarketplacePanel } from './components/MarketplacePanel';
 import { NotificationCenter } from './components/NotificationCenter';
 import { ProgressPanel } from './components/ProgressPanel';
 import { QuestPanel } from './components/QuestPanel';
+import { RegionPanel } from './components/RegionPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SharedInventoryPanel } from './components/SharedInventoryPanel';
 import { ShopModal } from './components/ShopModal';
@@ -27,6 +28,7 @@ import {
   resumeGameAudio,
   type MusicTrackId
 } from './game/audio';
+import { applyActiveTap, getActiveTapMultiplier } from './game/activePlay';
 import { claimAchievementReward, evaluateAchievements } from './game/achievements';
 import { equipCosmetic } from './game/cosmetics';
 import { createDevPresetState } from './game/devPresets';
@@ -60,6 +62,7 @@ import { equipEquipmentItem, useInventoryItem } from './game/inventory';
 import { claimMilestoneReward, syncMilestones } from './game/milestones';
 import { claimQuestReward, syncDailyQuests } from './game/quests';
 import { RANDOM_EVENTS } from './game/randomEvents';
+import { isInRequiredRegion } from './game/regions';
 import { getRouteEncounterById, resolveRouteEncounterChoice } from './game/routeEncounters';
 import { exportSave, importSave, loadGameState, resetGameState, saveGameState } from './game/save';
 import { applyDistanceAndWb, clearToast, resolveRandomEvent, runGameTick, shouldAutoSave } from './game/tick';
@@ -868,6 +871,7 @@ const App = () => {
       earthLoopsCompleted?: number;
       upgradeId?: string;
       upgradeLevel?: number;
+      regionIds?: string[];
     }
   ): boolean => {
     if (!requirement) return true;
@@ -879,10 +883,14 @@ const App = () => {
     ) {
       return false;
     }
+    if (!isInRequiredRegion(gameState, requirement.regionIds)) return false;
     return true;
   };
 
-  const canUnlock = useMemo(() => (requirement?: Upgrade['unlockRequirement']) => canUnlockRequirement(state, requirement), [state]);
+  const canUnlock = useMemo(
+    () => (requirement?: Upgrade['unlockRequirement'] | Follower['unlockRequirement']) => canUnlockRequirement(state, requirement),
+    [state]
+  );
 
   const lockOfferClickBriefly = (offerKey: string): boolean => {
     if (clickLockedOfferIdsRef.current.has(offerKey)) return false;
@@ -894,20 +902,22 @@ const App = () => {
   };
 
   const onWalk = (tapPosition?: { x: number; y: number }) => {
-    const distance = getClickMiles(state);
+    const distance = getClickMiles(state) * getActiveTapMultiplier(state);
     playSoundEffect('walk', state.settings.soundEnabled);
 
     setState((prev) => {
+      const tapped = applyActiveTap(prev, Date.now());
+      const boostedDistance = getClickMiles(tapped) * getActiveTapMultiplier(tapped);
       const next = evaluateAchievements(
         applyDistanceAndWb(
           {
-            ...prev,
+            ...tapped,
             stats: {
-              ...prev.stats,
-              totalClicks: prev.stats.totalClicks + 1
+              ...tapped.stats,
+              totalClicks: tapped.stats.totalClicks + 1
             }
           },
-          distance
+          boostedDistance
         )
       );
       const synced = syncMilestones(syncDailyQuests(next));
@@ -1591,10 +1601,11 @@ const App = () => {
 
       <GameOverlaySheet open={state.ui.activeTab === 'quests'} title="Milestones" onClose={closeOverlay}>
         <JourneyPanel state={state} onClaim={onClaimMilestone} />
-        {devLabEnabled && <QuestPanel state={state} onClaim={onClaimQuest} />}
+        <QuestPanel state={state} onClaim={onClaimQuest} />
       </GameOverlaySheet>
 
       <GameOverlaySheet open={state.ui.activeTab === 'stats'} title="Stats" onClose={closeOverlay}>
+        <RegionPanel state={state} />
         <ProgressPanel
           state={state}
           onPrestigeEarth={onPrestigeEarth}

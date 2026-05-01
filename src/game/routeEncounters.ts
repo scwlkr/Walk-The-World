@@ -5,6 +5,7 @@ import {
 } from './constants';
 import { grantRewardToState } from './inventory';
 import { applyDistanceAndWb } from './progression';
+import { getCurrentRegion } from './regions';
 import type { GameState, RouteEncounterDefinition, RouteEncounterChoice } from './types';
 
 export const ROUTE_ENCOUNTERS: RouteEncounterDefinition[] = [
@@ -99,6 +100,77 @@ export const ROUTE_ENCOUNTERS: RouteEncounterDefinition[] = [
         effects: [{ type: 'item_drop', itemId: 'detour_token', quantity: 1 }]
       }
     ]
+  },
+  {
+    id: 'regional_vendor',
+    name: 'Regional Vendor',
+    description: 'A pop-up stand is selling route-specific finds.',
+    rarity: 'uncommon',
+    weight: 14,
+    regionIds: ['grand_canyon', 'new_york', 'tokyo', 'paris', 'london'],
+    choices: [
+      {
+        id: 'buy_souvenir_hint',
+        label: 'Browse stand',
+        description: 'Get a souvenir lead and a small reward boost.',
+        effects: [
+          {
+            type: 'temporary_boost',
+            boostType: 'event_reward_multiplier',
+            multiplier: 1.2,
+            durationMs: 30000
+          },
+          { type: 'item_drop', itemId: 'souvenir_magnet', quantity: 1 }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'crew_morale_check',
+    name: 'Crew Morale Check',
+    description: 'The group needs a minute before the next long stretch.',
+    rarity: 'common',
+    weight: 12,
+    regionIds: ['forest', 'mountains', 'niagara', 'london'],
+    choices: [
+      {
+        id: 'keep_everyone_dry',
+        label: 'Regroup',
+        description: 'Follower stability improves for a short while.',
+        effects: [
+          {
+            type: 'temporary_boost',
+            boostType: 'follower_stability_multiplier',
+            multiplier: 1.25,
+            durationMs: 45000
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'neon_crosswalk',
+    name: 'Neon Crosswalk',
+    description: 'The signal turns green and everyone launches forward.',
+    rarity: 'rare',
+    weight: 9,
+    regionIds: ['new_york', 'tokyo'],
+    choices: [
+      {
+        id: 'perfect_crossing',
+        label: 'Perfect crossing',
+        description: 'A strong active-play burst for city routes.',
+        effects: [
+          { type: 'distance', value: 0.3 },
+          {
+            type: 'temporary_boost',
+            boostType: 'click_multiplier',
+            multiplier: 1.5,
+            durationMs: 25000
+          }
+        ]
+      }
+    ]
   }
 ];
 
@@ -118,6 +190,14 @@ const scheduleNextRouteEncounterAt = (from: number): number =>
 export const getRouteEncounterById = (encounterId: string): RouteEncounterDefinition | undefined =>
   ROUTE_ENCOUNTERS.find((encounter) => encounter.id === encounterId);
 
+export const getRouteEncountersForState = (state: GameState): RouteEncounterDefinition[] => {
+  const region = getCurrentRegion(state);
+  const encounters = ROUTE_ENCOUNTERS.filter(
+    (encounter) => !encounter.regionIds?.length || encounter.regionIds.includes(region.id)
+  );
+  return encounters.length ? encounters : ROUTE_ENCOUNTERS.filter((encounter) => !encounter.regionIds?.length);
+};
+
 export const syncRouteEncounterSpawn = (state: GameState, now = Date.now()): GameState => {
   if (state.spawnedRouteEncounter && state.spawnedRouteEncounter.expiresAt <= now) {
     return {
@@ -129,7 +209,7 @@ export const syncRouteEncounterSpawn = (state: GameState, now = Date.now()): Gam
 
   if (state.spawnedRouteEncounter || now < state.nextRouteEncounterAt) return state;
 
-  const encounter = weightedPick(ROUTE_ENCOUNTERS);
+  const encounter = weightedPick(getRouteEncountersForState(state));
   return {
     ...state,
     spawnedRouteEncounter: {

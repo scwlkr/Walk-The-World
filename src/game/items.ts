@@ -1,5 +1,6 @@
 import generatedItems from '../data/generated/items.generated.json';
 import generatedShopOffers from '../data/generated/shop_offers.generated.json';
+import { getUnlockedRegions, isRegionUnlocked } from './regions';
 import type {
   GameState,
   InventoryEffectType,
@@ -147,8 +148,26 @@ const getUnlockStatus = (state: GameState, offer: CatalogShopOffer): { unlocked:
       return state.quests.seasonalEventId === offer.unlockValue
         ? { unlocked: true, reason: null }
         : { unlocked: false, reason: 'Seasonal offer' };
-    case 'destination':
-      return { unlocked: true, reason: null };
+    case 'destination': {
+      const destinationRegionMap: Record<string, string> = {
+        dallas: 'downtown',
+        skyline: 'new_york',
+        any_city: 'downtown',
+        grand_canyon: 'grand_canyon',
+        paris: 'paris',
+        tokyo: 'tokyo'
+      };
+      if (offer.unlockValue === 'any_city') {
+        const cityRegionIds = ['downtown', 'new_york', 'london', 'old_europe', 'tokyo', 'paris'];
+        return getUnlockedRegions(state).some((region) => cityRegionIds.includes(region.id))
+          ? { unlocked: true, reason: null }
+          : { unlocked: false, reason: 'Reach a city region' };
+      }
+      const regionId = destinationRegionMap[offer.unlockValue];
+      return regionId && isRegionUnlocked(state, regionId)
+        ? { unlocked: true, reason: null }
+        : { unlocked: false, reason: 'Reach matching region' };
+    }
     case 'achievement':
       return Object.values(state.achievements).some((progress) => progress.claimedAt)
         ? { unlocked: true, reason: null }
