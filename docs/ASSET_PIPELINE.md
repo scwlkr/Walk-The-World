@@ -1,4 +1,4 @@
-# C Version Asset Pipeline
+# Walk The World Asset Pipeline
 
 This repo is a Vite, React, TypeScript canvas game. Runtime assets that the app should load directly belong under `public/assets/`, because Vite serves that folder from the web root.
 
@@ -39,7 +39,7 @@ same ground line in every frame
 
 Do not make a separate left-walk sheet yet. The game can mirror the right-facing sheet later.
 
-C Version runtime animation states are declared in `src/game/assets.ts`.
+Runtime animation states are declared in `src/game/assets.ts`.
 
 Required first state:
 
@@ -47,7 +47,7 @@ Required first state:
 public/assets/characters/walker/walker_walk_right_sheet.png
 ```
 
-Optional C-version states:
+Optional animation states:
 
 ```text
 public/assets/characters/walker/walker_idle_sheet.png
@@ -104,7 +104,7 @@ grand_canyon
 moon
 ```
 
-The current C-version background composites are generated at 1600px wide under:
+The current background composites are generated at 1600px wide under:
 
 ```text
 public/assets/backgrounds/<scene_name>/composite.png
@@ -165,7 +165,7 @@ public/assets/audio/music/wtw_106.mp3
 public/assets/audio/music/wtw_107.mp3
 ```
 
-The C-version settings panel exposes the runtime playlist from `src/game/audio.ts`. Add a track to `MUSIC_TRACKS` when a new file becomes game-ready under `public/assets/audio/music/`.
+The settings panel exposes the runtime playlist from `src/game/audio.ts`. Add a track to `MUSIC_TRACKS` when a new file becomes game-ready under `public/assets/audio/music/`.
 
 ### Sound Effects
 
@@ -207,9 +207,9 @@ Reference links:
 
 For this game, use ZzFX for button taps, reward pings, shop purchases, and random-event sounds. Use file-based audio only where the sound needs a specific texture, such as footsteps or a music loop.
 
-Current implementation note: MVP C uses the browser Web Audio API for generated tap, purchase, event, and UI sounds, so no third-party SFX files are required yet.
+Current implementation note: v0.1 uses the browser Web Audio API for generated tap, purchase, event, and UI sounds, so no third-party SFX files are required yet.
 
-## First C-Version Asset Targets
+## First v0.1 Asset Targets
 
 Minimum useful drop-in set:
 

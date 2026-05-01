@@ -1,4 +1,9 @@
-import { AUTO_SAVE_INTERVAL_MS, RANDOM_EVENT_MAX_INTERVAL_MS, RANDOM_EVENT_MIN_INTERVAL_MS } from './constants';
+import {
+  AUTO_SAVE_INTERVAL_MS,
+  ENABLE_ADVANCED_EVENT_SYSTEMS,
+  RANDOM_EVENT_MAX_INTERVAL_MS,
+  RANDOM_EVENT_MIN_INTERVAL_MS
+} from './constants';
 import { queueWalkerBucksGrantAmount } from './economy';
 import {
   getEventRewardMultiplier,
@@ -63,8 +68,10 @@ export const runGameTick = (state: GameState, deltaSeconds: number, now: number)
   next = markDailyPlay(next, now);
   next = syncDailyQuests(next, now);
   next = reduceBoostDurations(next, now);
-  next = maybeSpawnRandomEvent(next, now);
-  next = syncRouteEncounterSpawn(next, now);
+  if (ENABLE_ADVANCED_EVENT_SYSTEMS) {
+    next = maybeSpawnRandomEvent(next, now);
+    next = syncRouteEncounterSpawn(next, now);
+  }
   next = evaluateAchievements(next, now);
   next = syncMilestones(next, now);
 

@@ -1,14 +1,16 @@
 import type { GameState } from '../game/types';
 import {
   calculateDistanceToNextLandmark,
+  getClickMiles,
   getCurrentWorldLoopDistance,
   getCurrentWorldProgressPercent,
   getCurrentLandmark,
   getIdleMilesPerSecond,
-  getNextLandmark
+  getNextLandmark,
+  getOfflineCapSeconds
 } from '../game/formulas';
+import { formatDistance, formatDistanceRate } from '../game/distance';
 import { getSpendableWalkerBucks } from '../game/economy';
-import { getQuestCompletionSummary } from '../game/quests';
 import { getActiveSeasonalEventForState, getSeasonalEventById } from '../game/seasonalEvents';
 import { getCurrentWorldDefinition, getWorldProgress } from '../game/world';
 import type { CSSProperties } from 'react';
@@ -23,12 +25,12 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
   const currentWorld = getCurrentWorldDefinition(state);
   const currentLoopDistance = getCurrentWorldLoopDistance(state);
   const speed = getIdleMilesPerSecond(state);
+  const clickDistance = getClickMiles(state);
   const worldPercent = getCurrentWorldProgressPercent(state);
   const current = getCurrentLandmark(state);
   const next = getNextLandmark(state);
   const milesToNext = calculateDistanceToNextLandmark(state);
   const worldProgress = getWorldProgress(state);
-  const questSummary = getQuestCompletionSummary(state);
   const activeEvent = getSeasonalEventById(seasonalEventOverrideId) ?? getActiveSeasonalEventForState(state);
   const journeyMilestones = getJourneyMilestones(state, 2);
   const activeBoosts = state.activeBoosts.filter((boost) => boost.expiresAt > Date.now()).slice(0, 3);
@@ -36,9 +38,10 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
   const routeDistance = Math.max(0, next.distanceMiles - current.distanceMiles);
   const routeWalked = Math.max(0, currentLoopDistance - current.distanceMiles);
   const routePercent = routeDistance > 0 ? Math.min(100, (routeWalked / routeDistance) * 100) : 100;
-  const routeRemainingLabel = next.name !== current.name ? `${milesToNext.toFixed(1)} mi remaining` : 'Route complete';
-  const seasonalLabel =
-    activeEvent?.visualTreatment.bannerLabel.replace(' active', '').replace('route', 'Route') ?? 'Local Route';
+  const routeRemainingLabel = next.name !== current.name ? `${formatDistance(milesToNext)} remaining` : 'Route complete';
+  const routeLabel =
+    activeEvent?.visualTreatment.bannerLabel.replace(' active', '').replace('route', 'Route') ?? 'v0.1 Route';
+  const offlineHours = Math.floor(getOfflineCapSeconds(state) / 3600);
 
   return (
     <header className="game-hud" aria-label="Game HUD">
@@ -46,15 +49,18 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
         className="hud-strip hud-travel-panel"
         style={{ '--event-accent': activeEvent?.visualTreatment.accentColor ?? '#facc15' } as CSSProperties}
       >
-        <div className="hud-meter-row" aria-label="Wallet, distance, and speed">
+        <div className="hud-meter-row" aria-label="Wallet, distance, speed, and tap power">
           <span>
             WB <strong>{walletBalance.toLocaleString()}</strong>
           </span>
           <span>
-            <strong>{currentLoopDistance.toFixed(1)}</strong> mi
+            DT <strong>{formatDistance(currentLoopDistance)}</strong>
           </span>
           <span>
-            <strong>{speed.toFixed(3)}</strong> mi/s
+            DPS <strong>{formatDistanceRate(speed)}</strong>
+          </span>
+          <span>
+            DPT <strong>{formatDistance(clickDistance)}</strong>
           </span>
         </div>
 
@@ -76,9 +82,9 @@ export const GameHUD = ({ state, seasonalEventOverrideId }: GameHUDProps) => {
             {' · '}Loop {worldProgress.loopsCompleted}
           </span>
           <span>
-            {seasonalLabel}
+            {routeLabel}
             {' · '}
-            Quests {questSummary.completed}/{questSummary.total}
+            Offline cap {offlineHours}h
           </span>
         </div>
 

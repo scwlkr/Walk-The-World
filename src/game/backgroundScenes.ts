@@ -75,6 +75,15 @@ export const BACKGROUND_SCENES: Record<string, BackgroundScene> = {
     pathYRatio: 0.82,
     vibeTags: ['canyon', 'warm']
   },
+  mountains: {
+    id: 'mountains',
+    name: 'Mountain Pass',
+    src: '/assets/backgrounds/great_wall_china/composite.png',
+    pathTint: 'rgba(89, 76, 56, 0.74)',
+    pathLine: 'rgba(254, 240, 138, 0.28)',
+    pathYRatio: 0.82,
+    vibeTags: ['mountain', 'route']
+  },
   desert: {
     id: 'desert',
     name: 'Desert',

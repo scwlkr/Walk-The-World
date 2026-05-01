@@ -1407,34 +1407,48 @@ const App = () => {
           onEquipCosmetic={onEquipCosmetic}
           isUpgradeUnlocked={canUnlock}
           isFollowerUnlocked={canUnlock}
+          showAdvanced={devLabEnabled}
         />
-        <MarketplacePanel
-          state={state}
-          isBridgeConfigured={isWalkerBucksBridgeConfigured}
-          isSignedIn={Boolean(authSession?.user)}
-          isBusy={walkerBucksBusy}
-          onRefreshMarketplace={refreshWalkerBucksMarketplace}
-          onPurchaseOffer={onPurchaseMarketplaceOffer}
-        />
-        <SharedInventoryPanel state={state} />
+        {devLabEnabled && (
+          <>
+            <MarketplacePanel
+              state={state}
+              isBridgeConfigured={isWalkerBucksBridgeConfigured}
+              isSignedIn={Boolean(authSession?.user)}
+              isBusy={walkerBucksBusy}
+              onRefreshMarketplace={refreshWalkerBucksMarketplace}
+              onPurchaseOffer={onPurchaseMarketplaceOffer}
+            />
+            <SharedInventoryPanel state={state} />
+          </>
+        )}
       </GameOverlaySheet>
 
-      <GameOverlaySheet open={state.ui.activeTab === 'quests'} title="Quests" onClose={closeOverlay}>
+      <GameOverlaySheet open={state.ui.activeTab === 'quests'} title="Milestones" onClose={closeOverlay}>
         <JourneyPanel state={state} onClaim={onClaimMilestone} />
-        <QuestPanel state={state} onClaim={onClaimQuest} />
+        {devLabEnabled && <QuestPanel state={state} onClaim={onClaimQuest} />}
       </GameOverlaySheet>
 
       <GameOverlaySheet open={state.ui.activeTab === 'stats'} title="Stats" onClose={closeOverlay}>
-        <ProgressPanel state={state} onPrestigeEarth={onPrestigeEarth} onSelectWorld={onSelectWorld} />
-        <StatsPanel state={state} />
-        <LeaderboardPanel
+        <ProgressPanel
           state={state}
-          isBridgeConfigured={isWalkerBucksBridgeConfigured}
-          isSignedIn={Boolean(authSession?.user)}
-          isBusy={walkerBucksBusy}
-          onRefreshLeaderboard={refreshWalkerBucksLeaderboard}
+          onPrestigeEarth={onPrestigeEarth}
+          onSelectWorld={onSelectWorld}
+          showAdvancedWorlds={devLabEnabled}
         />
-        <AchievementsPanel state={state} onClaim={onClaimAchievement} />
+        <StatsPanel state={state} />
+        {devLabEnabled && (
+          <>
+            <LeaderboardPanel
+              state={state}
+              isBridgeConfigured={isWalkerBucksBridgeConfigured}
+              isSignedIn={Boolean(authSession?.user)}
+              isBusy={walkerBucksBusy}
+              onRefreshLeaderboard={refreshWalkerBucksLeaderboard}
+            />
+            <AchievementsPanel state={state} onClaim={onClaimAchievement} />
+          </>
+        )}
       </GameOverlaySheet>
 
       <GameOverlaySheet open={state.ui.activeTab === 'settings'} title="Settings" onClose={closeOverlay}>

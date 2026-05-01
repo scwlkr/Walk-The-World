@@ -17,6 +17,7 @@ type ShopModalProps = {
   onEquipCosmetic: (cosmetic: CosmeticDefinition) => void;
   isUpgradeUnlocked: (requirement: Upgrade['unlockRequirement']) => boolean;
   isFollowerUnlocked: (requirement: Follower['unlockRequirement']) => boolean;
+  showAdvanced?: boolean;
 };
 
 export const ShopModal = ({
@@ -29,36 +30,57 @@ export const ShopModal = ({
   onEquipEquipment,
   onEquipCosmetic,
   isUpgradeUnlocked,
-  isFollowerUnlocked
-}: ShopModalProps) => (
-  <>
-    <div className="tab-row">
-      {(['upgrades', 'followers', 'items', 'cosmetics'] as const).map((tab) => (
-        <button
-          key={tab}
-          type="button"
-          className={`mini-btn ${state.ui.shopTab === tab ? 'active' : ''}`}
-          onClick={() => onTab(tab)}
-        >
-          {tab}
-        </button>
-      ))}
-    </div>
-
-    {state.ui.shopTab === 'upgrades' && (
-      <UpgradeList state={state} onBuyUpgrade={onBuyUpgrade} isUnlocked={isUpgradeUnlocked} />
-    )}
-    {state.ui.shopTab === 'followers' && (
-      <FollowerList state={state} onBuyFollower={onBuyFollower} isUnlocked={isFollowerUnlocked} />
-    )}
-    {state.ui.shopTab === 'items' && (
+  isFollowerUnlocked,
+  showAdvanced = false
+}: ShopModalProps) => {
+  if (!showAdvanced) {
+    return (
       <>
-        <InventoryList state={state} onUseItem={onUseInventoryItem} onEquipEquipment={onEquipEquipment} />
-        <CatalogShopPanel state={state} onBuyOffer={onBuyCatalogOffer} />
+        <section className="panel v01-shop-summary">
+          <div className="section-head">
+            <h4>v0.1 Shop</h4>
+            <span>WB settled by WalkerBucks</span>
+          </div>
+          <p>
+            Buy generators for DPS, tap upgrades for DPT, and offline-cap upgrades for return progress. Purchases use
+            spendable WalkerBucks from the trusted bridge.
+          </p>
+        </section>
+        <UpgradeList state={state} onBuyUpgrade={onBuyUpgrade} isUnlocked={isUpgradeUnlocked} />
       </>
-    )}
-    {state.ui.shopTab === 'cosmetics' && (
-      <CosmeticsList state={state} onEquipCosmetic={onEquipCosmetic} />
-    )}
-  </>
-);
+    );
+  }
+
+  return (
+    <>
+      <div className="tab-row">
+        {(['upgrades', 'followers', 'items', 'cosmetics'] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            className={`mini-btn ${state.ui.shopTab === tab ? 'active' : ''}`}
+            onClick={() => onTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {state.ui.shopTab === 'upgrades' && (
+        <UpgradeList state={state} onBuyUpgrade={onBuyUpgrade} isUnlocked={isUpgradeUnlocked} />
+      )}
+      {state.ui.shopTab === 'followers' && (
+        <FollowerList state={state} onBuyFollower={onBuyFollower} isUnlocked={isFollowerUnlocked} />
+      )}
+      {state.ui.shopTab === 'items' && (
+        <>
+          <InventoryList state={state} onUseItem={onUseInventoryItem} onEquipEquipment={onEquipEquipment} />
+          <CatalogShopPanel state={state} onBuyOffer={onBuyCatalogOffer} />
+        </>
+      )}
+      {state.ui.shopTab === 'cosmetics' && (
+        <CosmeticsList state={state} onEquipCosmetic={onEquipCosmetic} />
+      )}
+    </>
+  );
+};

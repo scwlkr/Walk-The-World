@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { milesFromFeet } from '../src/game/distance';
 import { createInitialGameState } from '../src/game/initialState';
 import { getLocalCatalogShopOffers, getSharedInventoryEntitlements, purchaseLocalCatalogOffer } from '../src/game/items';
 import { useInventoryItem } from '../src/game/inventory';
@@ -10,22 +11,21 @@ import { canEnterWorld } from '../src/game/world';
 import type { RandomEventDefinition, RouteEncounterChoice, WalkerBucksMarketplaceOffer } from '../src/game/types';
 
 describe('retention milestones', () => {
-  it('turns the first tap into a claimable milestone reward', () => {
+  it('turns early distance into a claimable v0.1 milestone reward', () => {
     const state = createInitialGameState(1000);
     const synced = syncMilestones({
       ...state,
       stats: {
         ...state.stats,
-        totalClicks: 1
+        totalDistanceWalked: milesFromFeet(100)
       }
     }, 2000);
-    const first = synced.milestones.progress.first_30_seconds;
+    const first = synced.milestones.progress.leave_the_couch;
 
     expect(first.completedAt).toBe(2000);
 
-    const claimed = claimMilestoneReward(synced, 'first_30_seconds', 3000);
-    expect(claimed.walkerBucksBridge.pendingGrantAmount).toBeGreaterThanOrEqual(20);
-    expect(claimed.inventory.items.trail_mix).toBe(1);
+    const claimed = claimMilestoneReward(synced, 'leave_the_couch', 3000);
+    expect(claimed.walkerBucksBridge.pendingGrantAmount).toBeGreaterThanOrEqual(10);
     expect(claimed.stats.milestonesClaimed).toBe(1);
   });
 });
@@ -155,7 +155,7 @@ describe('worlds and save migration', () => {
     expect(canEnterWorld(moonLooped, 'mars')).toBe(true);
   });
 
-  it('migrates legacy saves into save version 9 retention state', () => {
+  it('migrates legacy saves into save version 10 v0.1 state', () => {
     const migrated = importSave(
       JSON.stringify({
         saveVersion: 1,
@@ -165,10 +165,10 @@ describe('worlds and save migration', () => {
       })
     );
 
-    expect(migrated.saveVersion).toBe(9);
+    expect(migrated.saveVersion).toBe(10);
     expect(migrated.currentWorldId).toBe('earth');
     expect(migrated.profile).toBeDefined();
-    expect(migrated.milestones.progress.first_30_seconds).toBeDefined();
+    expect(migrated.milestones.progress.leave_the_couch).toBeDefined();
     expect(migrated.spawnedRouteEncounter).toBeNull();
   });
 });

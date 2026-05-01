@@ -1,84 +1,63 @@
+import { milesFromFeet, formatDistanceProgress } from './distance';
 import { grantRewardToState } from './inventory';
 import type { GameState, MilestoneDefinition, MilestoneProgress, MilestoneState } from './types';
 
 export const MILESTONE_DEFINITIONS: MilestoneDefinition[] = [
   {
-    id: 'first_30_seconds',
-    name: 'First 30 Seconds',
-    description: 'Tap the route once and start the loop.',
-    condition: { type: 'clicks', target: 1 },
-    reward: {
-      walkerBucks: 20,
-      items: [{ itemId: 'trail_mix', quantity: 1 }]
-    },
-    actionHint: 'Tap the route or WALK.'
+    id: 'leave_the_couch',
+    name: 'Leave the Couch',
+    description: 'Reach the first 100 feet.',
+    condition: { type: 'distance_walked', target: milesFromFeet(100) },
+    reward: { walkerBucks: 10 },
+    actionHint: 'Tap WALK to get moving.'
   },
   {
-    id: 'first_route_stop',
-    name: 'First Route Stop',
-    description: 'Reach the Walkertown corner marker.',
-    condition: { type: 'distance_walked', target: 0.04 },
-    reward: {
-      walkerBucks: 15,
-      items: [{ itemId: 'walkertown_postcard', quantity: 1 }]
-    },
-    actionHint: 'Keep walking to the next marker.'
+    id: 'end_of_the_street',
+    name: 'End of the Street',
+    description: 'Walk 1,000 feet and unlock the first real generator tier.',
+    condition: { type: 'distance_walked', target: milesFromFeet(1000) },
+    reward: { walkerBucks: 20 },
+    actionHint: 'Buy Starter Shoes when your WB settles.'
   },
   {
-    id: 'first_upgrade',
-    name: 'First Upgrade',
-    description: 'Buy any WalkerBucks-backed upgrade.',
-    condition: { type: 'upgrades_purchased', target: 1 },
-    reward: {
-      walkerBucks: 45,
-      items: [{ itemId: 'starter_step_counter', quantity: 1 }]
-    },
-    actionHint: 'Open Shop and buy an upgrade.'
+    id: 'around_the_block',
+    name: 'Around the Block',
+    description: 'Reach a quarter mile.',
+    condition: { type: 'distance_walked', target: 0.25 },
+    reward: { walkerBucks: 35 },
+    actionHint: 'Balance tapping and generators.'
   },
   {
-    id: 'first_item_moment',
-    name: 'Backpack Started',
-    description: 'Own three different items.',
-    condition: { type: 'distinct_items_owned', target: 3 },
-    reward: {
-      walkerBucks: 60,
-      items: [{ itemId: 'route_marker', quantity: 1 }]
-    },
-    actionHint: 'Claim rewards or buy catalog items.'
+    id: 'neighborhood_loop',
+    name: 'Neighborhood Loop',
+    description: 'Finish the first full mile.',
+    condition: { type: 'distance_walked', target: 1 },
+    reward: { walkerBucks: 60 },
+    actionHint: 'Use WB upgrades to raise DPS.'
   },
   {
-    id: 'first_follower',
-    name: 'Crew Online',
-    description: 'Hire a follower for the route.',
-    condition: { type: 'followers_hired', target: 1 },
-    reward: {
-      walkerBucks: 75,
-      items: [{ itemId: 'lucky_laces_item', quantity: 1 }]
-    },
-    actionHint: 'Hire the first follower.'
+    id: 'across_town',
+    name: 'Across Town',
+    description: 'Reach 10 miles and open the mid-route generator tier.',
+    condition: { type: 'distance_walked', target: 10 },
+    reward: { walkerBucks: 150 },
+    actionHint: 'Watch the scenery change.'
   },
   {
-    id: 'first_event',
-    name: 'Trail Happened',
-    description: 'Claim any event or route encounter.',
-    condition: { type: 'route_encounters_claimed', target: 1 },
-    reward: {
-      walkerBucks: 50,
-      items: [{ itemId: 'detour_token', quantity: 1 }]
-    },
-    actionHint: 'Tap a route encounter.'
+    id: 'state_line',
+    name: 'State Line',
+    description: 'Reach 100 miles.',
+    condition: { type: 'distance_walked', target: 100 },
+    reward: { walkerBucks: 500 },
+    actionHint: 'Keep the walking machine running.'
   },
   {
-    id: 'first_collection_set',
-    name: 'Tiny Collection Flex',
-    description: 'Own six different route items.',
-    condition: { type: 'distinct_items_owned', target: 6 },
-    reward: {
-      walkerBucks: 120,
-      items: [{ itemId: 'mile_badge', quantity: 1 }],
-      titleIds: ['tiny_collection_flex']
-    },
-    actionHint: 'Fill the backpack with route finds.'
+    id: 'across_america',
+    name: 'Across America',
+    description: 'Reach 3,000 miles. This is the v0.1 long target.',
+    condition: { type: 'distance_walked', target: 3000 },
+    reward: { walkerBucks: 3000 },
+    actionHint: 'Stack generator levels.'
   }
 ];
 
@@ -183,8 +162,8 @@ export const claimMilestoneReward = (state: GameState, milestoneId: string, now 
 };
 
 export const getMilestoneProgressText = (milestone: MilestoneDefinition, progress: MilestoneProgress): string => {
-  if (milestone.condition.target < 1) {
-    return `${progress.progress.toFixed(2)} / ${milestone.condition.target.toFixed(2)}`;
+  if (milestone.condition.type === 'distance_walked') {
+    return formatDistanceProgress(progress.progress, milestone.condition.target);
   }
   return `${Math.floor(progress.progress).toLocaleString()} / ${milestone.condition.target.toLocaleString()}`;
 };

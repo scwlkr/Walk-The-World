@@ -261,67 +261,49 @@ const run = async () => {
     assert(firstScreen.hasBottomControls, 'Bottom controls did not render.');
     assert(!firstScreen.bodyOverflows, `Mobile viewport has horizontal overflow at ${firstScreen.viewportWidth}x${firstScreen.viewportHeight}.`);
 
-    logStep('walking, claiming first journey reward, using starter item, and checking WB spend gating');
-    for (let i = 0; i < 4; i += 1) {
+    logStep('walking, claiming first distance milestone, and checking WB spend gating');
+    for (let i = 0; i < 6; i += 1) {
       assert(await evaluate(client, click('.walk-btn')), 'Walk button click failed.');
       await delay(50);
     }
 
-    assert(await evaluate(client, click('[aria-label="Quests"]')), 'Quests control did not open.');
+    assert(await evaluate(client, click('[aria-label="Milestones"]')), 'Milestones control did not open.');
     await waitFor('claimable milestone', () => evaluate(client, 'document.body.textContent.includes("Claim reward")'));
     assert(await evaluate(client, clickByText('button', 'Claim reward')), 'Milestone claim button did not click.');
 
     assert(await evaluate(client, click('[aria-label="Shop"]')), 'Shop control did not open.');
-    assert(await evaluate(client, clickByText('button', 'items')), 'Items tab did not open.');
-    await waitFor('starter item use button', () => evaluate(client, 'document.body.textContent.includes("Use")'));
-    assert(await evaluate(client, clickByText('button', 'Use')), 'Starter item use button did not click.');
+    await waitFor('starter generator visible', () => evaluate(client, 'document.body.textContent.includes("Starter Shoes")'));
     await waitFor('catalog spend blocked without WalkerBucks balance', () => evaluate(client, hasDisabledButton('Need WB')));
 
     const inventorySave = await readSave(client);
-    assert(inventorySave?.saveVersion === 9, 'Save did not persist as version 9.');
-    assert(inventorySave?.stats?.totalClicks >= 4, 'Walking did not update click stats.');
+    assert(inventorySave?.saveVersion === 10, 'Save did not persist as version 10.');
+    assert(inventorySave?.stats?.totalClicks >= 6, 'Walking did not update click stats.');
     assert(inventorySave?.stats?.milestonesClaimed >= 1, 'Milestone claim did not persist.');
-    assert(inventorySave?.stats?.itemsUsed >= 1, 'Starter item use did not persist.');
     assert(inventorySave?.walkerBucks === 0, 'Guest save created a spendable client-side WB balance.');
-    assert(inventorySave?.walkerBucksBridge?.pendingGrantAmount >= 20, 'Earned WB was not queued for WalkerBucks sync.');
+    assert(inventorySave?.walkerBucksBridge?.pendingGrantAmount >= 10, 'Earned WB was not queued for WalkerBucks sync.');
 
-    logStep('forcing a route encounter through save state and resolving it');
-    const routeSave = await readSave(client);
-    routeSave.ui = {
-      ...routeSave.ui,
+    logStep('forcing offline progress notification and checking layout');
+    const offlineSave = await readSave(client);
+    offlineSave.ui = {
+      ...offlineSave.ui,
       activeTab: 'walk',
       showShop: false,
       offlineSummary: {
-        distance: 1.23,
-        wb: 45
+        distance: 0.12,
+        wb: 12
       },
-      toast: 'Quest reminder: Warm-Up Walk ready.',
+      toast: 'Leave the Couch milestone ready.',
       recentRewards: [
-        { id: 'smoke_reward_item', label: '1 item', createdAt: Date.now() },
-        { id: 'smoke_reward_wb', label: '+45 WB', createdAt: Date.now() },
-        { id: 'smoke_reward_extra', label: 'queued reward', createdAt: Date.now() }
+        { id: 'smoke_reward_wb', label: '+12 WB queued', createdAt: Date.now() },
+        { id: 'smoke_reward_extra', label: 'milestone ready', createdAt: Date.now() }
       ]
     };
-    routeSave.spawnedEvent = {
-      id: 'event_smoke_loose_walkerbuck',
-      eventDefId: 'loose_walkerbuck',
-      spawnedAt: Date.now(),
-      expiresAt: Date.now() + 60000,
-      label: 'Loose WalkerBuck'
-    };
-    routeSave.spawnedRouteEncounter = {
-      id: 'route_smoke_split_path',
-      encounterDefId: 'split_path',
-      spawnedAt: Date.now(),
-      expiresAt: Date.now() + 60000,
-      label: 'Split Path'
-    };
-    const routeInjection = await client.call('Page.addScriptToEvaluateOnNewDocument', {
-      source: `localStorage.setItem(${JSON.stringify(saveKey)}, ${JSON.stringify(JSON.stringify(routeSave))});`
+    const offlineInjection = await client.call('Page.addScriptToEvaluateOnNewDocument', {
+      source: `localStorage.setItem(${JSON.stringify(saveKey)}, ${JSON.stringify(JSON.stringify(offlineSave))});`
     });
-    await navigateToApp(client, 'route encounter reload');
-    await client.call('Page.removeScriptToEvaluateOnNewDocument', { identifier: routeInjection.identifier });
-    await waitFor('route encounter overlay', () => evaluate(client, 'document.body.textContent.includes("Split Path")'));
+    await navigateToApp(client, 'offline notification reload');
+    await client.call('Page.removeScriptToEvaluateOnNewDocument', { identifier: offlineInjection.identifier });
+    await waitFor('offline notification', () => evaluate(client, 'document.body.textContent.includes("You walked")'));
     const notificationLayout = await evaluate(
       client,
       `(() => {
@@ -343,9 +325,7 @@ const run = async () => {
         return {
           largeCount: document.querySelectorAll('.notification-large-slot > *').length,
           toastCount: document.querySelectorAll('.notification-toast').length,
-          hasRouteCard: Boolean(document.querySelector('.notification-large-slot')?.textContent?.includes('Split Path')),
-          hasRandomCard: Boolean(document.querySelector('.notification-large-slot')?.textContent?.includes('Loose WalkerBuck')),
-          hasOfflineCard: Boolean(document.querySelector('.notification-large-slot')?.textContent?.includes('while away')),
+          hasOfflineCard: Boolean(document.querySelector('.notification-large-slot')?.textContent?.includes('You walked')),
           overlapsHud: notificationItems.some((item) => overlaps(item, hud)),
           overlapsRail: notificationItems.some((item) => overlaps(item, rail)),
           overlapsWalk: notificationItems.some((item) => overlaps(item, walk)),
@@ -355,16 +335,11 @@ const run = async () => {
     );
     assert(notificationLayout.largeCount === 1, 'Notification center rendered more than one large card.');
     assert(notificationLayout.toastCount <= 2, 'Notification center rendered more than two toasts.');
-    assert(notificationLayout.hasRouteCard, 'Route encounter was not the visible priority notification.');
-    assert(!notificationLayout.hasRandomCard, 'Random event card overlapped instead of queueing behind route encounter.');
-    assert(!notificationLayout.hasOfflineCard, 'Offline summary overlapped instead of queueing behind route encounter.');
+    assert(notificationLayout.hasOfflineCard, 'Offline summary was not the visible priority notification.');
     assert(!notificationLayout.overlapsHud, 'Notification overlapped the HUD.');
     assert(!notificationLayout.overlapsRail, 'Notification overlapped the right action rail.');
     assert(!notificationLayout.overlapsWalk, 'Notification overlapped the WALK button.');
     assert(!notificationLayout.unsafeEdges, 'A fixed UI element is too close to the mobile viewport edge.');
-    assert(await evaluate(client, clickByText('button', 'Sprint line')), 'Route encounter choice did not click.');
-    const encounterSave = await readSave(client);
-    assert(encounterSave?.stats?.routeEncountersClaimed >= 1, 'Route encounter did not persist as claimed.');
 
     logStep('opening dev lab and checking scene controls');
     assert(await evaluate(client, click('[aria-label="Settings"]')), 'Settings control did not open.');
@@ -388,7 +363,6 @@ const run = async () => {
     await waitFor('saved game after reload', () => evaluate(client, 'Boolean(localStorage.getItem("walk_the_world_save_v1"))'));
     const reloadedSave = await readSave(client);
     assert(reloadedSave?.stats?.milestonesClaimed >= 1, 'Reload lost milestone progress.');
-    assert(reloadedSave?.stats?.routeEncountersClaimed >= 1, 'Reload lost route encounter progress.');
 
     console.log(JSON.stringify({ ok: true, appUrl, saveVersion: reloadedSave.saveVersion }, null, 2));
   } finally {

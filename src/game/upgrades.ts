@@ -1,139 +1,99 @@
+import { milesFromFeet } from './distance';
 import type { Upgrade } from './types';
 
 export const UPGRADES: Upgrade[] = [
   {
-    id: 'worn_out_sneakers',
-    name: 'Worn-Out Sneakers',
-    description: 'Still squeak, still walk. +idle miles/sec.',
+    id: 'starter_shoes',
+    name: 'Starter Shoes',
+    description: 'The first reliable generator. Adds 1 ft/sec.',
     category: 'speed',
     baseCost: 15,
-    costMultiplier: 1.45,
-    maxLevel: 30,
+    costMultiplier: 1.42,
+    maxLevel: 75,
     effectType: 'idle_speed_flat',
-    effectValue: 0.00018
+    effectValue: milesFromFeet(1)
   },
   {
-    id: 'motivational_socks',
-    name: 'Motivational Socks',
-    description: 'Each stripe whispers “one more step.”',
+    id: 'fingerless_walking_gloves',
+    name: 'Fingerless Walking Gloves',
+    description: 'Makes every tap land harder. Adds 5 ft/tap.',
     category: 'click',
     baseCost: 30,
     costMultiplier: 1.5,
-    maxLevel: 25,
+    maxLevel: 40,
     effectType: 'click_power_flat',
-    effectValue: 0.0015
-  },
-  {
-    id: 'gas_station_coffee',
-    name: 'Gas Station Coffee',
-    description: 'Questionable flavor, undeniable speed.',
-    category: 'speed',
-    baseCost: 70,
-    costMultiplier: 1.65,
-    maxLevel: 20,
-    effectType: 'idle_speed_multiplier',
-    effectValue: 0.12
+    effectValue: milesFromFeet(5)
   },
   {
     id: 'walking_stick',
     name: 'Walking Stick',
-    description: 'Stylish and surprisingly springy.',
+    description: 'A stable early generator. Adds 5 ft/sec.',
+    category: 'speed',
+    baseCost: 85,
+    costMultiplier: 1.55,
+    maxLevel: 50,
+    effectType: 'idle_speed_flat',
+    effectValue: milesFromFeet(5),
+    unlockRequirement: { distanceMiles: milesFromFeet(1000) }
+  },
+  {
+    id: 'rhythm_shoes',
+    name: 'Rhythm Shoes',
+    description: 'A clean active-play multiplier for better taps.',
     category: 'click',
-    baseCost: 90,
-    costMultiplier: 1.6,
+    baseCost: 140,
+    costMultiplier: 1.62,
     maxLevel: 20,
     effectType: 'click_power_multiplier',
-    effectValue: 0.1
+    effectValue: 0.12,
+    unlockRequirement: { distanceMiles: 0.25 }
   },
   {
-    id: 'slightly_better_knees',
-    name: 'Slightly Better Knees',
-    description: 'A medical miracle in two crunchy joints.',
+    id: 'mall_walker_crew',
+    name: 'Mall Walker Crew',
+    description: 'A basic v0.1 generator crew. Adds 25 ft/sec.',
     category: 'speed',
-    baseCost: 180,
+    baseCost: 420,
     costMultiplier: 1.7,
-    maxLevel: 20,
+    maxLevel: 35,
     effectType: 'idle_speed_flat',
-    effectValue: 0.001
-  },
-  {
-    id: 'map_from_dale',
-    name: 'Map From a Guy Named Dale',
-    description: 'Hand-drawn map that somehow helps route planning.',
-    category: 'event',
-    baseCost: 240,
-    costMultiplier: 1.75,
-    maxLevel: 1,
-    effectType: 'event_reward_multiplier',
-    effectValue: 0.2
+    effectValue: milesFromFeet(25),
+    unlockRequirement: { distanceMiles: 1 }
   },
   {
     id: 'snack_backpack',
-    name: 'Backpack of Questionable Snacks',
-    description: 'Increases offline walking cap. Smells odd.',
+    name: 'Backpack Upgrade',
+    description: 'Raises the capped offline progress window.',
     category: 'offline',
-    baseCost: 340,
+    baseCost: 700,
     costMultiplier: 1.9,
     maxLevel: 8,
     effectType: 'offline_cap_multiplier',
-    effectValue: 0.25
+    effectValue: 0.25,
+    unlockRequirement: { distanceMiles: 10 }
   },
   {
-    id: 'speed_walker_hat',
-    name: 'Speed Walker Hat',
-    description: 'Aerodynamic brim for extra WB per mile.',
-    category: 'earnings',
-    baseCost: 500,
-    costMultiplier: 1.85,
-    maxLevel: 12,
-    effectType: 'wb_multiplier',
-    effectValue: 0.15
-  },
-  {
-    id: 'tiny_lunge_technique',
-    name: 'Tiny Lunge Technique',
-    description: 'Makes random events hit harder.',
-    category: 'event',
-    baseCost: 700,
-    costMultiplier: 1.85,
-    maxLevel: 8,
-    effectType: 'event_reward_multiplier',
-    effectValue: 0.2
-  },
-  {
-    id: 'carbon_fiber_shoelaces',
-    name: 'Carbon Fiber Shoelaces',
-    description: 'Ridiculously overengineered, wonderfully fast.',
+    id: 'hydration_belt',
+    name: 'Hydration Belt',
+    description: 'A mid-route generator. Adds 100 ft/sec.',
     category: 'speed',
-    baseCost: 1500,
-    costMultiplier: 2,
-    maxLevel: 10,
-    effectType: 'idle_speed_multiplier',
-    effectValue: 0.2,
-    unlockRequirement: { distanceMiles: 800 }
+    baseCost: 1600,
+    costMultiplier: 1.85,
+    maxLevel: 25,
+    effectType: 'idle_speed_flat',
+    effectValue: milesFromFeet(100),
+    unlockRequirement: { distanceMiles: 10 }
   },
   {
-    id: 'international_walking_permit',
-    name: 'International Walking Permit',
-    description: 'Officially licensed to stride globally.',
-    category: 'earnings',
-    baseCost: 3500,
+    id: 'treadmill_desk',
+    name: 'Treadmill Desk',
+    description: 'The absurd v0.1 late generator. Adds 500 ft/sec.',
+    category: 'speed',
+    baseCost: 7500,
     costMultiplier: 2,
-    maxLevel: 5,
-    effectType: 'wb_multiplier',
-    effectValue: 0.35,
-    unlockRequirement: { distanceMiles: 2500 }
-  },
-  {
-    id: 'walkerbucks_pedometer',
-    name: 'WalkerBucks Pedometer',
-    description: 'Tracks every step, milks every WB.',
-    category: 'earnings',
-    baseCost: 5000,
-    costMultiplier: 2.1,
-    maxLevel: 10,
-    effectType: 'wb_multiplier',
-    effectValue: 0.2,
-    unlockRequirement: { earthLoopsCompleted: 1 }
+    maxLevel: 15,
+    effectType: 'idle_speed_flat',
+    effectValue: milesFromFeet(500),
+    unlockRequirement: { distanceMiles: 100 }
   }
 ];

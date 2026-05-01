@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { ENABLE_ADVANCED_EVENT_SYSTEMS } from '../game/constants';
+import { formatDistance } from '../game/distance';
 import type { GameState, RouteEncounterChoice } from '../game/types';
 import { RandomEventOverlay } from './RandomEventOverlay';
 import { RouteEncounterOverlay } from './RouteEncounterOverlay';
@@ -27,13 +29,13 @@ export const NotificationCenter = ({
     return () => window.clearInterval(timer);
   }, [state.ui.recentRewards.length]);
 
-  const largeNotification = state.spawnedRouteEncounter ? (
+  const largeNotification = ENABLE_ADVANCED_EVENT_SYSTEMS && state.spawnedRouteEncounter ? (
     <RouteEncounterOverlay spawnedEncounter={state.spawnedRouteEncounter} onChoose={onChooseRouteEncounter} />
-  ) : state.spawnedEvent ? (
+  ) : ENABLE_ADVANCED_EVENT_SYSTEMS && state.spawnedEvent ? (
     <RandomEventOverlay spawnedEvent={state.spawnedEvent} onClaim={onClaimEvent} />
   ) : state.ui.offlineSummary ? (
     <aside className="panel notification-card notification-card-large offline-banner">
-      You walked {state.ui.offlineSummary.distance.toFixed(2)} mi and queued{' '}
+      You walked {formatDistance(state.ui.offlineSummary.distance)} and queued{' '}
       {Math.floor(state.ui.offlineSummary.wb).toLocaleString()} WB for WalkerBucks sync.
       <button type="button" className="mini-btn" onClick={onDismissOfflineSummary}>
         Nice
