@@ -182,17 +182,24 @@ const visibleMenuControls = `
 (() => {
   const controls = document.querySelector('.bottom-controls');
   const shell = document.querySelector('.game-shell');
-  if (!controls || !shell) return { count: 0, visible: false };
+  if (!controls || !shell) return { count: 0, inShell: false, inViewport: false, rightOfShell: false };
   const rect = controls.getBoundingClientRect();
   const shellRect = shell.getBoundingClientRect();
   return {
     count: document.querySelectorAll('.bottom-controls .icon-control').length,
-    visible: rect.width > 0
+    inShell: rect.width > 0
       && rect.height > 0
       && rect.left >= shellRect.left
       && rect.right <= shellRect.right
       && rect.top >= shellRect.top
-      && rect.bottom <= shellRect.bottom
+      && rect.bottom <= shellRect.bottom,
+    inViewport: rect.width > 0
+      && rect.height > 0
+      && rect.left >= 0
+      && rect.right <= window.innerWidth
+      && rect.top >= 0
+      && rect.bottom <= window.innerHeight,
+    rightOfShell: rect.left >= shellRect.right + 8
   };
 })()
 `;
@@ -280,7 +287,7 @@ const run = async () => {
     assert(firstScreen.hasJourneyHud, 'Journey HUD did not render.');
     assert(firstScreen.hasBottomControls, 'Bottom controls did not render.');
     assert(mobileMenuControls.count === 4, `Expected 4 mobile menu controls, found ${mobileMenuControls.count}.`);
-    assert(mobileMenuControls.visible, 'Mobile controls are clipped or outside the game shell.');
+    assert(mobileMenuControls.inShell, 'Mobile controls are clipped or outside the game shell.');
     assert(!firstScreen.bodyOverflows, `Mobile viewport has horizontal overflow at ${firstScreen.viewportWidth}x${firstScreen.viewportHeight}.`);
 
     await client.call('Emulation.setDeviceMetricsOverride', {
@@ -292,7 +299,8 @@ const run = async () => {
     await delay(100);
     const desktopMenuControls = await evaluate(client, visibleMenuControls);
     assert(desktopMenuControls.count === 4, `Expected 4 desktop menu controls, found ${desktopMenuControls.count}.`);
-    assert(desktopMenuControls.visible, 'Desktop controls are clipped or outside the game shell.');
+    assert(desktopMenuControls.inViewport, 'Desktop controls are clipped outside the viewport.');
+    assert(desktopMenuControls.rightOfShell, 'Desktop controls should sit in the right desktop dock outside the game shell.');
     await client.call('Emulation.setDeviceMetricsOverride', {
       width: 390,
       height: 844,

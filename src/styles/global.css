@@ -16,6 +16,7 @@
   --hud-zone-height: 202px;
   --right-rail-width: 48px;
   --right-rail-gap: 12px;
+  --right-rail-dock-padding: 6px;
   --side-button-offset: var(--safe-right);
   --bottom-controls-offset: var(--safe-bottom);
   --walk-button-zone-height: 74px;
@@ -52,12 +53,13 @@ button {
   position: fixed;
   top: 0;
   bottom: 0;
-  left: 50%;
+  left: 0;
+  right: 0;
   width: min(100vw, 430px);
   height: 100dvh;
+  margin: 0 auto;
   overflow: hidden;
   background: var(--bg);
-  transform: translateX(-50%);
   box-shadow: 0 0 42px rgba(0, 0, 0, 0.34);
 }
 
@@ -388,8 +390,14 @@ button {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  width: var(--right-rail-width);
+  width: calc(var(--right-rail-width) + var(--right-rail-dock-padding) * 2);
+  padding: var(--right-rail-dock-padding);
   gap: 0.48rem;
+  border: 1px solid rgba(238, 214, 137, 0.2);
+  border-radius: 16px;
+  background: rgba(4, 9, 8, 0.62);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
   pointer-events: none;
 }
 
@@ -558,7 +566,7 @@ button {
   position: absolute;
   top: calc(var(--hud-top-offset) + var(--hud-zone-height) + var(--notification-zone-gap));
   left: var(--safe-left);
-  right: calc(var(--side-button-offset) + var(--right-rail-width) + var(--right-rail-gap));
+  right: calc(var(--side-button-offset) + var(--right-rail-width) + var(--right-rail-dock-padding) * 2 + var(--right-rail-gap));
   bottom: calc(var(--bottom-controls-offset) + var(--walk-button-zone-height) + var(--notification-zone-gap));
   z-index: 34;
   display: grid;
@@ -1320,11 +1328,14 @@ button.event-overlay {
 
   .notification-zone {
     left: var(--safe-left);
-    right: calc(var(--side-button-offset) + var(--right-rail-width) + var(--right-rail-gap));
+    right: var(--safe-right);
   }
 
   .bottom-controls {
-    right: var(--side-button-offset);
+    position: fixed;
+    top: calc(var(--safe-top) + 132px);
+    left: calc(50% + 215px + var(--right-rail-gap));
+    right: auto;
     margin: 0;
     max-width: none;
   }
