@@ -233,7 +233,7 @@ button {
   line-height: 1.1;
 }
 
-.hud-sub-row span {
+.hud-sub-row > span {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -248,7 +248,7 @@ button {
   padding: 0.34rem 0.4rem;
 }
 
-.hud-sub-row span:last-child {
+.hud-sub-row > span:last-child {
   color: #f8fafc;
 }
 
@@ -290,7 +290,52 @@ button {
 
 @media (max-width: 480px) {
   :root {
-    --hud-zone-height: 212px;
+    --hud-zone-height: 244px;
+  }
+
+  .hud-travel-panel {
+    gap: 0.34rem;
+    padding: 0.62rem 0.66rem 0.68rem;
+    border-radius: 16px;
+  }
+
+  .hud-stat-card {
+    padding: 0 0.44rem;
+  }
+
+  .hud-stat-card strong {
+    gap: 0.18rem;
+    font-size: clamp(0.98rem, 4.8vw, 1.18rem);
+  }
+
+  .hud-route-line {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.16rem;
+  }
+
+  .hud-route-line strong {
+    font-size: clamp(0.88rem, 3.7vw, 1.05rem);
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .hud-route-line span {
+    font-size: 0.72rem;
+    text-align: left;
+  }
+
+  .hud-sub-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.28rem;
+    font-size: 0.64rem;
+  }
+
+  .hud-sub-row > span {
+    display: block;
+    min-height: 28px;
+    padding: 0.28rem 0.38rem;
+    text-align: left;
   }
 
   .hud-journey-row {
@@ -311,7 +356,7 @@ button {
   }
 
   .hud-route-line span,
-  .hud-sub-row span:last-child {
+  .hud-sub-row > span:last-child {
     text-align: left;
   }
 
