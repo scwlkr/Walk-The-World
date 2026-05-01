@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "smoke:local": "node scripts/local-dev-smoke.mjs",
+    "smoke:live:purchase": "node scripts/live-fast-purchase-smoke.mjs",
     "generate:item-images": "node scripts/generate-missing-item-images.mjs",
     "items:prompts": "node scripts/generate-item-art-prompts.mjs",
     "items:export": "node scripts/export-items-csv-to-json.mjs",

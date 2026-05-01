@@ -306,16 +306,34 @@ const loadAccountByPlatform = async (platform: string, platformUserId: string): 
   return (await response.json()) as AccountOut;
 };
 
+const delay = (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
 const resolveAccount = async (user: SupabaseUser): Promise<AccountOut> => {
   const linkedAccount = await loadAccountByPlatform(WTW_PLATFORM, user.id);
   if (linkedAccount) return linkedAccount;
 
-  const account = await walkerBucksFetch<AccountOut>('/v1/accounts', {
-    method: 'POST',
-    body: JSON.stringify({
-      username: `wtw:${user.id}`
-    })
-  });
+  const legacyAccount = await loadAccountByPlatform('supabase', user.id);
+  if (legacyAccount) return legacyAccount;
+
+  let account: AccountOut;
+  try {
+    account = await walkerBucksFetch<AccountOut>('/v1/accounts', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: `wtw:${user.id}`
+      })
+    });
+  } catch (error) {
+    await delay(250);
+    const racedAccount = await loadAccountByPlatform('supabase', user.id);
+    if (racedAccount) return racedAccount;
+    account = await walkerBucksFetch<AccountOut>('/v1/accounts', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: `wtw:${user.id}`
+      })
+    });
+  }
 
   try {
     await walkerBucksFetch('/v1/accounts/link-platform', {
@@ -329,8 +347,11 @@ const resolveAccount = async (user: SupabaseUser): Promise<AccountOut> => {
       })
     });
   } catch {
-    // Duplicate legacy Supabase links are harmless; the canonical WTW platform
-    // identity is created by WalkerBucks Bank link completion.
+    const racedAccount = await loadAccountByPlatform('supabase', user.id);
+    if (racedAccount) return racedAccount;
+    // Duplicate legacy Supabase links are harmless when they resolve back to
+    // the same deterministic WTW account. The canonical WTW platform identity
+    // is still created by WalkerBucks Bank link completion.
   }
 
   return account;

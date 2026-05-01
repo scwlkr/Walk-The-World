@@ -562,6 +562,15 @@ const App = () => {
   };
 
   useEffect(() => {
+    if (!authSession?.access_token || !isWalkerBucksBridgeConfigured) return;
+
+    for (const purchase of Object.values(state.walkerBucksBridge.purchases)) {
+      if (purchase.status !== 'optimistic_applied' || purchase.errorMessage) continue;
+      void settlePurchaseWithWalkerBucksInBackground(purchase);
+    }
+  }, [authSession?.access_token, state.walkerBucksBridge.purchases]);
+
+  useEffect(() => {
     if (!isAuthConfigured) {
       updateAccountState({
         provider: 'guest',
