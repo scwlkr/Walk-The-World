@@ -92,7 +92,7 @@ export const resolveRandomEvent = (state: GameState, eventDef: RandomEventDefini
     case 'instant_wb': {
       const gain = Math.floor((eventDef.value ?? 100) * multiplier);
       next = queueWalkerBucksGrantAmount(next, gain);
-      next.ui.toast = `+${gain} WB from ${eventDef.name} queued for WalkerBucks sync.`;
+      next.ui.toast = `+${gain} WB from ${eventDef.name}. WalkerBucks updating.`;
       break;
     }
     case 'instant_distance': {
@@ -184,7 +184,7 @@ export const resolveRandomEvent = (state: GameState, eventDef: RandomEventDefini
       if (Math.random() < 0.5) {
         const gain = Math.floor(180 * multiplier);
         next = queueWalkerBucksGrantAmount(next, gain);
-        next.ui.toast = `Mystery stash! +${gain} WB queued.`;
+        next.ui.toast = `Mystery stash! +${gain} WB. WalkerBucks updating.`;
       } else {
         next = applyDistanceAndWb(next, 1.2 * multiplier);
         next.ui.toast = 'Mystery rocket shoes! +distance.';
@@ -194,7 +194,7 @@ export const resolveRandomEvent = (state: GameState, eventDef: RandomEventDefini
     case 'fake': {
       const consolation = Math.floor(20 * multiplier);
       next = queueWalkerBucksGrantAmount(next, consolation);
-      next.ui.toast = `Fake shortcut. ${consolation} real WB queued.`;
+      next.ui.toast = `Fake shortcut. ${consolation} real WB. WalkerBucks updating.`;
       break;
     }
   }

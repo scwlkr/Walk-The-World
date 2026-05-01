@@ -1110,7 +1110,7 @@ const App = () => {
         pendingGrant
           ? {
               includeWalkerBucks: false,
-              toast: `${achievement.name} claimed. WalkerBucks grant pending.`
+              toast: `${achievement.name} claimed. WalkerBucks updating.`
             }
           : undefined
       );

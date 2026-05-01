@@ -41,7 +41,7 @@ export const AchievementsPanel = ({ state, onClaim }: AchievementsPanelProps) =>
             : grant?.status === 'failed'
               ? 'WalkerBucks retry needed'
               : 'WalkerBucks-backed with account sync'
-          : 'WalkerBucks sync queued on claim';
+          : 'WalkerBucks syncs on claim';
 
         return (
           <article key={achievement.id} className={`panel shop-card achievement-card ${unlocked ? 'is-unlocked' : ''}`}>

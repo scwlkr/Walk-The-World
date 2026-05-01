@@ -129,12 +129,12 @@ export const useInventoryItem = (state: GameState, itemId: string): GameState =>
 
   if (item.effect.type === 'instant_wb' || item.effect.type === 'currency_grant') {
     const gain = Math.floor(item.effect.value);
-    const queued = queueWalkerBucksGrantAmount(next, gain);
+    const withGrant = queueWalkerBucksGrantAmount(next, gain);
     next = {
-      ...queued,
+      ...withGrant,
       ui: {
-        ...queued.ui,
-        toast: `${item.name} used. +${gain} WB queued for WalkerBucks sync.`
+        ...withGrant.ui,
+        toast: `${item.name} used. +${gain} WB. WalkerBucks updating.`
       }
     };
   }

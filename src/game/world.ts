@@ -123,7 +123,7 @@ export const JOURNEY_UPGRADES: JourneyUpgradeDefinition[] = [
   {
     id: 'ledger_sense',
     name: 'Ledger Sense',
-    description: 'Permanent economy instincts slightly improve WB queued per mile.',
+    description: 'Permanent economy instincts slightly improve WB earned per mile.',
     baseCost: 3,
     costMultiplier: 2.2,
     maxLevel: 5,

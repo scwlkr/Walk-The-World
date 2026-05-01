@@ -374,7 +374,7 @@ export const claimQuestReward = (state: GameState, questId: string, now = Date.n
     },
     ui: {
       ...rewarded.ui,
-      toast: `${quest.name} reward queued for WalkerBucks sync.`
+      toast: `${quest.name} reward claimed. WalkerBucks updating.`
     }
   };
 };

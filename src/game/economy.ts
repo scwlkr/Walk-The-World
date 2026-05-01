@@ -391,7 +391,7 @@ export const queueWalkerBucksGrantAmount = (
       recentRewards: [
         {
           id: `wb_pending_${now}_${state.ui.recentRewards.length}`,
-          label: `+${grantAmount.toLocaleString()} WB queued`,
+          label: `+${grantAmount.toLocaleString()} WB earned`,
           createdAt: now
         },
         ...state.ui.recentRewards

@@ -36,7 +36,7 @@ const getJourneyUpgradeEffectText = (upgrade: JourneyUpgradeDefinition): string 
     case 'permanent_speed_bonus':
       return `+${percent}% distance power per level`;
     case 'permanent_wb_bonus':
-      return `+${percent}% WB queued per mile per level`;
+      return `+${percent}% WB earned per mile per level`;
     case 'follower_stability_bonus':
       return `-${percent}% follower leave pressure per level`;
     case 'offline_cap_bonus':

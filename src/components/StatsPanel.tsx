@@ -17,9 +17,9 @@ export const StatsPanel = ({ state }: StatsPanelProps) => (
       <li>Distance Traveled: {formatDistance(state.stats.totalDistanceWalked)}</li>
       <li>DPS: {formatDistanceRate(getIdleMilesPerSecond(state))}</li>
       <li>DPT: {formatDistance(getClickMiles(state))}</li>
-      <li>WB per mile queued: {getWbPerMile(state).toFixed(2)}</li>
-      <li>WalkerBucks queued for bridge sync: {Math.floor(state.walkerBucksBridge.pendingGrantAmount).toLocaleString()}</li>
-      <li>Total WB earned or queued: {Math.floor(state.totalWalkerBucksEarned).toLocaleString()}</li>
+      <li>WB earned per mile: {getWbPerMile(state).toFixed(2)}</li>
+      <li>WalkerBucks waiting for sync: {Math.floor(state.walkerBucksBridge.pendingGrantAmount).toLocaleString()}</li>
+      <li>Total WB earned: {Math.floor(state.totalWalkerBucksEarned).toLocaleString()}</li>
       <li>Offline cap: {Math.floor(getOfflineCapSeconds(state) / 3600)} hours</li>
       <li>Journey resets: {state.prestige.earthPrestigeCount}</li>
       <li>Journey Tokens: {state.prestige.journeyTokens.toLocaleString()}</li>

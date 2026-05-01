@@ -76,7 +76,7 @@ export const WalkerBucksPanel = ({
           {formatDateTime(state.walkerBucksBridge.lastCheckedAt)}
         </p>
         {pendingGrantAmount > 0 && (
-          <p className="muted">{pendingGrantAmount.toLocaleString()} WB earned in WTW is queued for WalkerBucks sync.</p>
+          <p className="muted">{pendingGrantAmount.toLocaleString()} WB earned in WTW is waiting for WalkerBucks sync.</p>
         )}
         {legacyLocalBalance > 0 && (
           <p className="muted">{legacyLocalBalance.toLocaleString()} legacy WTW WB will migrate to WalkerBucks after sign-in.</p>

@@ -35,8 +35,8 @@ export const NotificationCenter = ({
     <RandomEventOverlay spawnedEvent={state.spawnedEvent} onClaim={onClaimEvent} />
   ) : state.ui.offlineSummary ? (
     <aside className="panel notification-card notification-card-large offline-banner">
-      You walked {formatDistance(state.ui.offlineSummary.distance)} and queued{' '}
-      {Math.floor(state.ui.offlineSummary.wb).toLocaleString()} WB for WalkerBucks sync.
+      You walked {formatDistance(state.ui.offlineSummary.distance)} and earned{' '}
+      {Math.floor(state.ui.offlineSummary.wb).toLocaleString()} WB. WalkerBucks will update shortly.
       <button type="button" className="mini-btn" onClick={onDismissOfflineSummary}>
         Nice
       </button>
