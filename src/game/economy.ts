@@ -533,6 +533,9 @@ export const markWalkerBucksGrantGranted = (
   );
 };
 
+export const getPendingWalkerBucksGrants = (state: GameState): WalkerBucksRewardGrant[] =>
+  Object.values(state.walkerBucksBridge.rewardGrants).filter((grant) => grant.status === 'pending');
+
 export const getOpenWalkerBucksGrants = (state: GameState): WalkerBucksRewardGrant[] =>
   Object.values(state.walkerBucksBridge.rewardGrants).filter((grant) => grant.status !== 'granted');
 

@@ -38,6 +38,7 @@ import {
   createPendingMarketplacePurchase,
   buyOfferFastOptimistic,
   createWtwPurchaseId,
+  getPendingWalkerBucksGrants,
   getServerBackedAchievementReward,
   getUnsettledWtwPurchases,
   markWtwPurchaseSettled,
@@ -128,6 +129,7 @@ const App = () => {
   const stateRef = useRef(state);
   const authSessionRef = useRef<AuthSession | null>(null);
   const settlingPurchasesRef = useRef<Set<string>>(new Set());
+  const pendingWalkerBucksGrantIdsRef = useRef<Set<string>>(new Set());
   const clickLockedOfferIdsRef = useRef<Set<string>>(new Set());
   const musicAudioRef = useRef<HTMLAudioElement | null>(null);
   const musicTrackIndexRef = useRef(getMusicTrackIndex(state.settings.selectedMusicTrackId));
@@ -349,7 +351,9 @@ const App = () => {
   const submitWalkerBucksGrant = async (grant: WalkerBucksRewardGrant) => {
     const accessToken = authSession?.access_token;
     if (!isWalkerBucksBridgeConfigured || !accessToken) return;
+    if (pendingWalkerBucksGrantIdsRef.current.has(grant.id)) return;
 
+    pendingWalkerBucksGrantIdsRef.current.add(grant.id);
     setWalkerBucksBusy(true);
     setState((prev) => {
       const existing = prev.walkerBucksBridge.rewardGrants[grant.id] ?? grant;
@@ -399,9 +403,22 @@ const App = () => {
         return withToast;
       });
     } finally {
-      setWalkerBucksBusy(false);
+      pendingWalkerBucksGrantIdsRef.current.delete(grant.id);
+      if (pendingWalkerBucksGrantIdsRef.current.size === 0) {
+        setWalkerBucksBusy(false);
+      }
     }
   };
+
+  useEffect(() => {
+    if (!authSession?.user || !authSession.access_token || !isWalkerBucksBridgeConfigured) return;
+
+    for (const grant of getPendingWalkerBucksGrants(state)) {
+      if (!pendingWalkerBucksGrantIdsRef.current.has(grant.id)) {
+        void submitWalkerBucksGrant(grant);
+      }
+    }
+  }, [authSession?.user?.id, authSession?.access_token, state.walkerBucksBridge.rewardGrants]);
 
   const submitMarketplacePurchase = async (purchase: WalkerBucksMarketplacePurchase) => {
     const accessToken = authSession?.access_token;
@@ -667,7 +684,6 @@ const App = () => {
     const accessToken = authSession?.access_token;
     if (!user || !accessToken || !isWalkerBucksBridgeConfigured) return;
 
-    let grantToSubmit: WalkerBucksRewardGrant | null = null;
     setState((prev) => {
       const amount = Math.floor(prev.walkerBucks);
       if (amount <= 0) return prev;
@@ -676,15 +692,10 @@ const App = () => {
       const existing = prev.walkerBucksBridge.rewardGrants[pendingGrant.id];
       if (existing) return prev;
 
-      grantToSubmit = pendingGrant;
       const next = upsertWalkerBucksGrant(prev, pendingGrant);
       saveGameState(next);
       return next;
     });
-
-    if (grantToSubmit) {
-      void submitWalkerBucksGrant(grantToSubmit);
-    }
   }, [authSession?.user?.id, authSession?.access_token, state.walkerBucks]);
 
   useEffect(() => {
@@ -693,14 +704,12 @@ const App = () => {
     if (!user || !accessToken || !isWalkerBucksBridgeConfigured) return undefined;
 
     const flushPendingGrant = () => {
-      let grantToSubmit: WalkerBucksRewardGrant | null = null;
       setState((prev) => {
         const amount = Math.floor(prev.walkerBucksBridge.pendingGrantAmount);
         if (amount <= 0) return prev;
 
         const sequence = prev.walkerBucksBridge.pendingGrantSequence + 1;
         const pendingGrant = createPendingWalkerBucksBatchGrant(user.id, amount, sequence);
-        grantToSubmit = pendingGrant;
         const withGrant = upsertWalkerBucksGrant(prev, pendingGrant);
         const next: GameState = {
           ...withGrant,
@@ -713,10 +722,6 @@ const App = () => {
         saveGameState(next);
         return next;
       });
-
-      if (grantToSubmit) {
-        void submitWalkerBucksGrant(grantToSubmit);
-      }
     };
 
     const interval = window.setInterval(flushPendingGrant, 5000);
