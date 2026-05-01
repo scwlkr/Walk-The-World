@@ -12,9 +12,11 @@ This document defines the C-version bridge between the web game and the WalkerBu
 
 It does not move WalkerBucks wallet, ledger, bank, or account-linking ownership into the game. The game remains a browser client plus trusted bridge.
 
+Hard invariant: WalkerBucks must never be local to WTW. WTW may calculate gameplay progress and queue pending reward or spend requests, but no client save, browser state, Supabase game-save row, or app-specific table can create spendable WB. Every earned or spent WalkerBuck settles through the trusted WalkerBucks bridge/API with idempotency, account identity, and ledger records.
+
 ## Source Evidence
 
-WalkerBucks was inspected from `/Users/shanewalker/Desktop/dev/WalkerBucks` at commit `aa67559`.
+WalkerBucks was inspected from `/Users/shanewalker/Desktop/dev/WalkerBucks` at commit `0d14d280a579`.
 
 Current WalkerBucks facts:
 

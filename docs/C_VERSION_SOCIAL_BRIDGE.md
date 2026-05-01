@@ -1,6 +1,6 @@
 # Walk The World C Version Social Bridge
 
-Last updated: 2026-04-28
+Last updated: 2026-04-30
 
 ## Status
 
@@ -14,15 +14,16 @@ It does not ship live Discord OAuth, Telegram auth, cross-platform reward grants
 
 ## Source Evidence
 
-WalkerBucks was inspected from `git@github-scwlkr:scwlkr/WalkerBucks.git` at commit `2090e62a1854f4724e5ea56e08d1e577932464d1`.
+WalkerBucks was inspected from `/Users/shanewalker/Desktop/dev/WalkerBucks` at commit `0d14d280a579`.
 
-Relevant WalkerBucks endpoint facts:
+Relevant WalkerBucks ledger facts:
 
 - `GET /v1/leaderboards/walkerbucks` returns ranked wallet balance rows shaped as `account_id` and `balance`.
-- `GET /v1/shop/offers` returns active shop offers shaped as `id`, `shop_id`, `item_definition_id`, and `price_wb`.
-- `POST /v1/shop/purchases` takes `account_id`, `shop_offer_id`, `idempotency_key`, and `reason_code`.
-- `GET /v1/inventory/{account_id}` returns item instances shaped as `item_instance_id`, `item_definition_id`, and `status`.
-- `/v1/accounts/me` remains a stub, so the game bridge still resolves accounts through the Phase 6 deterministic Supabase mapping.
+- `POST /v1/transfers/walkerbucks` is the supported WB movement path for app purchase settlement.
+- WalkerBucks core is the source of truth for accounts, wallets, ledger transactions, transfers, rewards, and audit history.
+- WalkerBucks core does not expose item, shop, inventory, or marketplace routes.
+- Retained live item/shop rows are app-layer compatibility data and must be accessed only through the trusted bridge.
+- `/v1/accounts/me` requires trusted account context, so the game bridge still resolves WTW users server-side instead of trusting browser-supplied account IDs.
 
 Discord evidence was inspected from `/Users/shanewalker/Desktop/dev/walker-world-discord`.
 
@@ -52,16 +53,16 @@ Reason:
 
 ### Marketplace Proof Scope
 
-Ship a WalkerBucks-backed purchase proof using live WalkerBucks shop offers.
+Ship a WalkerBucks-backed purchase proof using bridge-served app-layer offers and WalkerBucks ledger settlement.
 
 Rules:
 
 - The game browser reads marketplace offers only through the trusted bridge.
 - The browser sends only `shopOfferId` and an idempotency key for purchases.
 - The bridge resolves the authenticated Supabase user to a WalkerBucks account.
-- The bridge calls `POST /v1/shop/purchases` with the resolved `account_id`.
+- The bridge validates app-layer offer data server-side, then settles WB through WalkerBucks.
 - Client-side pending WB can never be used as spendable WB.
-- Purchased shared inventory remains a WalkerBucks item instance for Phase 7; it is not merged into local game inventory yet.
+- Purchased shared inventory remains a read-only bridge entitlement for Phase 7; it is not merged into local game inventory yet.
 
 ### Discord Identity-Linking Contract
 
@@ -99,13 +100,13 @@ The Discord economy catalog does not seed game inventory in Phase 7.
 Reason:
 
 - The game already has local inventory and cosmetics.
-- WalkerBucks has separate item definition and shop offer APIs.
+- WalkerBucks no longer treats item definitions, shop offers, inventory, or marketplace routes as core ledger APIs.
 - Discord catalog IDs, D1 state, and command presentation are not a confirmed canonical source for web-game inventory.
 
 Allowed Phase 7 use:
 
 - Reference Discord catalog categories and naming as design evidence.
-- Keep marketplace proof tied to live WalkerBucks shop offers.
+- Keep marketplace proof tied to bridge-served app-layer offers and WalkerBucks ledger settlement.
 - Defer any catalog-to-game inventory mapping until shared inventory ownership is explicit.
 
 ### Telegram Decision
@@ -183,8 +184,8 @@ Bridge:
 
 ```text
 POST /v1/accounts
-GET /v1/shop/offers
 GET /v1/wallets/{account_id}
+Server-side database read of retained shop_offers, item_definitions, and item_instances
 ```
 
 Bridge response:
@@ -234,10 +235,10 @@ Bridge:
 
 ```text
 POST /v1/accounts
-GET /v1/shop/offers
-POST /v1/shop/purchases
+Server-side database read of retained shop_offers
+POST /v1/transfers/walkerbucks
 GET /v1/wallets/{account_id}
-GET /v1/inventory/{account_id}
+Server-side database write/read of retained item_instances and item_history
 ```
 
 Bridge response:
@@ -320,7 +321,7 @@ Telegram unavailable:
 
 - Browser code never calls WalkerBucks directly.
 - Browser code never stores WalkerBucks service tokens, Discord bot tokens, Discord client secrets, or Discord signing secrets.
-- Marketplace prices and item ownership are verified by WalkerBucks through the trusted bridge.
+- Marketplace prices and app-layer item ownership are verified server-side by the trusted bridge; WB movement is verified by the WalkerBucks ledger.
 - Browser purchase requests do not include trusted price, account ID, item definition ID, or balance fields.
 - Discord identity must be verified server-side before any cross-platform reward or inventory bridge ships.
 - Discord D1 state and WalkerBucks state must not be merged without an explicit migration plan.
@@ -328,7 +329,7 @@ Telegram unavailable:
 ## Phase 7 Acceptance Mapping
 
 - Logged-in beta player can see at least one leaderboard: shared WalkerBucks balance leaderboard through the trusted bridge.
-- Marketplace proof cannot spend client-side WB: purchases route through WalkerBucks and only use ledger balance.
+- Marketplace proof cannot spend client-side WB: purchases route through the bridge and only use WalkerBucks ledger balance.
 - Discord bridge has an explicit identity-linking contract before cross-platform rewards ship: this document defines it and defers rewards.
 - Telegram has a clear future plan or blocker note: Telegram is future-planned after Discord linking stability.
 - `npm run build` passes after code changes.

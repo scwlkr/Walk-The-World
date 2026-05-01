@@ -1,6 +1,6 @@
 # Walk The World C Version Account Sync Decision
 
-Last updated: 2026-04-28
+Last updated: 2026-04-30
 
 ## Status
 
@@ -15,7 +15,7 @@ Phase 5 decides who owns game account identity and cloud save persistence for th
 - The current game is a Vite/React client with a localStorage guest save under `walk_the_world_save_v1`.
 - Local guest play must keep working without login, network access, or cloud configuration.
 - WalkerBucks exists as a separate economy API and should remain the shared ledger, not the game-save database.
-- WalkerBucks `/v1/accounts/me` is currently stubbed, and privileged reward/admin endpoints must not be called directly from the browser.
+- WalkerBucks `/v1/accounts/me` requires trusted account context and must not be called directly from the browser; privileged reward/admin endpoints also stay behind the bridge.
 - C needs beta-friendly account recovery before the shared economy bridge is ready.
 - Existing local saves must not be silently overwritten during account linking.
 
@@ -73,6 +73,8 @@ Cons:
 Use Supabase for C-version game auth, profile identity, and cloud save persistence.
 
 WalkerBucks remains the economy ledger and is integrated through a trusted backend bridge. Phase 5 stores and recovers the game `GameState` payload for authenticated users, but spendable WB must come from WalkerBucks, not from client save state.
+
+No Supabase cloud save, localStorage save, browser field, or app-specific table can create spendable WB. The saved payload may preserve gameplay progress and pending bridge request metadata only; every earned or spent WalkerBuck must settle through WalkerBucks with idempotency, account identity, and ledger records.
 
 ## Auth Scope
 

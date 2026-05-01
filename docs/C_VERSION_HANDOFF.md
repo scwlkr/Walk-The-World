@@ -1,6 +1,6 @@
 # Walk The World C Version Handoff
 
-Last updated: 2026-04-29
+Last updated: 2026-04-30
 
 ## Current State
 
@@ -85,6 +85,8 @@ Retention pass means:
 - Do not silently overwrite local saves during account linking.
 - Strict pixel art is the target style.
 - WalkerBucks must route through the separate WalkerBucks API/repo.
+- WalkerBucks must never be local: no client save, browser state, Supabase game-save row, or app-specific table can create spendable WB.
+- WTW may queue pending reward/spend requests for retry visibility, but every earned or spent WalkerBuck must settle through the trusted bridge/API with idempotency, account identity, and ledger records.
 - Discord is the first social bridge target; Telegram waits unless Discord/economy linking is already stable.
 
 ## External Evidence
@@ -92,12 +94,14 @@ Retention pass means:
 WalkerBucks:
 
 - Repo reachable through `git@github-scwlkr:scwlkr/WalkerBucks.git`.
-- Inspected commit: `2090e62`.
+- Inspected commit for this cleanup: `0d14d280a579`.
 - FastAPI/PostgreSQL service.
 - Double-entry ledger.
 - Integer WB amounts only.
-- `/v1/accounts/me` is currently a stub.
-- Privileged rewards/admin routes need auth before production/shared-economy use.
+- Canonical owner for WB balances, rewards, spending, transfers, account identities, and audit history.
+- Core does not expose item, shop, inventory, or marketplace APIs as ledger-owned behavior.
+- Retained item/shop rows are app-layer compatibility data accessed only through the trusted bridge.
+- Privileged rewards/admin routes need server-side bridge auth before public/shared-economy use.
 
 Discord:
 
@@ -329,7 +333,7 @@ Resolved decisions:
 
 - Supabase Edge Function is the C-version trusted WalkerBucks bridge target.
 - Browser code only knows `VITE_WALKERBUCKS_BRIDGE_URL`; WalkerBucks API URL/service token are server-side function secrets.
-- Until WalkerBucks `/v1/accounts/me` exists, the bridge maps Supabase users to deterministic WalkerBucks usernames shaped as `wtw:{supabase_user_id}`.
+- Until WalkerBucks has first-party browser-safe account auth for WTW, the bridge maps Supabase users to deterministic WalkerBucks usernames shaped as `wtw:{supabase_user_id}` or bank-linked platform identities.
 - The first server-backed reward source is `achievement:day_one_check_in`.
 
 Implemented:
@@ -365,7 +369,7 @@ Touched files:
 
 Verification completed:
 
-- `git ls-remote git@github-scwlkr:scwlkr/WalkerBucks.git HEAD` returns `2090e62a1854f4724e5ea56e08d1e577932464d1`.
+- Local WalkerBucks review confirmed commit `0d14d280a579` exposes the current ledger/account/transfer/leaderboard surface and keeps item/shop/inventory/marketplace routes out of core.
 - `npm run build` passes.
 
 Verification not completed:
@@ -377,7 +381,7 @@ Phase 7 from `docs/C_VERSION_PLAN.md` has been implemented.
 Resolved decisions:
 
 - First leaderboard category is shared WalkerBucks balance.
-- Marketplace proof uses live WalkerBucks shop offers and `POST /v1/shop/purchases` through the trusted bridge.
+- Marketplace proof uses bridge-served app-layer offers and WalkerBucks ledger settlement through the trusted bridge.
 - Discord identity linking is documented as the first social bridge target, but cross-platform rewards stay blocked until a trusted server-side link flow exists.
 - Telegram is future-planned after Discord linking and shared WalkerBucks flows are stable.
 - Discord economy catalog does not seed game inventory in Phase 7.
@@ -414,7 +418,7 @@ Touched files:
 
 Verification completed:
 
-- Temporary WalkerBucks clone at commit `2090e62a1854f4724e5ea56e08d1e577932464d1` confirmed endpoint shapes for leaderboards, shop offers, shop purchases, inventory, and item definitions.
+- WalkerBucks endpoint review confirmed leaderboard and ledger settlement surfaces; offer/item compatibility stays server-side in the trusted bridge rather than becoming browser-owned or WTW-ledger-owned.
 - Local `walker-world-discord` repo docs confirmed Discord has D1-backed wallet, leaderboard, shop, buy, inventory, achievements, titles, daily, and generated catalog surfaces, but no direct web-game account link.
 - `npm run build` passes.
 
@@ -479,14 +483,14 @@ Live private-beta configuration pass repo-side setup:
 - WalkerBucks is hosted at `https://walkerbucks.vercel.app`.
 - Supabase Edge Function secrets for `WALKERBUCKS_API_URL` and `WALKERBUCKS_SERVICE_TOKEN` are present.
 - `VITE_WALKERBUCKS_BRIDGE_URL` is configured in Vercel Production, Preview, and Development.
-- Unauthenticated `https://walkerbucks.vercel.app/v1/shop/offers` returns 401, while `https://walkerbucks.vercel.app/healthz` returns OK.
+- `https://walkerbucks.vercel.app/healthz` returns OK, and privileged WalkerBucks API access remains server-side.
 - Live bridge smoke for `shane.caleb.walker@gmail.com` passed shared balance, idempotent Day One reward, leaderboard, and marketplace offers with `cloudSaveRunId` `53b9e1ad-2783-4859-aabf-9452bbd2fc1d`, WalkerBucks account `80539c84-4af3-40cf-9110-02f1621a00ee`, reward transaction `ca04741a-9b67-4ee3-a4ad-d9bd6cb1f3f7`, 6 leaderboard entries, and 12 marketplace offers.
 - The first marketplace purchase smoke failed with `insufficient balance` because the cheapest seeded offer was 100 WB and the Day One reward grants 20 WB.
 - Added a 20 WB `Version C Smoke Ticket` offer in the `walkerbucks` schema with offer id `13`.
 - Full purchase smoke then passed with `cloudSaveRunId` `7b09b975-4722-4fee-8459-9fab0fc6f9ac`, 13 marketplace offers, and `purchaseStatus` `purchased`.
 - Final post-deploy live smoke passed with `cloudSaveRunId` `fbd8dd0b-fe4a-4908-9b4d-4bf0efcc8417`, 6 leaderboard entries, 13 marketplace offers, and `purchaseStatus` `purchased`.
 - Final production HTTP check returned HTTP 200 from `https://walk-the-world.vercel.app/`.
-- Final WalkerBucks checks returned HTTP 200 for `/healthz` and HTTP 401 for unauthenticated `/v1/shop/offers`.
+- Final WalkerBucks checks returned HTTP 200 for `/healthz`; privileged API calls remain behind server-side bridge/auth boundaries.
 
 Retention/gameplay depth pass from `docs/C_VERSION_PLAN.md` has been implemented.
 
@@ -573,7 +577,7 @@ Use `v0.2.0-beta.1` as the private-friends beta baseline and collect tester feed
 ## Next Kickoff Prompt
 
 ```text
-Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/WALKERWORLD_SUPABASE_ARCHITECTURE.md, docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, docs/C_VERSION_WALKERBUCKS_BRIDGE.md, and docs/C_VERSION_SOCIAL_BRIDGE.md first. Use `v0.2.0-beta.1` as the Version C private-beta baseline: push/verify the tag if it has not already been pushed, invite private testers, monitor account recovery, guest fallback, Journey milestones, route encounters, catalog shop, shared inventory, WalkerBucks balance/leaderboard/marketplace surfaces, Mars prototype entry, and reset/export flows, then collect a concise blocker list before any public launch work.
+Please continue in /Users/shanewalker/Desktop/dev/Walk-The-World by reading docs/WALKER_WORLD_DEPENDENCIES.md, docs/WALKERWORLD_SUPABASE_ARCHITECTURE.md, docs/C_VERSION_PLAN.md, docs/C_VERSION_HANDOFF.md, docs/C_VERSION_ACCOUNT_SYNC_DECISION.md, docs/C_VERSION_WALKERBUCKS_BRIDGE.md, and docs/C_VERSION_SOCIAL_BRIDGE.md first. Use `v0.2.0-beta.1` as the Version C private-beta baseline: push/verify the tag if it has not already been pushed, invite private testers, monitor account recovery, guest fallback, Journey milestones, route encounters, catalog shop, shared inventory, WalkerBucks balance/leaderboard/marketplace surfaces, Mars prototype entry, and reset/export flows, then collect a concise blocker list before any public launch work. Preserve the WalkerBucks ledger boundary: WTW can queue pending requests, but no local/browser/app-specific state creates spendable WB.
 ```
 
 ## Required Verification

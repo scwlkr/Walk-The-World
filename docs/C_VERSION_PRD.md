@@ -1,13 +1,14 @@
 # Walk The World C Version PRD
 
-Last updated: 2026-04-28
+Last updated: 2026-04-30
 
 ## Source Inputs
 
 - `README.md` roadmap to C Version.
 - `docs/questions_from_codex.md` stakeholder answers.
+- `docs/WALKER_WORLD_DEPENDENCIES.md` WalkerBucks ledger boundary.
 - Current game repo files under `src/`, `public/assets/`, and `assets/source/`.
-- WalkerBucks repo inspected from `git@github-scwlkr:scwlkr/WalkerBucks.git` at `2090e62`.
+- WalkerBucks repo inspected from `/Users/shanewalker/Desktop/dev/WalkerBucks` at `0d14d280a579`.
 - Local Discord repo inspected at `/Users/shanewalker/Desktop/dev/walker-world-discord`.
 
 ## Product Definition
@@ -54,12 +55,15 @@ The game already has the MVP B loop and several early C assets:
 - Item and cosmetic shop tabs exist as local guest-save collection panels.
 - `currentWorldId` now supports `earth`, playable `moon`, and locked future `mars` / `solar_system` definitions.
 
-WalkerBucks is real enough to integrate against later, but not ready for direct client use:
+WalkerBucks is the only source of truth for spendable WB and is not safe for direct browser use:
 
 - It is a FastAPI monolith with PostgreSQL and a double-entry ledger.
-- It exposes `/v1/accounts`, `/v1/wallets/{account_id}`, `/v1/rewards/grants`, `/v1/shop/purchases`, `/v1/inventory/{account_id}`, and `/v1/leaderboards/walkerbucks`.
-- `/v1/accounts/me` is stubbed until auth exists.
-- Admin and reward endpoints need an authenticated server-side caller before production use.
+- It owns account identity links, wallet balances, reward grants, transfers, ledger entries, and audit history.
+- It exposes account, wallet, reward, transfer, and leaderboard routes used by the trusted bridge.
+- It does not expose item, shop, inventory, or marketplace routes as WalkerBucks core APIs.
+- Retained item/shop rows are app-layer compatibility data and must not become a second WalkerBucks ledger.
+- `/v1/accounts/me` exists but still requires the trusted bridge/account-mapping path for WTW.
+- Privileged API access needs an authenticated server-side caller before public/shared-economy use.
 
 The Discord repo already contains a WalkerBucks-themed economy and inventory direction:
 
@@ -96,7 +100,7 @@ No roadmap item should remain an unchecked vague promise.
 ### Achievements
 
 - Achievements should be both passive badges and reward-bearing milestones.
-- Rewards may include WB, items, cosmetics, titles, or gameplay modifiers.
+- Rewards may include queued WB requests, items, cosmetics, titles, or gameplay modifiers.
 - Achievement definitions should be data-driven and persist in the save/account model.
 
 ### Inventory Items
@@ -135,6 +139,8 @@ No roadmap item should remain an unchecked vague promise.
 - The web game needs a server-side adapter or trusted function to grant rewards, purchase items, and sync balances.
 - Rewards should become server-authoritative before shared economy launch.
 - For C private beta, route progress can remain playable while the bridge is unavailable, but spendable WB must always come from WalkerBucks.
+- No client save, browser state, Supabase `game_saves` payload, or WTW-owned table can create spendable WB.
+- Every earned or spent WalkerBuck must settle through WalkerBucks with idempotency, account identity, and ledger records.
 
 ### Leaderboards
 
@@ -161,8 +167,8 @@ No roadmap item should remain an unchecked vague promise.
 
 ### Marketplace And Inventory Integration
 
-- Marketplace/inventory integration depends on WalkerBucks item definitions, account identity, and purchase APIs.
-- C should start with game-local inventory and a WalkerBucks-backed purchase proof only after the account bridge exists.
+- Marketplace/inventory integration depends on WalkerBucks ledger settlement, account identity, and bridge-verified app-layer entitlements.
+- C should start with game-local inventory and a WalkerBucks-ledger purchase proof only after the account bridge exists.
 - Do not build peer-to-peer trading in C.
 
 ### Discord And Telegram Reward Bridge
@@ -184,12 +190,12 @@ Use a layered progression model:
 Recommended service ownership, pending approval:
 
 - Supabase or equivalent app backend owns game auth, profile, and cloud save for C.
-- WalkerBucks owns the canonical WB ledger, shared inventory purchases, account platform identities, and public WB leaderboards.
+- WalkerBucks owns the canonical WB ledger, account platform identities, ledger-backed purchases/transfers, and public WB leaderboards.
 - Discord bot remains a separate integration client until a shared account-linking contract exists.
 
 ## Major Risks
 
-- WalkerBucks auth is not implemented yet, so shared economy integration cannot be treated as a simple frontend API call.
+- WalkerBucks browser-safe account auth is not the WTW integration path yet, so shared economy integration cannot be treated as a simple frontend API call.
 - Cosmetic gameplay effects can destabilize progression if they duplicate upgrade/follower math without limits.
 - "All leaderboards" can expand quickly; C needs one verified leaderboard before adding categories.
 - Strict pixel art requires either asset production time or acceptance of first-pass reference quality.
@@ -203,8 +209,8 @@ Recommended service ownership, pending approval:
 - Moon canonical distance value.
 - Which inventory item types ship first.
 - Which leaderboard category ships first.
-- Which WTW rewards are bridge-settled immediately versus queued until sign-in.
-- Whether existing Discord economy catalog should seed the game inventory or stay Discord-only for now.
+- Which future WTW reward categories need stronger server validation before public launch.
+- Whether existing Discord economy catalog should stay design evidence only or move through a formal WalkerBucks/WTW ownership plan later.
 
 ## Launch Intent
 

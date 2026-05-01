@@ -1,7 +1,7 @@
 # Walk The World (Walker World)
 
 **Walk The World** is a mobile-first incremental / idle PWA game in the **Walker World** universe.
-You begin in **Walkertown**, crawl forward one tiny step at a time, and eventually loop the Earth while stacking **WalkerBucks (WB)**.
+You begin in **Walkertown**, crawl forward one tiny step at a time, and eventually loop the Earth while queuing **WalkerBucks (WB)** rewards for ledger settlement.
 
 > Core vibe: open app → tap walk → number goes up → buy goofy upgrade → speed improves → chase next upgrade.
 
@@ -11,7 +11,7 @@ You begin in **Walkertown**, crawl forward one tiny step at a time, and eventual
 - React 18
 - TypeScript (strict)
 - Canvas API for game scene rendering
-- localStorage guest save system
+- localStorage guest gameplay save system
 - Optional Supabase account/cloud save
 - Basic PWA manifest
 
@@ -31,15 +31,15 @@ npm run build
 ## Core Gameplay Loop
 
 ```text
-tap the scene or WALK → gain distance → hit quick Journey milestones → earn WB/items
-→ resolve route encounters → buy upgrades/followers/catalog items → walk faster
+tap the scene or WALK → gain distance → hit quick Journey milestones → queue WB/items
+→ settle WB through WalkerBucks → buy upgrades/followers/catalog items → walk faster
 → hit landmarks → prestige Earth → unlock Moon and Mars prototype progression
 ```
 
 - Manual walking via the **WALK** button or by tapping the scene.
 - Idle walking via automatic game tick.
-- WB earned from distance.
-- Earth loop bonus grants **10,000 WB**.
+- Distance queues WalkerBucks reward requests; it does not create spendable WB until WalkerBucks settles the grant.
+- Earth loop bonus queues a **10,000 WB** reward request.
 - Earth prestige unlocks playable Moon progression.
 
 ## Current MVP Features
@@ -53,8 +53,8 @@ tap the scene or WALK → gain distance → hit quick Journey milestones → ear
 - Journey milestone strip for early first-session goals and claimable rewards
 - Upgrade shop (data-driven)
 - Follower shop (data-driven)
-- Generated item catalog adapter for local item drops and catalog shop offers
-- Local achievements with claimable WB/item/cosmetic/title rewards
+- Generated item catalog adapter for local item drops and bridge-settled catalog offers
+- Local achievements with claimable item/cosmetic/title rewards and queued WB grant requests
 - Local inventory with consumable, collectible, equipment, cosmetic, title, and safe inert collectible item types
 - Gameplay-affecting cosmetics and equipment
 - Prestige, world expansion, playable Moon progression, and local Mars prototype after Moon loop completion
@@ -62,7 +62,7 @@ tap the scene or WALK → gain distance → hit quick Journey milestones → ear
 - Offline progress with cap + summary banner
 - localStorage autosave + import/export/reset
 - Optional Supabase email/password, Google auth, and manual cloud save upload/load
-- Optional WalkerBucks bridge surfaces for shared balance, first server-backed reward, shared leaderboard, marketplace purchase proof, and read-only shared inventory entitlements
+- WalkerBucks bridge surfaces for canonical shared balance, server-backed rewards, shared leaderboard, marketplace purchase proof, and read-only shared inventory entitlements
 - Stats panel + settings panel
 - Dev-only scene/vibe lab behind `?dev=1` during Vite development
 - Mobile-first bottom nav + desktop-friendly layout
@@ -165,16 +165,16 @@ Walk-The-World/
 
 - Save key: `walk_the_world_save_v1`
 - Includes `saveVersion: 8` with migration from earlier local saves
-- Autosaves every 5s and on important actions (walk, purchases, events)
+- Autosaves every 5s and on important gameplay/bridge actions
 - Save before unload
 - Import/export as JSON text in settings
 - Guest play works without Supabase or WalkerBucks bridge configuration
 - Signed-in players can manually upload local saves or load cloud saves
-- WalkerBucks bridge reward state stores pending/failed grants for retry
+- WalkerBucks bridge state stores pending/failed reward, spend, and purchase requests for retry visibility only
 
 ## Account Sync Environment
 
-Optional account sync uses Supabase Auth and a `game_saves` table. Optional WalkerBucks bridge reads and grants use a trusted server function.
+Optional account sync uses Supabase Auth and a `game_saves` table. WalkerBucks balance reads, rewards, spends, transfers, and marketplace purchases use a trusted server function.
 
 ```text
 VITE_SUPABASE_URL=
@@ -224,14 +224,16 @@ WTW_BETA_SMOKE_PASSWORD=
 
 Set `WTW_BETA_SMOKE_REQUIRE_BRIDGE=true` and `WTW_BETA_SMOKE_ALLOW_PURCHASE=true` for the full live WalkerBucks bridge smoke. Use `WTW_BETA_SMOKE_PURCHASE_OFFER_ID=13` when you need the idempotent 20 WB private-beta purchase proof.
 
-## WalkerBucks API Readiness
+## WalkerBucks Ledger Boundary
 
-WalkerBucks is ledger-owned. WTW can queue earned WB while offline or unsigned, but spendable WB comes from the trusted bridge balance, and upgrades, followers, catalog items, marketplace offers, and migration grants settle through WalkerBucks.
+WalkerBucks must never be local to WTW. The WalkerBucks ledger is the only source of truth for balances, rewards, spending, transfers, and audit history across the ecosystem.
+
+WTW can calculate gameplay progress and queue pending reward requests, but no client save, browser state, localStorage value, Supabase game-save row, or app-specific table can create spendable WB. Every earned or spent WalkerBuck must settle through the trusted WalkerBucks bridge/API with idempotency, account identity, and ledger records.
 
 - Browser code only uses `VITE_WALKERBUCKS_BRIDGE_URL`.
 - WalkerBucks API URL and service token belong in server-side function secrets.
-- Fixed and dynamic WTW reward sources settle through the bridge with stable idempotency keys.
-- Failed WalkerBucks grants and spends persist in the save and can be retried with the same idempotency key.
+- Fixed and dynamic WTW reward sources are pending until they settle through the bridge with stable idempotency keys.
+- Failed WalkerBucks grants, spends, and purchases persist in the save only as retry metadata.
 - Live shared-economy QA passes through the deployed Supabase bridge and hosted WalkerBucks API.
 - WalkerBucks marketplace inventory is mapped into read-only app-layer entitlements when the offer matches a generated catalog item.
 - Unknown shared inventory remains visible as shared-only and does not mint WB or gameplay items.
@@ -244,7 +246,7 @@ No real-money value, no crypto, no paid loot boxes.
 - Guest/local play works without Supabase, WalkerBucks, Discord, or Telegram configuration.
 - Account sync is implemented and live recovery has passed against `walk_the_world.game_saves` in the shared `WalkerWorld` Supabase project.
 - Shared WalkerBucks balance, Day One Walker shared reward, leaderboard, offer loading, and the beta marketplace purchase proof pass through the trusted bridge.
-- Local WB remains the upgrade/play currency; shared WalkerBucks is read and spent only through the trusted bridge.
+- No local/client WB is spendable. Gameplay progress can queue WB requests, and upgrades, followers, catalog items, marketplace purchases, migration grants, and other WB movement settle through WalkerBucks before local state changes.
 - Shared WalkerBucks item instances are visible as read-only shared inventory entitlements; only known generated catalog mappings receive local item context.
 - Discord reward linking is contract-defined only. Telegram remains deferred until Discord linking and shared WalkerBucks flows are stable.
 - No service worker yet (manifest-only PWA readiness).
@@ -274,7 +276,7 @@ public/assets/audio/sfx/random_event.ogg
 - [x] Mobile-first layout
 - [x] Canvas walking scene
 - [x] Distance progression
-- [x] WalkerBucks earning
+- [x] WalkerBucks reward queue and bridge settlement
 - [x] Manual WALK button
 - [x] Idle progress
 - [x] Upgrade shop

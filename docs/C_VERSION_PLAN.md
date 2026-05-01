@@ -1,6 +1,6 @@
 # Walk The World C Version Plan
 
-Last updated: 2026-04-29
+Last updated: 2026-04-30
 
 ## Execution Mode
 
@@ -12,6 +12,7 @@ Rules:
 - Do not mark a README roadmap item done unless it is implemented and verified.
 - If a roadmap item cannot ship in C, add the blocker and next action under "Blocked Or Deferred Items."
 - Keep local guest play working through every phase.
+- Keep WalkerBucks ledger-owned: WTW can queue reward/spend requests, but no client save, browser state, Supabase game-save row, or app-specific table can create spendable WB.
 - Run `npm run build` before closing implementation phases that touch code.
 - Every chat or phase closeout for this C-version plan must end with a copy-ready prompt that kicks off the next session or next phase.
 
@@ -37,7 +38,7 @@ Known repo gaps:
 
 - Version C private beta is deployed and ready to tag as `v0.2.0-beta.1`; this is still not a public launch build.
 - Supabase client/Edge Function artifacts are linked to the shared `WalkerWorld` Supabase project.
-- WalkerBucks API exists in a separate repo, but `/v1/accounts/me` auth is stubbed and privileged endpoints still depend on the trusted bridge.
+- WalkerBucks API exists in a separate repo, and WTW depends on the trusted bridge for all WB balance, reward, spend, transfer, leaderboard, and marketplace settlement behavior.
 - Guest/local play, generated catalog items, Journey milestones, route encounters, Moon, and Mars prototype are implemented locally.
 - Shared WalkerBucks inventory maps into read-only entitlements when an offer matches a generated catalog item; unknown shared items remain shared-only.
 - Logic tests, local browser smoke, production browser smoke, and live private-beta service smoke now exist for the beta gate.
@@ -427,16 +428,19 @@ Primary files:
 - `src/game/save.ts`
 - reward emitters in achievements, quests, prestige, events, and purchases
 
-Known WalkerBucks endpoints from inspected repo:
+Known WalkerBucks ledger endpoints from inspected repo/current bridge contract:
 
 - `POST /v1/accounts`
 - `GET /v1/accounts/{account_id}`
-- `POST /v1/accounts/link-platform`
+- `GET /v1/accounts/by-platform/{platform}/{platform_user_id}`
+- `POST /v1/accounts/link-intent`
+- `POST /v1/accounts/link-complete`
 - `GET /v1/wallets/{account_id}`
 - `POST /v1/rewards/grants`
-- `GET /v1/inventory/{account_id}`
-- `POST /v1/shop/purchases`
+- `POST /v1/transfers/walkerbucks`
 - `GET /v1/leaderboards/walkerbucks`
+
+WalkerBucks core does not expose item, shop, inventory, or marketplace routes. The C-version marketplace proof uses retained app-layer rows through the trusted bridge, while WB movement settles through WalkerBucks ledger transfers.
 
 Required bridge contract:
 
@@ -447,7 +451,7 @@ game client -> trusted game backend -> WalkerBucks API
 Tasks:
 
 - [x] Write `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` with endpoint mapping, idempotency keys, failure behavior, and auth assumptions.
-- [x] Create a local abstraction for economy balance and reward status.
+- [x] Create a local bridge-state abstraction for canonical balance snapshots and reward status.
 - [x] Implement read-only WB balance display first.
 - [x] Implement one server-authoritative reward source with idempotency.
 - [x] Track pending/failed/granted WalkerBucks rewards in UI/state.
@@ -469,7 +473,7 @@ npm run build
 
 Manual/config checks:
 
-- [x] Confirmed `git ls-remote git@github-scwlkr:scwlkr/WalkerBucks.git HEAD` still resolves to `2090e62a1854f4724e5ea56e08d1e577932464d1`.
+- [x] Confirmed local WalkerBucks checkout `0d14d280a579` exposes the current ledger/account/transfer/leaderboard surface and keeps item/shop/inventory/marketplace routes out of core.
 - [x] Confirmed browser config only adds `VITE_WALKERBUCKS_BRIDGE_URL`; WalkerBucks API URL/service token are server-only bridge secrets documented in `docs/C_VERSION_WALKERBUCKS_BRIDGE.md`.
 - [x] Confirmed missing bridge URL leaves the app in guest/local mode.
 - [x] Confirmed save migration advances to version 6 with persisted WalkerBucks bridge reward state.
@@ -480,15 +484,15 @@ Implemented:
 - `docs/C_VERSION_WALKERBUCKS_BRIDGE.md` records the bridge contract, endpoint mapping, idempotency rules, failure behavior, and auth assumptions.
 - `src/services/walkerbucksClient.ts` calls only the trusted bridge URL with a Supabase access token.
 - `supabase/functions/walkerbucks-bridge/index.ts` verifies the Supabase user, resolves a deterministic WalkerBucks account, reads balance, and grants the first server-owned reward source.
-- `src/game/economy.ts` defines the local bridge abstraction, stable idempotency key derivation, and pending/failed/granted reward state helpers.
+- `src/game/economy.ts` defines the bridge-state abstraction, stable idempotency key derivation, and pending/failed/granted reward state helpers. It does not create a local spendable WB wallet.
 - `src/components/WalkerBucksPanel.tsx` displays read-only WalkerBucks balance and retryable grant status.
 - `src/components/AchievementsPanel.tsx` labels WalkerBucks grant state.
 - The first fixed reward source is `achievement:day_one_check_in`; dynamic WTW earnings also settle through the trusted bridge.
 
 Blockers:
 
-- WalkerBucks `/v1/accounts/me` is not implemented, so the Phase 6 bridge uses deterministic `wtw:{supabase_user_id}` account mapping.
-- WalkerBucks production AuthN/AuthZ middleware is still needed before public/shared economy launch; Phase 6 keeps any future WalkerBucks service token server-side.
+- WalkerBucks `/v1/accounts/me` requires trusted account context, so the Phase 6 bridge uses deterministic `wtw:{supabase_user_id}` account mapping or bank-linked platform identities instead of browser-supplied account IDs.
+- WalkerBucks production AuthN/AuthZ hardening is still needed before public/shared economy launch; Phase 6 keeps WalkerBucks service tokens server-side.
 
 ## Phase 7: Leaderboards, Marketplace Proof, Discord Bridge, And Telegram Decision
 
@@ -509,7 +513,7 @@ Tasks:
 - [x] Ship one account-backed leaderboard first.
 - [x] Add extra leaderboard categories only after the first category works.
   - Phase 7 intentionally ships only shared WalkerBucks balance.
-- [x] Add marketplace proof using WalkerBucks shop offers or game-local item definitions mapped to WalkerBucks items.
+- [x] Add marketplace proof using bridge-served app-layer offers and WalkerBucks ledger settlement.
 - [x] Define Discord identity linking with the local `walker-world-discord` repo.
 - [x] Document Telegram as future unless Discord bridge is complete.
 - [x] Decide whether Discord economy catalog seeds game inventory.
@@ -530,11 +534,11 @@ npm run build
 
 Manual/config checks:
 
-- [x] Confirmed WalkerBucks `2090e62a1854f4724e5ea56e08d1e577932464d1` endpoint shapes for leaderboards, shop offers, shop purchases, and inventory.
+- [x] Confirmed WalkerBucks endpoint shapes for leaderboards and ledger settlement; marketplace offer/item compatibility stays server-side in the trusted bridge.
 - [x] Confirmed missing bridge URL or missing signed-in session leaves leaderboard and marketplace controls disabled while local guest play remains available.
 - [x] Confirmed browser code only calls `VITE_WALKERBUCKS_BRIDGE_URL`; WalkerBucks API URL/service token and future Discord secrets remain server-side.
 - [x] Confirmed marketplace purchase requests send only offer ID and idempotency key; price, item definition, account ID, balance, and inventory are resolved through the trusted bridge.
-- [x] Live WalkerBucks leaderboard and marketplace purchase smoke test passed through the deployed bridge with seeded WalkerBucks shop offers.
+- [x] Live WalkerBucks leaderboard and marketplace purchase smoke test passed through the deployed bridge with bridge-served app-layer offers and WalkerBucks ledger settlement.
 
 Implemented:
 
@@ -549,7 +553,7 @@ Implemented:
 Resolved decisions:
 
 - First leaderboard category is shared WalkerBucks balance.
-- Marketplace proof uses live WalkerBucks shop offers and `POST /v1/shop/purchases`.
+- Marketplace proof uses bridge-served app-layer offers and WalkerBucks ledger settlement.
 - Discord identity linking is contract-defined, but no cross-platform rewards ship until linking is implemented server-side.
 - Telegram is future-planned after Discord linking stability.
 - Discord economy catalog does not seed game inventory in Phase 7.
@@ -748,14 +752,14 @@ Final release-gate result:
 ### WalkerBucks Auth
 
 - Status: external dependency.
-- Evidence: WalkerBucks `/v1/accounts/me` is stubbed and privileged endpoints are functional but not production-authenticated.
+- Evidence: WalkerBucks `/v1/accounts/me` requires trusted account context and privileged endpoints must remain behind the server-side bridge.
 - C-version decision: use a Supabase Edge Function bridge that verifies Supabase Auth and keeps WalkerBucks API secrets server-side.
-- Remaining production action: add real WalkerBucks AuthN/AuthZ middleware and replace deterministic `wtw:{supabase_user_id}` mapping when `/v1/accounts/me` exists.
+- Remaining production action: add real WalkerBucks AuthN/AuthZ middleware and replace deterministic `wtw:{supabase_user_id}` mapping when WTW has a first-party browser-safe account-auth path.
 
 ### WalkerBucks Bridge Live Configuration
 
 - Status: complete.
-- Completed setup: WalkerBucks hosted at `https://walkerbucks.vercel.app`, server-only function secrets set for `WALKERBUCKS_API_URL` and `WALKERBUCKS_SERVICE_TOKEN`, browser-safe `VITE_WALKERBUCKS_BRIDGE_URL` configured in Vercel, and WalkerBucks beta shop offers seeded.
+- Completed setup: WalkerBucks hosted at `https://walkerbucks.vercel.app`, server-only function secrets set for `WALKERBUCKS_API_URL` and `WALKERBUCKS_SERVICE_TOKEN`, browser-safe `VITE_WALKERBUCKS_BRIDGE_URL` configured in Vercel, and app-layer beta offers available through the bridge.
 - Current behavior without setup: route progress and item-only rewards continue, while spendable WB balance, grants, and spends remain unavailable.
 
 ### Discord/Telegram Bridge
@@ -768,7 +772,7 @@ Final release-gate result:
 ### WalkerBucks Leaderboard And Marketplace Live Configuration
 
 - Status: complete for Version C proof.
-- Completed setup: live leaderboard, marketplace offer loading, and purchase proof pass through the trusted bridge. A 20 WB `Version C Smoke Ticket` offer exists only to prove the private-beta purchase path with the 20 WB Day One reward.
+- Completed setup: live leaderboard, marketplace offer loading, and purchase proof pass through the trusted bridge. A 20 WB `Version C Smoke Ticket` offer exists only to prove the private-beta purchase path with the 20 WB Day One reward; the ledger movement still settles in WalkerBucks.
 - Current behavior without setup: route progress and app-layer inventory continue; WB spends, grants, leaderboard, and marketplace controls stay unavailable or sign-in-gated.
 
 ## Verification Commands

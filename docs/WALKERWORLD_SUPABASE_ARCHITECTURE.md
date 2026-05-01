@@ -1,6 +1,6 @@
 # WalkerWorld Supabase Architecture
 
-Last updated: 2026-04-28
+Last updated: 2026-04-30
 
 ## Status
 
@@ -26,8 +26,8 @@ Initial schema layout:
 
 ```text
 core                  shared account/profile/linking tables later
-walk_the_world        Walk The World game-owned tables
-walkerbucks           future WalkerBucks mapping or mirror tables
+walk_the_world        Walk The World game-owned tables, never spendable WB
+walkerbucks           server-side bridge compatibility only, never a mirrored WB ledger
 walker_world_discord  future Discord identity/link tables
 ```
 
@@ -63,6 +63,7 @@ Configured after WalkerBucks deployment:
 - Browser code may use only browser-safe Supabase project URL/key values.
 - Supabase service-role keys must never be placed in `VITE_*`, `.env.example`, committed files, or browser code.
 - WalkerBucks API URL and service token belong only in Supabase Edge Function secrets.
+- Supabase `game_saves` and any WTW-owned tables may store gameplay state or bridge-request metadata, but they must not store spendable WalkerBucks balances, rewards, transfers, or audit history as source of truth.
 - Discord bot/client/signing secrets belong only in server-side runtime configuration.
 - Every browser-accessible table must have RLS before it is exposed through PostgREST.
 
