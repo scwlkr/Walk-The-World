@@ -485,6 +485,41 @@ export type DailyPlayState = {
   daysPlayed: number;
 };
 
+export type DailyClaimState = {
+  lastClaimAt: string | null;
+  streak: number;
+};
+
+export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed' | 'skipped';
+
+export type OnboardingStepId =
+  | 'welcome'
+  | 'tap'
+  | 'dps'
+  | 'walkerbucks'
+  | 'shop'
+  | 'inventory'
+  | 'offline_progress';
+
+export type OnboardingState = {
+  status: OnboardingStatus;
+  currentStep: OnboardingStepId | null;
+  completedSteps: OnboardingStepId[];
+  skipped: boolean;
+  startedAt: string | null;
+  completedAt: string | null;
+};
+
+export type TutorialFlags = {
+  hasSeenWelcome: boolean;
+  hasSeenTapPrompt: boolean;
+  hasSeenDpsExplanation: boolean;
+  hasSeenShopIntro: boolean;
+  hasSeenWalkerBucksIntro: boolean;
+  hasSeenOfflineProgressIntro: boolean;
+  hasSeenInventoryIntro: boolean;
+};
+
 export type AccountSyncState = {
   provider: 'guest' | 'supabase';
   userId: string | null;
@@ -708,6 +743,9 @@ export type GameState = {
   milestones: MilestoneState;
   quests: QuestState;
   dailyPlay: DailyPlayState;
+  dailyClaim: DailyClaimState;
+  onboarding: OnboardingState;
+  tutorialFlags: TutorialFlags;
   account: AccountSyncState;
   walkerBucksBridge: WalkerBucksBridgeState;
   activeBoosts: ActiveBoost[];

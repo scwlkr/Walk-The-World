@@ -4,6 +4,7 @@ import { AchievementsPanel } from './components/AchievementsPanel';
 import { BottomControls } from './components/BottomControls';
 import { CollectionGoalsPanel } from './components/CollectionGoalsPanel';
 import { DevLabPanel, type DevLabOverrides } from './components/DevLabPanel';
+import { DevSuitePage } from './components/DevSuitePage';
 import { GameHUD } from './components/GameHUD';
 import { GameOverlaySheet } from './components/GameOverlaySheet';
 import { GameSceneCanvas } from './components/GameSceneCanvas';
@@ -96,6 +97,7 @@ import type {
   WtwPurchase,
   WorldId
 } from './game/types';
+import { isDevToolsEnabled } from './devtools/devAuth';
 import { applyEarthPrestige, buyJourneyUpgrade, canEnterWorld } from './game/world';
 import {
   getAuthSession,
@@ -133,6 +135,10 @@ type TapFeedback = {
 };
 
 const App = () => {
+  if (typeof window !== 'undefined' && window.location.pathname === '/dev') {
+    return isDevToolsEnabled() ? <DevSuitePage /> : <main className="dev-suite-page"><h1>404</h1></main>;
+  }
+
   const [state, setState] = useState<GameState>(() => loadGameState());
   const [devLabOverrides, setDevLabOverrides] = useState<DevLabOverrides>({
     sceneId: null,

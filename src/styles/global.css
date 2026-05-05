@@ -1352,3 +1352,117 @@ button.event-overlay {
     border-radius: 16px;
   }
 }
+
+.dev-suite-page {
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #101312;
+  color: var(--text);
+  padding: max(16px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(22px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+}
+
+.dev-suite-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1120px;
+  margin: 0 auto 1rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+}
+
+.dev-suite-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.dev-suite-header span {
+  color: #f8d86c;
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.dev-suite-section {
+  max-width: 1120px;
+  margin: 0 auto 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(166, 184, 174, 0.2);
+}
+
+.dev-suite-section h2 {
+  margin: 0 0 0.7rem;
+  color: #f8fafc;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.dev-suite-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 0.55rem;
+}
+
+.dev-suite-grid button {
+  min-height: 46px;
+  border: 1px solid rgba(250, 204, 21, 0.32);
+  border-radius: 8px;
+  background: rgba(25, 34, 31, 0.96);
+  color: #f8fafc;
+  padding: 0.58rem 0.66rem;
+  font-size: 0.82rem;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.dev-suite-grid button:disabled {
+  color: #9ca3af;
+  border-color: rgba(156, 163, 175, 0.24);
+}
+
+.dev-suite-select {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 360px;
+  margin-bottom: 0.65rem;
+}
+
+.dev-suite-select span {
+  color: #bfdbfe;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.dev-suite-select select {
+  min-height: 44px;
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.96);
+  color: var(--text);
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+}
+
+.dev-suite-snapshot pre {
+  width: 100%;
+  max-height: 70dvh;
+  overflow: auto;
+  margin: 0;
+  border: 1px solid rgba(166, 184, 174, 0.24);
+  border-radius: 8px;
+  background: rgba(3, 7, 6, 0.86);
+  color: #dce7df;
+  padding: 0.75rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.dev-suite-snapshot .dev-suite-error {
+  margin-bottom: 0.75rem;
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #fecaca;
+}

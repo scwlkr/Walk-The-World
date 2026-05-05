@@ -1,2 +1,12 @@
-const item = process.argv.includes('--item') ? process.argv[process.argv.indexOf('--item') + 1] : 'starter-shoes';
-console.log(JSON.stringify({ ok: true, action: 'dev:buy', accountId: 'dev_wtw_player', itemId: item, reasonCode: 'wtw.shop.purchase', idempotencyKey: `dev:buy:dev_wtw_player:${item}:${crypto.randomUUID()}` }, null, 2));
+import { getArg, output, outputError } from './helpers/devApiClient';
+import { runDevStateAction } from './helpers/devState';
+import { buyDevItem } from '../src/devtools/devActions';
+
+try {
+  const itemId = getArg('item', 'starter-shoes') ?? 'starter-shoes';
+  const accountId = getArg('account');
+  const idempotencyKey = getArg('idempotency-key');
+  output(await runDevStateAction((suite) => buyDevItem(suite, { itemId, accountId, idempotencyKey })));
+} catch (error) {
+  outputError('dev:buy', error);
+}

@@ -49,6 +49,27 @@ export const createInitialGameState = (now = Date.now()): GameState => ({
     lastPlayedDate: getLocalDateKey(now),
     daysPlayed: 1
   },
+  dailyClaim: {
+    lastClaimAt: null,
+    streak: 0
+  },
+  onboarding: {
+    status: 'not_started',
+    currentStep: null,
+    completedSteps: [],
+    skipped: false,
+    startedAt: null,
+    completedAt: null
+  },
+  tutorialFlags: {
+    hasSeenWelcome: false,
+    hasSeenTapPrompt: false,
+    hasSeenDpsExplanation: false,
+    hasSeenShopIntro: false,
+    hasSeenWalkerBucksIntro: false,
+    hasSeenOfflineProgressIntro: false,
+    hasSeenInventoryIntro: false
+  },
   account: {
     provider: 'guest',
     userId: null,

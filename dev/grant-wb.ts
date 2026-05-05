@@ -1,2 +1,11 @@
-const amount = Number(process.argv.includes('--amount') ? process.argv[process.argv.indexOf('--amount') + 1] : 0);
-console.log(JSON.stringify({ ok: true, action: 'dev:grant', accountId: 'dev_wtw_player', amount, reasonCode: 'dev.grant.manual', idempotencyKey: `dev:grant:dev_wtw_player:${crypto.randomUUID()}` }, null, 2));
+import { getArg, getNumberArg, output, outputError } from './helpers/devApiClient';
+import { runDevStateAction } from './helpers/devState';
+import { applyWalletAction } from '../src/devtools/devActions';
+
+try {
+  const amount = getNumberArg('amount', 0);
+  const accountId = getArg('account');
+  output(await runDevStateAction((suite) => applyWalletAction(suite, 'dev:grant', { amount, accountId })));
+} catch (error) {
+  outputError('dev:grant', error);
+}

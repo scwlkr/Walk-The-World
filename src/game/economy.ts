@@ -344,6 +344,18 @@ export const rollbackOptimisticPurchase = (
         ...next.profile,
         unlockedTitles,
         activeTitleId: shouldRemoveTitle && next.profile.activeTitleId === titleId ? null : next.profile.activeTitleId
+      },
+      upgrades:
+        purchase.dpsDelta > 0 && next.upgrades[purchase.itemDefId]
+          ? decrementRecord(next.upgrades, purchase.itemDefId, purchase.quantity)
+          : next.upgrades,
+      activeBoosts: next.activeBoosts.filter((boost) => boost.sourceEventId !== purchase.itemDefId),
+      stats: {
+        ...next.stats,
+        upgradesPurchased:
+          purchase.dpsDelta > 0 && next.upgrades[purchase.itemDefId]
+            ? Math.max(0, next.stats.upgradesPurchased - purchase.quantity)
+            : next.stats.upgradesPurchased
       }
     };
   }

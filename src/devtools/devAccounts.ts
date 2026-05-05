@@ -9,3 +9,12 @@ export const DEV_NEW_USER_ACCOUNT = {
   displayName: 'New Walker',
   platformIdentity: 'dev_new_user_mobile'
 } as const;
+
+export const DEV_ACCOUNTS = [DEV_PLAYER_ACCOUNT, DEV_NEW_USER_ACCOUNT] as const;
+
+export type DevAccountId = (typeof DEV_ACCOUNTS)[number]['accountId'];
+
+export const DEFAULT_DEV_ACCOUNT_ID: DevAccountId = DEV_PLAYER_ACCOUNT.accountId;
+
+export const getDevAccount = (accountId: string = DEFAULT_DEV_ACCOUNT_ID) =>
+  DEV_ACCOUNTS.find((account) => account.accountId === accountId) ?? DEV_PLAYER_ACCOUNT;

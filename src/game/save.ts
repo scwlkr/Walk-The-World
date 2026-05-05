@@ -124,6 +124,19 @@ const mergeGameState = (rawSave: Partial<SavePayload>): GameState => {
       ...base.dailyPlay,
       ...rawSave.dailyPlay
     },
+    dailyClaim: {
+      ...base.dailyClaim,
+      ...rawSave.dailyClaim
+    },
+    onboarding: {
+      ...base.onboarding,
+      ...rawSave.onboarding,
+      completedSteps: rawSave.onboarding?.completedSteps ?? base.onboarding.completedSteps
+    },
+    tutorialFlags: {
+      ...base.tutorialFlags,
+      ...rawSave.tutorialFlags
+    },
     account: {
       ...base.account,
       ...rawSave.account

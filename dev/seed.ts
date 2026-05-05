@@ -1,2 +1,9 @@
-import { output } from './helpers/devApiClient';
-output({ ok: true, action: 'dev:seed', accounts: ['dev_wtw_player', 'dev_new_user'] });
+import { output, outputError } from './helpers/devApiClient';
+import { runDevStateAction } from './helpers/devState';
+import { seedDevSuite } from '../src/devtools/devActions';
+
+try {
+  output(await runDevStateAction((suite) => seedDevSuite(suite)));
+} catch (error) {
+  outputError('dev:seed', error);
+}

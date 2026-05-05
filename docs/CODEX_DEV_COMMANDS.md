@@ -16,6 +16,25 @@ npm run test:economy
 npm run test:mobile
 ```
 
+## Useful Extras
+
+```bash
+npm run dev:set-wb -- --amount 10000
+npm run dev:buy -- --item test-cosmetic-hat
+npm run dev:buy -- --item test-boost
+npm run dev:session
+```
+
+## Local Page
+
+```bash
+npm run dev
+```
+
+```txt
+http://localhost:5173/dev
+```
+
 ## Non-negotiable rules
 
 - Never mutate wallet balances directly.

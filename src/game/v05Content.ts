@@ -15,6 +15,57 @@ export type RuntimeCatalogShopOffer = {
 
 export const V05_RUNTIME_CATALOG_ITEMS: InventoryItemDefinition[] = [
   {
+    id: 'starter_shoes',
+    slug: 'starter-shoes',
+    name: 'Starter Shoes',
+    description: 'Deterministic dev-suite upgrade item used to prove purchase, inventory, and DPS state together.',
+    type: 'equipment',
+    category: 'dev',
+    rarity: 'common',
+    flavorText: 'Only appears in local dev and tests.',
+    icon: 'SHOE',
+    effect: {
+      type: 'none',
+      value: 0
+    },
+    implementationStatus: 'dev-test'
+  },
+  {
+    id: 'test_cosmetic_hat',
+    slug: 'test-cosmetic-hat',
+    name: 'Test Cosmetic Hat',
+    description: 'Deterministic dev-suite cosmetic used to prove purchases that do not affect DPS.',
+    type: 'cosmetic',
+    category: 'dev',
+    rarity: 'common',
+    flavorText: 'A test item with no stat pressure.',
+    icon: 'HAT',
+    effect: {
+      type: 'cosmetic_equip',
+      value: 0
+    },
+    cosmeticId: 'test_cosmetic_hat',
+    implementationStatus: 'dev-test'
+  },
+  {
+    id: 'test_boost',
+    slug: 'test-boost',
+    name: 'Test Boost',
+    description: 'Deterministic dev-suite boost used to prove active effects and rollback behavior.',
+    type: 'consumable',
+    category: 'dev',
+    rarity: 'common',
+    flavorText: 'Short label, loud test signal.',
+    icon: 'BOOST',
+    effect: {
+      type: 'speed_multiplier_temp',
+      value: 0.1,
+      durationSeconds: 900,
+      cooldownSeconds: 0
+    },
+    implementationStatus: 'dev-test'
+  },
+  {
     id: 'fresh_socks',
     slug: 'fresh-socks',
     name: 'Fresh Socks',
@@ -189,6 +240,42 @@ export const V05_RUNTIME_CATALOG_ITEMS: InventoryItemDefinition[] = [
 ];
 
 export const V05_CATALOG_SHOP_OFFERS: RuntimeCatalogShopOffer[] = [
+  {
+    offerId: 'starter-shoes',
+    shopId: 'wtw_dev',
+    itemId: 'starter_shoes',
+    priceWb: 500,
+    currency: 'WB',
+    purchaseLimitPerAccount: null,
+    unlockType: 'none',
+    unlockValue: '',
+    active: false,
+    sortOrder: 1
+  },
+  {
+    offerId: 'test-cosmetic-hat',
+    shopId: 'wtw_dev',
+    itemId: 'test_cosmetic_hat',
+    priceWb: 100,
+    currency: 'WB',
+    purchaseLimitPerAccount: null,
+    unlockType: 'none',
+    unlockValue: '',
+    active: false,
+    sortOrder: 2
+  },
+  {
+    offerId: 'test-boost',
+    shopId: 'wtw_dev',
+    itemId: 'test_boost',
+    priceWb: 200,
+    currency: 'WB',
+    purchaseLimitPerAccount: null,
+    unlockType: 'none',
+    unlockValue: '',
+    active: false,
+    sortOrder: 3
+  },
   {
     offerId: 'offer_fresh_socks_main',
     shopId: 'wtw_main',
