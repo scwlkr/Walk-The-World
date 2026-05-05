@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../game/types';
 import { getCurrentLandmark, getIdleMilesPerSecond } from '../game/formulas';
 import { getBackgroundScene } from '../game/backgroundScenes';
-import { FOLLOWERS, getTotalFollowerCount } from '../game/followers';
+import { FOLLOWERS } from '../game/followers';
 import {
   getRandomEventPresentation,
   getRouteEncounterPresentation
@@ -37,11 +37,23 @@ type ParallaxLayerKey = 'back' | 'middle' | 'ground';
 type VisibleFollowerCompanion = {
   id: string;
   name: string;
+  imageSrc: string;
   rarity: 'common' | 'uncommon' | 'rare';
 };
 
 const WALKER_ANIMATION_STATES: WalkerAnimationState[] = ['walk', 'idle', 'click', 'reward', 'celebration'];
-const MAX_VISIBLE_FOLLOWERS = 5;
+const FOLLOWER_IMAGE_SRCS = Array.from(new Set(FOLLOWERS.map((follower) => follower.image)));
+const FOLLOWER_VISUAL_SCALE = [
+  { followers: 0, visible: 0 },
+  { followers: 1, visible: 1 },
+  { followers: 2, visible: 2 },
+  { followers: 5, visible: 5 },
+  { followers: 10, visible: 5 },
+  { followers: 20, visible: 10 },
+  { followers: 50, visible: 30 },
+  { followers: 100, visible: 60 },
+  { followers: 180, visible: 100 }
+] as const;
 const PICKUP_MARKER_IMAGE_SRCS = [
   '/assets/items/trail_mix.png',
   '/assets/items/walkertown_postcard.png',
@@ -54,6 +66,25 @@ const PICKUP_MARKER_IMAGE_SRCS = [
   '/assets/items/generated/lucky-laces.png',
   '/assets/items/generated/golden-wayfarers.png'
 ];
+
+export const getVisualFollowerCount = (actualCount: number): number => {
+  const count = Math.max(0, Math.floor(actualCount));
+  if (count <= 0) return 0;
+
+  for (let index = 1; index < FOLLOWER_VISUAL_SCALE.length; index += 1) {
+    const previous = FOLLOWER_VISUAL_SCALE[index - 1];
+    const next = FOLLOWER_VISUAL_SCALE[index];
+    if (count > next.followers) continue;
+
+    const span = next.followers - previous.followers;
+    const progress = span > 0 ? (count - previous.followers) / span : 0;
+    const visible = previous.visible + (next.visible - previous.visible) * progress;
+    return Math.min(count, Math.max(1, Math.round(visible)));
+  }
+
+  const last = FOLLOWER_VISUAL_SCALE[FOLLOWER_VISUAL_SCALE.length - 1];
+  return Math.min(count, 180, last.visible + Math.round(Math.log2(count / last.followers) * 36));
+};
 
 const biomePalette: Record<
   string,
@@ -141,19 +172,66 @@ const biomePalette: Record<
   }
 };
 
-const getVisibleFollowerCompanions = (state: GameState): VisibleFollowerCompanion[] => {
-  const companions: VisibleFollowerCompanion[] = [];
+export const getVisibleFollowerCompanions = (state: Pick<GameState, 'followers'>): VisibleFollowerCompanion[] => {
+  const groups = FOLLOWERS.map((follower) => ({
+    follower,
+    count: Math.max(0, Math.floor(state.followers[follower.id] ?? 0))
+  })).filter((group) => group.count > 0);
+  const totalCount = groups.reduce((sum, group) => sum + group.count, 0);
+  if (totalCount <= 0) return [];
 
-  for (const follower of FOLLOWERS) {
-    const count = Math.max(0, Math.floor(state.followers[follower.id] ?? 0));
-    for (let index = 0; index < count && companions.length < MAX_VISIBLE_FOLLOWERS; index += 1) {
+  const targetCount = Math.min(
+    totalCount,
+    Math.max(getVisualFollowerCount(totalCount), Math.min(totalCount, groups.length))
+  );
+  const allocations = groups.map((group) => {
+    const ideal = (group.count / totalCount) * targetCount;
+    return {
+      ...group,
+      slots: Math.min(group.count, Math.max(1, Math.floor(ideal))),
+      remainder: ideal - Math.floor(ideal),
+      emitted: 0
+    };
+  });
+
+  let allocated = allocations.reduce((sum, group) => sum + group.slots, 0);
+  while (allocated < targetCount) {
+    const candidate = allocations
+      .filter((group) => group.slots < group.count)
+      .sort((left, right) => right.remainder - left.remainder || right.count - left.count)[0];
+    if (!candidate) break;
+    candidate.slots += 1;
+    allocated += 1;
+  }
+
+  while (allocated > targetCount) {
+    const candidate = allocations
+      .filter((group) => group.slots > 1)
+      .sort((left, right) => left.remainder - right.remainder || left.count - right.count)[0];
+    if (!candidate) break;
+    candidate.slots -= 1;
+    allocated -= 1;
+  }
+
+  const companions: VisibleFollowerCompanion[] = [];
+  while (companions.length < targetCount) {
+    let added = false;
+
+    for (const group of allocations) {
+      if (group.emitted >= group.slots) continue;
+
       companions.push({
-        id: `${follower.id}:${index}`,
-        name: follower.name,
-        rarity: follower.rarity
+        id: `${group.follower.id}:${group.emitted}`,
+        name: group.follower.name,
+        imageSrc: group.follower.image,
+        rarity: group.follower.rarity
       });
+      group.emitted += 1;
+      added = true;
+      if (companions.length >= targetCount) break;
     }
-    if (companions.length >= MAX_VISIBLE_FOLLOWERS) break;
+
+    if (!added) break;
   }
 
   return companions;
@@ -173,10 +251,12 @@ export const GameSceneCanvas = ({
   const backgroundImageRef = useRef<HTMLImageElement | null>(null);
   const parallaxLayerImagesRef = useRef<Partial<Record<ParallaxLayerKey, HTMLImageElement>>>({});
   const pickupMarkerImagesRef = useRef<Record<string, HTMLImageElement>>({});
+  const followerCompanionImagesRef = useRef<Record<string, HTMLImageElement>>({});
   const [walkerSprites, setWalkerSprites] = useState<Partial<Record<WalkerAnimationState, LoadedWalkerSprite>>>({});
   const [backgroundReady, setBackgroundReady] = useState(false);
   const [parallaxReady, setParallaxReady] = useState(false);
   const [pickupMarkerImageVersion, setPickupMarkerImageVersion] = useState(0);
+  const [followerImageVersion, setFollowerImageVersion] = useState(0);
   const currentLandmark = getCurrentLandmark(state);
   const backgroundScene = getBackgroundScene(sceneOverrideId ?? currentLandmark.sceneId);
   const activeSeasonalEvent = getSeasonalEventById(seasonalEventOverrideId) ?? getActiveSeasonalEventForState(state);
@@ -230,6 +310,27 @@ export const GameSceneCanvas = ({
           [src]: image
         };
         setPickupMarkerImageVersion((version) => version + 1);
+      };
+      image.src = src;
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    for (const src of FOLLOWER_IMAGE_SRCS) {
+      const image = new Image();
+      image.onload = () => {
+        if (cancelled) return;
+        followerCompanionImagesRef.current = {
+          ...followerCompanionImagesRef.current,
+          [src]: image
+        };
+        setFollowerImageVersion((version) => version + 1);
       };
       image.src = src;
     }
@@ -589,7 +690,8 @@ export const GameSceneCanvas = ({
       centerX: number,
       footY: number,
       elapsed: number,
-      index: number
+      index: number,
+      crowdSize: number
     ) => {
       const paletteByRarity = {
         common: { shirt: '#2563eb', trim: '#93c5fd', skin: '#fed7aa' },
@@ -600,9 +702,17 @@ export const GameSceneCanvas = ({
       const bob = state.settings.reducedMotion ? 0 : Math.sin(elapsed * 5.2 + index) * 1.5;
       const x = Math.round(centerX);
       const y = Math.round(footY + bob);
+      const spriteSize = Math.max(24, Math.round(42 - Math.min(18, crowdSize * 0.22)));
+      const image = followerCompanionImagesRef.current[companion.imageSrc];
 
       ctx.fillStyle = 'rgba(2, 6, 23, 0.2)';
-      ctx.fillRect(x - 16, y + 4, 32, 5);
+      ctx.fillRect(Math.round(x - spriteSize * 0.36), y + 4, Math.round(spriteSize * 0.72), 5);
+
+      if (image) {
+        ctx.drawImage(image, Math.round(x - spriteSize / 2), Math.round(y - spriteSize + 6), spriteSize, spriteSize);
+        return;
+      }
+
       ctx.fillStyle = paletteByRarity.skin;
       ctx.fillRect(x - 7, y - 38, 14, 13);
       ctx.fillStyle = '#111827';
@@ -618,23 +728,19 @@ export const GameSceneCanvas = ({
       ctx.fillStyle = '#1f2937';
       ctx.fillRect(x - 8, y - 5 + Math.max(0, -stride), 6, 12);
       ctx.fillRect(x + 2, y - 5 + Math.max(0, stride), 6, 12);
-
-      const initial = companion.name.charAt(0).toUpperCase();
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = '8px ui-monospace, monospace';
-      ctx.fillText(initial, x - 3, y - 14);
     };
 
-    const drawFollowerOverflowBadge = (centerX: number, centerY: number, overflow: number) => {
-      const label = `+${overflow}`;
-      ctx.font = '10px ui-monospace, monospace';
-      const labelWidth = Math.max(22, Math.ceil(ctx.measureText(label).width) + 10);
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
-      ctx.fillRect(Math.round(centerX - labelWidth / 2), Math.round(centerY - 10), labelWidth, 18);
-      ctx.strokeStyle = 'rgba(250, 204, 21, 0.72)';
-      ctx.strokeRect(Math.round(centerX - labelWidth / 2), Math.round(centerY - 10), labelWidth, 18);
-      ctx.fillStyle = '#fef3c7';
-      ctx.fillText(label, Math.round(centerX - labelWidth / 2 + 5), Math.round(centerY + 3));
+    const getFollowerCrowdOffset = (index: number, crowdSize: number) => {
+      const columns = crowdSize > 80 ? 8 : crowdSize > 30 ? 6 : crowdSize > 10 ? 5 : 3;
+      const column = index % columns;
+      const row = Math.floor(index / columns);
+      const spreadX = crowdSize > 30 ? 14 : 22;
+      const rowStep = crowdSize > 30 ? 5 : 8;
+
+      return {
+        x: -28 - column * spreadX - (row % 2) * (spreadX / 2),
+        y: 18 - row * rowStep + (column % 3) * 10 + Math.sin(index * 1.3) * 3
+      };
     };
 
     const draw = (time: number) => {
@@ -719,28 +825,14 @@ export const GameSceneCanvas = ({
       const activeAnimation = getActiveAnimationState(speed);
       const walkerSprite = getLoadedWalkerSprite(activeAnimation);
       const visibleFollowers = getVisibleFollowerCompanions(state);
-      const followerOverflow = Math.max(0, getTotalFollowerCount(state) - visibleFollowers.length);
 
       if (visibleFollowers.length > 0) {
-        const followerOffsets = [
-          { x: -48, y: 8 },
-          { x: -76, y: -4 },
-          { x: -104, y: 12 },
-          { x: -30, y: 20 },
-          { x: -132, y: 2 }
-        ];
-
         visibleFollowers.forEach((companion, index) => {
-          const offset = followerOffsets[index] ?? followerOffsets[followerOffsets.length - 1];
+          const offset = getFollowerCrowdOffset(index, visibleFollowers.length);
           const companionX = Math.max(28, Math.min(width - 28, playerCenterX + offset.x));
           const companionY = footY + offset.y;
-          drawFollowerCompanion(companion, companionX, companionY, elapsed, index);
+          drawFollowerCompanion(companion, companionX, companionY, elapsed, index, visibleFollowers.length);
         });
-
-        if (followerOverflow > 0) {
-          const badgeX = Math.max(36, Math.min(width - 36, playerCenterX - 132));
-          drawFollowerOverflowBadge(badgeX, footY + 34, followerOverflow);
-        }
       }
 
       drawWalkerShadow(playerCenterX, footY, tapPulse);
@@ -827,7 +919,17 @@ export const GameSceneCanvas = ({
       window.removeEventListener('resize', resize);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [state, tapPulse, walkerSprites, backgroundReady, parallaxReady, pickupMarkerImageVersion, backgroundScene, currentLandmark]);
+  }, [
+    state,
+    tapPulse,
+    walkerSprites,
+    backgroundReady,
+    parallaxReady,
+    pickupMarkerImageVersion,
+    followerImageVersion,
+    backgroundScene,
+    currentLandmark
+  ]);
 
   return (
     <canvas

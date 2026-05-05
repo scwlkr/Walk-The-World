@@ -274,7 +274,8 @@ const run = async () => {
       `(() => ({
         hasCanvas: Boolean(document.querySelector('.game-canvas')),
         hasWalk: Boolean(document.querySelector('.walk-btn')),
-        hasJourneyHud: Boolean(document.querySelector('.hud-journey-row')),
+        walkLabel: document.querySelector('.walk-btn')?.textContent?.trim() ?? '',
+        hasTinyHudDetails: Boolean(document.querySelector('.hud-journey-row')),
         hasBottomControls: Boolean(document.querySelector('.bottom-controls')),
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
@@ -284,7 +285,8 @@ const run = async () => {
     const mobileMenuControls = await evaluate(client, visibleMenuControls);
     assert(firstScreen.hasCanvas, 'Game canvas did not render.');
     assert(firstScreen.hasWalk, 'Walk button did not render.');
-    assert(firstScreen.hasJourneyHud, 'Journey HUD did not render.');
+    assert(firstScreen.walkLabel === 'WALK', `Walk button label should be WALK, found ${firstScreen.walkLabel}.`);
+    assert(!firstScreen.hasTinyHudDetails, 'Tiny HUD detail row should not render on the first screen.');
     assert(firstScreen.hasBottomControls, 'Bottom controls did not render.');
     assert(mobileMenuControls.count === 4, `Expected 4 mobile menu controls, found ${mobileMenuControls.count}.`);
     assert(mobileMenuControls.inShell, 'Mobile controls are clipped or outside the game shell.');
@@ -347,6 +349,7 @@ const run = async () => {
     await waitFor('journey upgrades visible', () => evaluate(client, 'document.body.textContent.includes("Journey Upgrades")'));
     await waitFor('collection goals visible', () => evaluate(client, 'document.body.textContent.includes("Collection Goals")'));
     await waitFor('titles visible', () => evaluate(client, 'document.body.textContent.includes("Titles")'));
+    await waitFor('hud details moved into stats', () => evaluate(client, 'document.body.textContent.includes("Current region:")'));
     assert(await evaluate(client, click('[aria-label="Milestones"]')), 'Milestones control did not reopen.');
     await waitFor('daily and weekly events visible', () => evaluate(client, 'document.body.textContent.includes("Daily & Weekly Events")'));
 
@@ -415,6 +418,67 @@ const run = async () => {
     assert(!notificationLayout.overlapsRail, 'Notification overlapped the right action rail.');
     assert(!notificationLayout.overlapsWalk, 'Notification overlapped the WALK button.');
     assert(!notificationLayout.unsafeEdges, 'A fixed UI element is too close to the mobile viewport edge.');
+
+    logStep('checking boost HUD and route notification separation');
+    const routeBoostSave = await readSave(client);
+    routeBoostSave.ui = {
+      ...routeBoostSave.ui,
+      activeTab: 'walk',
+      showShop: false,
+      offlineSummary: null,
+      toast: null,
+      recentRewards: []
+    };
+    routeBoostSave.spawnedRouteEncounter = {
+      id: 'smoke_street_boost',
+      encounterDefId: 'street_boost',
+      spawnedAt: Date.now(),
+      expiresAt: Date.now() + 30000,
+      label: 'Street Boost'
+    };
+    routeBoostSave.activeBoosts = [
+      {
+        id: 'smoke_follower_multiplier',
+        sourceEventId: 'smoke',
+        effectType: 'follower_multiplier',
+        multiplier: 1.2,
+        expiresAt: Date.now() + 30000
+      }
+    ];
+    const boostInjection = await client.call('Page.addScriptToEvaluateOnNewDocument', {
+      source: `localStorage.setItem(${JSON.stringify(saveKey)}, ${JSON.stringify(JSON.stringify(routeBoostSave))});`
+    });
+    await navigateToApp(client, 'boost route notification reload');
+    await client.call('Page.removeScriptToEvaluateOnNewDocument', { identifier: boostInjection.identifier });
+    await waitFor('boost notification', () =>
+      evaluate(client, 'document.body.textContent.includes("Street Boost") && document.body.textContent.includes("follower multiplier")')
+    );
+    const boostNotificationLayout = await evaluate(
+      client,
+      `(() => {
+        const getRect = (selector) => {
+          const element = document.querySelector(selector);
+          if (!element) return null;
+          const rect = element.getBoundingClientRect();
+          return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
+        };
+        const overlaps = (a, b) => Boolean(a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top);
+        const notificationItems = Array.from(document.querySelectorAll('.notification-large-slot > *, .notification-toast'))
+          .map((element) => {
+            const rect = element.getBoundingClientRect();
+            return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
+          });
+        const hud = getRect('.game-hud');
+        return {
+          hasBoostHud: Boolean(document.querySelector('.hud-boost-row')),
+          hasRouteNotification: Boolean(document.querySelector('.route-encounter-overlay')),
+          overlapsHud: notificationItems.some((item) => overlaps(item, hud))
+        };
+      })()`
+    );
+    assert(boostNotificationLayout.hasBoostHud, 'Boost HUD row did not render.');
+    assert(boostNotificationLayout.hasRouteNotification, 'Route notification did not render.');
+    assert(!boostNotificationLayout.overlapsHud, 'Boost route notification overlapped the HUD.');
 
     logStep('opening dev lab and checking scene controls');
     assert(await evaluate(client, click('[aria-label="Settings"]')), 'Settings control did not open.');

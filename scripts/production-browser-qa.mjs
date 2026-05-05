@@ -281,7 +281,8 @@ const run = async () => {
       `(() => ({
         hasCanvas: Boolean(document.querySelector('.game-canvas')),
         hasWalk: Boolean(document.querySelector('.walk-btn')),
-        hasJourneyHud: Boolean(document.querySelector('.hud-journey-row')),
+        walkLabel: document.querySelector('.walk-btn')?.textContent?.trim() ?? '',
+        hasTinyHudDetails: Boolean(document.querySelector('.hud-journey-row')),
         hasBottomControls: Boolean(document.querySelector('.bottom-controls')),
         hasDevLab: document.body.textContent.includes('Dev Lab'),
         viewportWidth: window.innerWidth,
@@ -291,7 +292,8 @@ const run = async () => {
     );
     assert(firstScreen.hasCanvas, 'Game canvas did not render.');
     assert(firstScreen.hasWalk, 'Walk button did not render.');
-    assert(firstScreen.hasJourneyHud, 'Journey HUD did not render.');
+    assert(firstScreen.walkLabel === 'WALK', `Walk button label should be WALK, found ${firstScreen.walkLabel}.`);
+    assert(!firstScreen.hasTinyHudDetails, 'Tiny HUD detail row should not render on the first screen.');
     assert(firstScreen.hasBottomControls, 'Bottom controls did not render.');
     assert(!firstScreen.hasDevLab, 'Dev Lab rendered in production.');
     assert(!firstScreen.bodyOverflows, `Mobile viewport has horizontal overflow at ${firstScreen.viewportWidth}x${firstScreen.viewportHeight}.`);

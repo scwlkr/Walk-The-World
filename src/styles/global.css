@@ -13,7 +13,7 @@
   --safe-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--safe-edge-padding));
   --safe-left: calc(env(safe-area-inset-left, 0px) + var(--safe-edge-padding));
   --hud-top-offset: var(--safe-top);
-  --hud-zone-height: 202px;
+  --hud-zone-height: 232px;
   --right-rail-width: 48px;
   --right-rail-gap: 12px;
   --right-rail-dock-padding: 6px;
@@ -259,7 +259,6 @@ button {
   color: #f8fafc;
 }
 
-.hud-journey-row,
 .hud-boost-row {
   display: flex;
   gap: 0.34rem;
@@ -267,7 +266,6 @@ button {
   white-space: nowrap;
 }
 
-.hud-journey-row span,
 .hud-boost-row span {
   min-width: 0;
   max-width: 42%;
@@ -282,22 +280,13 @@ button {
   line-height: 1.1;
 }
 
-.hud-journey-row span.is-ready {
-  border-color: rgba(250, 204, 21, 0.5);
-  color: #fef3c7;
-}
-
-.hud-journey-row b {
-  color: #facc15;
-}
-
 .hud-boost-row span {
   color: #bbf7d0;
 }
 
 @media (max-width: 480px) {
   :root {
-    --hud-zone-height: 214px;
+    --hud-zone-height: 238px;
   }
 
   .hud-travel-panel {
@@ -345,15 +334,12 @@ button {
     text-align: left;
   }
 
-  .hud-journey-row {
-    display: none;
-  }
 }
 
 @media (max-width: 360px) {
   :root {
     --safe-edge-padding: 14px;
-    --hud-zone-height: 232px;
+    --hud-zone-height: 254px;
   }
 
   .hud-route-line,
@@ -429,8 +415,9 @@ button {
 }
 
 .walk-btn {
-  width: min(74vw, 292px);
-  min-height: 62px;
+  width: min(58vw, 238px);
+  min-width: 176px;
+  min-height: 60px;
   border: 1px solid rgba(254, 240, 138, 0.82);
   border-radius: 16px;
   background: linear-gradient(180deg, #fde68a 0%, #fbbf24 54%, #f59e0b 100%);
@@ -442,12 +429,13 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.58rem;
+  gap: 0;
+  padding: 0.72rem 1.36rem;
   font-size: 1.08rem;
 }
 
 .walk-btn strong {
-  font-size: clamp(1.54rem, 7.2vw, 2.24rem);
+  font-size: clamp(1.54rem, 7vw, 2.12rem);
   line-height: 1;
 }
 
